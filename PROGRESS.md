@@ -4,7 +4,7 @@
 
 Phase A prototype implemented on `feat/phase-a-ui`. **UI approval is pending. Do not merge or start Phase B without explicit approval.**
 
-Private repository: https://github.com/EPSILON0-dev/MiQuest. Initial documentation commit: `5e7b29a` on main. GitHub owner and private visibility were verified through the CLI. The original session's network failures no longer apply; external execution is needed for network/Git writes in this sandbox.
+Private repository: https://github.com/EPSILON0-dev/MiQuest. Prototype PR: https://github.com/EPSILON0-dev/MiQuest/pull/1 (open, unmerged). Prototype commit: `9409636`. Initial documentation commit: `5e7b29a` on main. GitHub owner and private visibility were verified through the CLI. The original session's network failures no longer apply; external execution is needed for network/Git writes in this sandbox.
 
 ## Completed
 
@@ -32,9 +32,10 @@ Commands run from `frontend/`:
 
 Earlier failed checks exposed and resolved a TypeScript/ESLint peer-version mismatch, unit runner collecting E2E files, missing controlled-node measurements, stale tree-form defaults, ambiguous duplicate-name move destinations, and graph-control CSS import ordering. Browser subprocesses/local server startup require sandbox-approved execution; standalone approved `npm run test:e2e` works. No failed check was hidden or removed to obtain green.
 
+GitHub Actions passed on prototype commit `9409636`, including clean npm ci, lint, build, unit tests, all browser tests, and screenshot artifact upload: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43434429272.
+
 ## Remaining
 
-- Create/push the prototype commit and PR; record PR URL and CI result here.
 - User reviews screenshots/live prototype and explicitly approves UI or requests iteration.
 - Phase B (API, SQLite, MCP, real verification, deployment) remains unstarted and gated on approval.
 

@@ -13,7 +13,7 @@ DESIGN.md defines the agreed scope and acceptance criteria.
 - [x] Implement graph navigation, positions, automatic layout, modal/focus handling, responsive navigation, and view restoration.
 - [x] Implement local project/page/quest editing, dependencies, membership/home trees, ordered pins, icons, and safe deletion.
 - [x] Test invariants and critical interactions; build/lint; capture and inspect 1440×900 and 390×844 screenshots.
-- [ ] Create PR and provide launch instructions and walkthrough.
+- [x] Create PR and provide launch instructions and walkthrough.
 - [ ] **Explicit user UI approval. Stop here until granted.**
 
 ## Phase B — only after UI approval
