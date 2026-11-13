@@ -1,5 +1,7 @@
 # MiQuest handover
 
+> Historical handover from the earlier session. Work has since resumed; see PROGRESS.md for current repository, prototype, validation, and approval-gate status.
+
 ## Immediate task
 
 The user asked to stop this session and write this handover so a new agent can continue. Do not keep retrying network access in this session.

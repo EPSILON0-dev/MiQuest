@@ -9,3 +9,5 @@ test-results/
 *.log
 __pycache__/
 .venv/
+
+.playwright-mcp/
