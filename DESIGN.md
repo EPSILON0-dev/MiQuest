@@ -1,6 +1,6 @@
 # MiQuest: Web Application Design and Agent Implementation Specification
 
-**Status:** Scope agreed on 2026-11-13; UI prototype approval pending  
+**Status:** Redesign requirements agreed on 2026-11-13; UI prototype approval pending
 **Primary goal:** A beautiful, self-hosted, single-user quest graph that helps resume and advance long-running projects.  
 **Non-goal:** A general-purpose project-management suite.
 
@@ -24,7 +24,7 @@
 - Multiple independent projects, each with a directed acyclic graph (DAG) of quests and multiple pages/trees.
 - Shared quests across pages within a project: one identity, description, completion state, and verification history; separate position per page.
 - A home tree per quest, cross-tree navigation with quest highlighting, and manually ordered progression-wide pins.
-- Custom graph nodes with title, status, and concise progress context; pan, zoom, fit-to-view, selection, and draggable positions.
+- Dense icon-only graph nodes: standard quests are 52px circles; only quests explicitly typed `quest.milestone` are 72px diamonds. Pan, zoom, fit-to-view, selection, and draggable positions.
 - UI editing: create, edit, delete quests; create/remove dependency edges; edit quest descriptions and acceptance criteria.
 - Dependency validation, including no self-dependency, no cross-project edge, and no cycles.
 - Quest details modal showing description, prerequisites, next quests, acceptance criteria, verification history, and evidence.
@@ -39,7 +39,7 @@
 ### Explicitly excluded from v1
 
 - Accounts, teams, roles, notifications, calendar, time tracking, gamification points, GitHub integration, automatic repository scanning, embedded AI chat, model hosting, autonomous background verification, OR dependencies, cross-project edges, and mobile-native apps.
-- Elaborate workflow engines, microservices, task queues, complex authorization frameworks, specialized automatic winding/radial layout algorithms, and automatic next-task ranking.
+- Elaborate workflow engines, microservices, task queues, complex authorization frameworks, specialized automatic winding/radial layout algorithms, pixel styling, and automatic next-task ranking.
 - Uploads are excluded entirely, including quest icons and artwork. Use one bundled icon library.
 - Embedded agent chat and harness integration are deferred beyond v1; use an external agent client through MCP.
 
@@ -82,28 +82,31 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 ### Visual system and tree composition
 
 - Use shadcn/ui controls and centralized semantic CSS custom properties in the root stylesheet as the theme switchboard for colors, borders, radii, and shared visual settings.
+- Use a provisional charcoal/neutral palette through centralized semantic CSS variables. Do not add pixel styling.
 - Use one bundled icon library, with stable icon names for agents, a default icon, and a searchable manual picker. No uploads.
-- Linear quest chains follow readable paths that may twist and turn. Complex trees may use radial/star compositions with central milestones and smaller prerequisite goals outward.
-- Users and agents position nodes; provide basic automatic layout on demand. Specialized automatic composition is not required.
+- Quest nodes are dense and icon-only: 52px circles for ordinary quests, 72px diamonds only for explicit `quest.milestone` quests. Never add permanent node labels.
+- Linear quest chains can wind manually; radial arrangements may place a central milestone with prerequisite goals outward. Provide a basic automatic layout for editing only; specialized automatic composition is not required.
 
 ### Main layout
 
 - **Left sidebar:** collapsible projects/progressions revealing their pages/trees. Settings at the bottom; no account controls.
-- **Top bar:** current progression and tree names, add quest, auto-layout, and fit view.
+- **Top bar:** compact 44px toolbar with current progression/tree and a global Edit mode switch (initially off). Creation and Auto layout controls appear only in Edit mode. Fit view sits at the lower-left of the canvas.
 - **Main canvas:** active tree occupies most of the viewport; understated background; directional dependency edges; smooth pan/zoom; selected node emphasized.
-- **Pinned quests:** manually ordered quest-title shortcuts in the top-right of the main area, scoped to the current progression, including quests on other pages. Clicking opens the quest on its home tree. Pins add no separate task-management behavior.
-- **Quest details:** modal over the tree with a blurred background. Its title bar contains the quest name and Back button. Back closes the modal, removes the blur, and restores the tree view.
-- **Modal content:** description and visible acceptance criteria; two columns for prerequisites/tasks/goals and next quests, using icons and names; expandable verification history/evidence with agent verification and human override clearly distinguished. An Edit button opens manual fields.
+- **Pinned quests:** manually ordered quest-title shortcuts in a collapsible top-right panel, initially closed, with a pin icon and count. Pins are progression-wide, including quests on other pages; clicking opens the quest on its home tree. Normal mode supports pin/unpin, drag reordering, and keyboard reordering; pins add no separate task-management behavior.
+- **Quest details:** modal over the tree with a blurred background. Title bar contains Back, icon, title, and pin control. Back closes the modal, removes the blur, and restores the tree view.
+- **Modal content:** two upper columns show prerequisites and What's next as navigable icons; description and acceptance criteria follow below. Verification history/evidence is expandable, with agent verification and human override clearly distinguished.
+- **Edit mode:** one global switch, initially off and reset to off on reload. When on, it reveals all CRUD actions, override controls, layout actions, dependency handles, and enables node dragging. Normal mode keeps the graph navigable and supports pin/unpin, keyboard pin reorder, and quest inspection.
+- **Hover/focus tooltip:** a large dark rectangular tooltip shows only title, description, and status. Descriptions longer than 320 characters are truncated with a “Click to read more” affordance. Click, Enter, or one tap opens the full modal.
 - **Cross-tree links:** a dependency absent from the current page shows a link to its home tree. Clicking opens that tree and briefly highlights/pings the quest. The modal lists all prerequisites and next quests, including those on other pages.
 - **Narrow screens:** left navigation becomes a drawer, pins become a compact expandable list, and the modal fills the screen. The graph remains pannable.
-- **View restoration:** localStorage remembers the last progression/tree and each tree's pan/zoom. Reopening restores that context with the modal closed. Missing/deleted saved targets fall back to an available tree or the empty state.
+- **View restoration:** localStorage remembers the last progression/tree and each tree's canvas size and pan/zoom, preserving the same centered view across desktop and phone. Accept legacy x/y/zoom records. Reopening restores the view with Edit mode off and the modal closed. Missing/deleted saved targets fall back to an available tree or the empty state.
 - **Empty state:** clear calls to create a project, tree, or first quest as appropriate.
-- No right-hand chat sidebar in v1.
+- No oversized canvas heading, subtitle, progress strip, bottom bar/legend, sidebar slogan, or right-hand chat sidebar in v1.
 
 ### Node design
 
-- Quest icon and concise title, readable at normal zoom.
-- Distinct visual treatment for `locked`, `available`, `in_progress`, `verified`, and `overridden`.
+- Icon-only quest node at the defined 52px/72px size; title and details are available through tooltip and modal.
+- Completed quests retain a green outline and check even when relocked, with a separate lock badge. Manual override uses a distinct shield cue. Active quests use a bright outline and dot; other locked quests are subdued.
 - Small prerequisite/verification indicator where helpful.
 - Connections show prerequisite -> dependent direction consistently.
 - Accessible contrast; do not rely on color alone for status.
@@ -111,8 +114,8 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 
 ### Editing interactions
 
-- Click a quest to open its modal; Back or Escape closes it. Keep focus within the modal while open and return focus to the originating control when closed.
-- Manually create, rename, and delete projects/pages; edit quest content, work state, icons, page membership, home tree, positions, dependencies, and pins. The initial page is the quest's home tree; it can be changed to another page containing that quest.
+- Click, Enter, or one touch on a quest opens its modal; Back or Escape closes it. Keep focus within the modal while open and return focus to the originating control when closed. Hover/focus exposes the tooltip.
+- Global Edit mode exposes creation, rename/deletion, override, layout, dependency handles, and node drag. The initial page is the quest's home tree; it can be changed to another page containing that quest. Normal mode still supports pin/unpin and drag/keyboard pin reorder.
 - Agent/MCP operations are the primary editing route, but the UI must cover the same core editing workflow. Completion remains governed by verification/override rules.
 - Separate “Remove from this page” from “Delete quest everywhere.” Global deletion requires confirmation and removes dependency links.
 - Every quest must appear on at least one page. Removing its last appearance requires moving it to another page or explicitly deleting it. Page deletion preserves quests by moving those with no other appearances, or explicitly deleting them with confirmation. Reassign a home tree when its appearance is removed.
@@ -126,7 +129,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 ### Static prototype requirements
 
 - Implement the real React app using hard-coded fixture data only. **No API, database, MCP, or verification backend code at this stage.**
-- Fixtures include at least two projects, a branching graph with 12–20 quests, mixed states, a blocked branch, and completed quests. Include multiple pages, a shared milestone, a cross-tree prerequisite link, pins, and a historically verified quest with currently unsatisfied prerequisites.
+- Fixtures include at least two projects, a branching graph with 12–20 quests, mixed states, a blocked branch, and completed quests. Include multiple pages, a shared explicit `quest.milestone`, a cross-tree prerequisite link, pins, and a historically verified quest with currently unsatisfied prerequisites. Include dense manual winding and radial compositions; basic auto-layout is for editing only.
 - All visual interactions work locally in frontend state, including page/shared-quest editing and edge creation. Fixture edits need not survive reload; localStorage view restoration is required. Verification displays and override forms use fixtures/local state only in Phase A.
 - Provide a repeatable local launch command and Playwright screenshot capture at desktop viewport (e.g. 1440x900) and narrow viewport (e.g. 390x844).
 - Agent should inspect screenshots and fix obvious layout issues before requesting review.
@@ -144,7 +147,7 @@ Use integer or UUID identifiers consistently. Suggested entities:
 
 **Pin:** `project_id`, `quest_id`, `sort_order`, unique per project/quest; quest must belong to that project.
 
-**Quest:** `id`, `project_id`, `title`, `description`, `acceptance_criteria` (plain text or structured list), `work_state` (`not_started`, `in_progress`, `blocked`), `completion_state` (`none`, `verified`, `overridden`), `icon_name`, `home_page_id`, timestamps. The home page must contain an appearance of the quest. Shared appearances do not duplicate quest content or verification state.
+**Quest:** `id`, `project_id`, `title`, `description`, `acceptance_criteria` (plain text or structured list), required `milestone` boolean (future suggested model field; only true quests render as diamonds), `work_state` (`not_started`, `in_progress`, `blocked`), `completion_state` (`none`, `verified`, `overridden`), `icon_name`, `home_page_id`, timestamps. The home page must contain an appearance of the quest. Shared appearances do not duplicate quest content or verification state.
 
 **Dependency:** `quest_id` (dependent), `depends_on_quest_id` (prerequisite), composite unique key. Both quests must belong to the same project.
 
@@ -258,7 +261,7 @@ Only after Phase A approval:
 ### UI approval gate
 
 - The user can launch a static web app and inspect a convincing quest graph.
-- Node and edge editing works in memory.
+- Node and edge editing works in memory through global Edit mode; icon-only nodes, tooltips, status cues, and quest modal match this specification.
 - Quest modal is usable and visually coherent, blurs the tree behind it, and restores the tree when closed.
 - Shared quests, page navigation, cross-tree links/highlighting, pins, icons, and localStorage view restoration work with fixtures.
 - Desktop and narrow layouts do not have major clipping or broken controls.
