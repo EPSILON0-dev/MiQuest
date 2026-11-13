@@ -2,7 +2,7 @@
 
 A self-hosted, single-user quest graph for resuming and advancing long-running projects.
 
-Phase A is an interactive frontend prototype: two progressions, 18 quests, three trees, shared milestones, cross-tree links, pins, and fixture verification history. Changes are held in memory. Your last tree and each tree's pan/zoom are restored after reload; quest journals start closed.
+Phase A is an interactive frontend prototype: two progressions, 18 quests, three trees, shared milestones, cross-tree links, pins, and fixture verification history. Quests appear as 52px icon circles, with explicit milestones as 72px diamonds; title, description, and status appear on hover/focus. Changes are held in memory. Your last tree and each tree's canvas size and pan/zoom are restored after reload; Edit mode resets off and the pin panel starts closed.
 
 ## Run locally
 
@@ -18,14 +18,14 @@ Open http://127.0.0.1:5173. This preview runs on loopback. No backend, accounts,
 
 ## Try the prototype
 
-1. Explore **Atlas → Foundations**. Pan, zoom, drag quests, use Fit view, or reorganize with Auto layout.
-2. Open **Shape the architecture** for its journal. Back or Escape restores focus and the unblurred tree. Edit its fields, icon, dependencies, tree memberships, home tree, and positions.
-3. Open **A useful first version** on either Atlas tree: both appearances share one identity. Pin shortcuts open quests on their home tree and highlight them; use their arrows to reorder.
+1. Explore **Atlas → Foundations**. Pan and zoom; Fit view is at the lower-left. Turn on Edit mode to drag quests, use Auto layout, or access editing controls. The switch resets off on reload.
+2. Hover or focus a quest to see its title, description, and status. Long descriptions show “Click to read more.” Click, press Enter, or tap once to open the full journal; Back or Escape restores focus and the unblurred tree. The journal has prerequisite and What's next columns above description and acceptance criteria, with expandable history.
+3. Open **A useful first version** on either Atlas tree: both appearances share one identity. Open the collapsed pins panel with its icon/count; pinned quests open on their home tree, and drag their grip or use the arrows to reorder them. Pin/unpin and both reorder methods work in normal mode.
 4. On **Launch path**, follow the cross-tree prerequisite or inspect **Review the experience**: historical verification remains visible while a prerequisite is unsatisfied.
-5. Add a quest from the toolbar or canvas context menu. Connect handles or use workspace settings. Click an edge to remove it; cycles are rejected.
-6. Use workspace settings to create/rename/delete progressions and trees. Last appearances cannot be removed; tree deletion requires moving otherwise orphaned quests. Global quest deletion requires confirmation.
-7. Try the local human override/reopen form with a reason and confirmation, then inspect its history. These are prototype records, not backend verification.
-8. At phone width, use the navigation drawer, expandable pins, and full-screen journal. The graph stays pannable.
+5. Turn on Edit mode to add a quest from the toolbar or canvas context menu, connect handles, or edit workspace settings. Click an edge to remove it; cycles are rejected.
+6. In Edit mode, create/rename/delete progressions and trees. Last appearances cannot be removed; tree deletion requires moving otherwise orphaned quests. Global quest deletion requires confirmation.
+7. In Edit mode, try the local human override/reopen form with a reason and confirmation, then inspect its history. These are prototype records, not backend verification.
+8. At phone width, use the navigation drawer, collapsed pins, and full-screen journal. The saved canvas size and pan/zoom restore the centered view across desktop and phone; the graph stays pannable.
 
 ## Validate and capture screenshots
 
@@ -38,7 +38,7 @@ npm exec playwright -- install chromium
 npm run test:e2e
 ```
 
-Browser tests automatically start the preview and capture [desktop](docs/screenshots/desktop.png), [desktop journal](docs/screenshots/desktop-journal.png), [narrow](docs/screenshots/narrow.png), and [narrow journal](docs/screenshots/narrow-journal.png). They use an existing `/usr/bin/chromium` when available, otherwise Playwright's installed Chromium. Set `CHROME_PATH` to use another executable. GitHub Actions runs the same checks and uploads screenshots.
+Browser tests automatically start the preview and capture five screenshots: [desktop](docs/screenshots/desktop.png), [tooltip](docs/screenshots/tooltip.png), [desktop journal](docs/screenshots/desktop-journal.png), [narrow](docs/screenshots/narrow.png), and [narrow journal](docs/screenshots/narrow-journal.png). They use an existing `/usr/bin/chromium` when available, otherwise Playwright's installed Chromium. Set `CHROME_PATH` to use another executable. GitHub Actions runs the same checks and uploads screenshots.
 
 The root stylesheet `frontend/src/index.css` holds semantic theme settings. Icons use stable names from one bundled Lucide registry; there are no uploads.
 

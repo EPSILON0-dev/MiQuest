@@ -137,6 +137,16 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
           <option value="blocked">Blocked</option>
         </select>
       </label>
+      <label className="field-check">
+        <input
+          type="checkbox"
+          checked={draft.milestone}
+          onChange={(event) =>
+            setDraft({ ...draft, milestone: event.target.checked })
+          }
+        />
+        Milestone
+      </label>
       <label className="field">
         Search icons
         <input

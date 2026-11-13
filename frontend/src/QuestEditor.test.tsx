@@ -81,6 +81,7 @@ describe("QuestEditor", () => {
     fireEvent.change(screen.getByLabelText("Title"), {
       target: { value: "Shared milestone" },
     });
+    fireEvent.click(screen.getByRole("checkbox", { name: "Milestone" }));
     fireEvent.change(screen.getByLabelText("Home tree"), {
       target: { value: "launch" },
     });
@@ -94,7 +95,12 @@ describe("QuestEditor", () => {
     save();
     const result = onSave.mock.calls[0][0];
     expect(result.quests.filter((item) => item.id === quest.id)).toEqual([
-      { ...quest, title: "Shared milestone", homePageId: "launch" },
+      {
+        ...quest,
+        title: "Shared milestone",
+        homePageId: "launch",
+        milestone: false,
+      },
     ]);
     expect(
       result.appearances.filter((item) => item.questId === quest.id),

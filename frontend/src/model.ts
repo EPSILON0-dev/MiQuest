@@ -11,6 +11,7 @@ export type Quest = {
   workState: QuestState;
   completionState: CompletionState;
   icon: string;
+  milestone: boolean;
   homePageId: string;
 };
 export type Appearance = {
@@ -458,29 +459,30 @@ export function createFixture(): Model {
       workState,
       completionState,
       icon,
+      milestone: ["milestone", "launchday", "practice"].includes(id),
       description: context[id][0],
       acceptanceCriteria: context[id][1],
     }),
   );
   const coordinates: Record<string, [number, number]> = {
-    vision: [40, 220],
-    research: [290, 80],
-    audience: [290, 340],
-    principles: [540, 30],
-    architecture: [540, 220],
-    prototype: [790, 150],
-    feedback: [790, 360],
-    milestone: [1040, 230],
-    story: [50, 80],
-    identity: [50, 300],
-    site: [320, 80],
-    review: [320, 300],
-    launchday: [850, 200],
-    space: [40, 200],
-    ritual: [300, 100],
-    ideas: [300, 310],
-    practice: [560, 200],
-    share: [820, 200],
+    vision: [0, 165],
+    research: [85, 40],
+    audience: [85, 285],
+    principles: [90, -80],
+    architecture: [205, 40],
+    prototype: [320, 65],
+    feedback: [270, 310],
+    milestone: [300, 185],
+    story: [20, 80],
+    identity: [125, 135],
+    site: [230, 80],
+    review: [335, 135],
+    launchday: [550, 180],
+    space: [20, 165],
+    ritual: [130, 65],
+    ideas: [130, 265],
+    practice: [250, 165],
+    share: [260, 300],
   };
   const appearances: Appearance[] = quests.map((q) => ({
     pageId: q.homePageId,
@@ -488,7 +490,7 @@ export function createFixture(): Model {
     x: coordinates[q.id][0],
     y: coordinates[q.id][1],
   }));
-  appearances.push({ pageId: "launch", questId: "milestone", x: 580, y: 200 });
+  appearances.push({ pageId: "launch", questId: "milestone", x: 420, y: 250 });
   const edges = [
     ["research", "vision"],
     ["audience", "vision"],

@@ -12,6 +12,7 @@ DESIGN.md defines the agreed scope and acceptance criteria.
 - [x] Build two fixture projects with 12–20 branching quests, multiple pages, shared milestone, mixed states, historical verification, cross-tree links, and pins.
 - [x] Implement graph navigation, positions, automatic layout, modal/focus handling, responsive navigation, and view restoration.
 - [x] Implement local project/page/quest editing, dependencies, membership/home trees, ordered pins, icons, and safe deletion.
+- [x] Implement the agreed dense icon-only redesign: milestone diamonds, title/description/status tooltips, detailed modal, global Edit mode, compact toolbar, collapsible pins, status cues, and cross-device canvas view restoration.
 - [x] Test invariants and critical interactions; build/lint; capture and inspect 1440×900 and 390×844 screenshots.
 - [x] Create PR and provide launch instructions and walkthrough.
 - [ ] **Explicit user UI approval. Stop here until granted.**

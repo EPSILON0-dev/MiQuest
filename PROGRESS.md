@@ -1,42 +1,48 @@
 # Progress
 
-## Current state — 2026-11-13
+## Current state — 2026-11-13, redesign
 
-Phase A prototype implemented on `feat/phase-a-ui`. **UI approval is pending. Do not merge or start Phase B without explicit approval.**
+The user rejected the first card-based visual direction, supplied FTB graph/modal/tooltip references, and confirmed the redesign through a design interview. This authorizes the redesign, **not approval of the finished UI**. Phase A review remains pending. Do not merge or start Phase B without explicit approval.
 
-Private repository: https://github.com/EPSILON0-dev/MiQuest. Prototype PR: https://github.com/EPSILON0-dev/MiQuest/pull/1 (open, unmerged). Prototype commit: `9409636`. Initial documentation commit: `5e7b29a` on main. GitHub owner and private visibility were verified through the CLI. The original session's network failures no longer apply; external execution is needed for network/Git writes in this sandbox.
+Private repository: https://github.com/EPSILON0-dev/MiQuest. Branch: `feat/phase-a-ui`. PR: https://github.com/EPSILON0-dev/MiQuest/pull/1 (open, unmerged).
 
-## Completed
+## Completed redesign
 
-- Renamed agreed design to DESIGN.md; created roadmap, repository instructions, README, and ignore rules; committed/published documentation.
-- React/strict TypeScript/Vite frontend with Tailwind, shadcn/Radix dialog composition, Lucide icons, React Flow, and on-demand Dagre layout.
-- Two progressions, three trees, 18 branching quest fixtures, independent shared-quest positions, mixed work/completion states, cross-tree links, ordered pins, and historical verification with an unsatisfied prerequisite.
-- Pannable/zoomable/draggable graph, edge creation/removal, toolbar/context-menu quest creation, navigation/home-tree highlighting, full journal modal, editable content/icons/memberships/home/positions/prerequisites.
-- Local progression/tree CRUD, cycle/self/cross-project validation, orphan safeguards, explicit global deletion confirmation, tree deletion with destination selection by number (duplicate names are distinguishable).
-- Local reasoned human override/reopen records and expandable history. No backend verification code.
-- localStorage last-tree and per-tree viewport restoration with malformed/stale data fallback. Fixture edits intentionally reset after reload.
-- Narrow navigation drawer with keyboard containment, expandable pins, full-screen modal, modal focus trap/return, Escape/Back close, and reduced-motion support.
-- GitHub Actions workflow for install, lint, build, unit tests, browser tests, and screenshot artifacts.
-- README launch instructions, repeatable screenshot command, and usage walkthrough.
+- Replaced quest cards with icon-only 52px circles and explicit 72px milestone diamonds. The milestone editor field is shared across appearances.
+- Added substantial dark hover/focus tooltips with title, description, and status only. Descriptions over 320 characters truncate with a read-more hint; full text remains in the modal. Touch opens the modal directly.
+- Completed quests use green outlines/checkmarks; locked history retains them with a separate lock badge. Human overrides also display a shield. Active and blocked work have distinct indicators.
+- Reworked fixture positions into compact winding paths and inward milestone branches; four cardinal handles keep straight edges attached as quests move. Basic Dagre layout remains on demand.
+- Removed oversized canvas heading/subtitle/progress, footer/legend/hint bar, sidebar slogan, gradients, and purple palette. Provisional charcoal colors and shared visual settings are centralized in the root stylesheet.
+- Added a global Edit mode switch, initially off and reset on reload. It gates all CRUD, content editing, overrides/reopens, layout, dependency controls, and node dragging while remaining active across tree navigation.
+- Pins are a collapsed icon/count button by default. Expanded titles support native drag reordering and keyboard-accessible move buttons in normal mode; pin/unpin remains available in the modal.
+- Modal follows the references: compact title/icon/Back/pin bar, prerequisites and What's next icon sections above description/acceptance criteria, then expandable history. Preserved blurred background and focus trapping/return.
+- Saved viewports include canvas dimensions so restoration preserves the viewed graph center across desktop/phone sizes. Older x/y/zoom-only records still load.
+- Preserved fixture/local-state project/tree/quest editing, shared identity, independent positions, cross-tree home navigation/highlighting, graph validation, and deletion/orphan safeguards. No backend or new dependencies were added.
 
-## Validation
+## Actual validation
 
-Commands run from `frontend/`:
+Run from `frontend/` on the current redesign:
 
-- `npm run build` — passes strict TypeScript and production build; Vite reports one approximately 571 kB JavaScript chunk (approximately 182 kB gzip), above its 500 kB advisory threshold.
-- `npm run lint` — passes ESLint with no warnings.
-- `npm test` — 13 unit/component tests pass across graph validation, membership/deletion safeguards, historical relocking, editor validation, and storage fallbacks.
-- `npm run test:e2e` — 10 Chromium tests pass: shared edits, focus return/traps, navigation/pins, drag/positions, view restoration, quest CRUD, cycle rejection, project/tree creation, duplicate-name tree deletion/moves, overrides/reopens, and responsive screenshots.
-- Captured and inspected screenshots at 1440×900 and 390×844 in `docs/screenshots/`, including journal views. Fixed graph controls styling/position and verified screenshot output again.
-- `npm audit --json` — seven moderate findings in the development-only TypeScript ESLint/minimatch dependency chain. No runtime dependency findings. A forced downgrade was not applied.
+- `npm run build`: passed strict TypeScript and production build. Vite reports a ~606 kB JavaScript chunk (~194 kB gzip), above its 500 kB advisory threshold.
+- `npm run lint`: passed with no warnings.
+- `npm test`: 14 tests passed across three unit/component files, including milestone editing and viewport restoration across canvas sizes.
+- `npm run test:e2e`: 13 Chromium tests passed. Covers icon shapes/accessibility, tooltip content/truncation/focus, touch direct-open, edit-mode gating/reset, pin drag/keyboard reorder in normal mode, node drag, shared edits, memberships/home/positions, cycle rejection, project/tree creation, orphan/duplicate-name tree deletion, overrides/reopens/history, responsive views, modal focus/Escape.
+- Captured and inspected five screenshots: `docs/screenshots/desktop.png`, `tooltip.png`, `desktop-journal.png`, `narrow.png`, and `narrow-journal.png` at 1440×900 / 390×844.
+- Focused read-only review found no remaining gating, pin keyboard, or viewport defect. Integration checks found and fixed React Flow pointer-event handling in normal mode, its default canvas background, and tooltip Escape consuming the modal shortcut.
+- Fixed a browser test's zoom wait to compare against the actual previous zoom before reading the saved viewport; the earlier fixed threshold could pass before the animation finished.
 
-Earlier failed checks exposed and resolved a TypeScript/ESLint peer-version mismatch, unit runner collecting E2E files, missing controlled-node measurements, stale tree-form defaults, ambiguous duplicate-name move destinations, and graph-control CSS import ordering. Browser subprocesses/local server startup require sandbox-approved execution; standalone approved `npm run test:e2e` works. No failed check was hidden or removed to obtain green.
+The earlier dependency audit reported seven moderate findings in the development-only TypeScript ESLint/minimatch chain. No dependencies changed during the redesign and no forced downgrade was applied.
 
-GitHub Actions passed on prototype commit `9409636`, including clean npm ci, lint, build, unit tests, all browser tests, and screenshot artifact upload: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43434429272.
+## Publication / next step
 
-## Remaining
+- Redesign is prepared for publication on existing PR #1; local checks pass. GitHub CI result will be reported after publication.
+- User reviews the live prototype/screenshots and explicitly approves the UI or requests further iteration.
+- Final palette remains undecided. API, SQLite, MCP, real verification, and deployment remain unstarted and gated on UI approval.
 
-- User reviews screenshots/live prototype and explicitly approves UI or requests iteration.
-- Phase B (API, SQLite, MCP, real verification, deployment) remains unstarted and gated on approval.
+## Earlier milestones
 
-Limits: in-memory fixture editing, Chromium-only browser validation, no cross-browser/device-hardware testing, and no automated contrast audit. Backend persistence/security tests are intentionally absent at Phase A.
+- `5e7b29a`: initial documentation and private repository publication.
+- `9409636`: original interactive prototype (visual design superseded by this redesign).
+- `c7cf82c`: original progress/PR record. Original CI passed: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43434429272.
+
+Limits: fixture edits reset after reload; only view context persists. Chromium desktop and emulated touch/narrow checks were run, not physical-device or cross-browser validation. Backend persistence/security checks are outside Phase A.

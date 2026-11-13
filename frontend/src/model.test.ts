@@ -58,7 +58,7 @@ describe("tree membership", () => {
       "launch",
     );
     expect(result.appearances.filter((a) => a.questId === "milestone")).toEqual(
-      [{ pageId: "launch", questId: "milestone", x: 580, y: 200 }],
+      [{ pageId: "launch", questId: "milestone", x: 420, y: 250 }],
     );
   });
 
@@ -73,8 +73,8 @@ describe("tree membership", () => {
     expect(result.appearances.find((a) => a.questId === "vision")).toEqual({
       pageId: "launch",
       questId: "vision",
-      x: 40,
-      y: 220,
+      x: 0,
+      y: 165,
     });
     expect(
       result.appearances.filter((a) => a.questId === "milestone"),

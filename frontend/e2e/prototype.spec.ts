@@ -6,10 +6,9 @@ test("journal, focus, shared content, pins and viewport restoration", async ({
   const errors: string[] = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await page.goto("/");
-  await expect(page.locator(".quest-card")).toHaveCount(8);
-  const quest = page
-    .locator(".quest-card")
-    .filter({ hasText: "Shape the architecture" });
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await expect(page.locator(".quest-node")).toHaveCount(8);
+  const quest = page.locator('[data-id="architecture"] .quest-node');
   await quest.click();
   await expect(page.getByRole("dialog")).toBeVisible();
   await expect(page.locator(".modal-overlay")).toHaveCSS(
@@ -20,10 +19,7 @@ test("journal, focus, shared content, pins and viewport restoration", async ({
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(quest).toBeFocused();
   await page.getByRole("button", { name: "Launch path", exact: true }).click();
-  await page
-    .locator(".quest-card")
-    .filter({ hasText: "A useful first version" })
-    .click();
+  await page.locator('[data-id="milestone"] .quest-node').click();
   await page.getByRole("button", { name: "Edit", exact: true }).click();
   await page
     .getByLabel("Title", { exact: true })
@@ -32,26 +28,20 @@ test("journal, focus, shared content, pins and viewport restoration", async ({
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: "Foundations", exact: true }).click();
   await expect(
-    page.locator(".quest-card").filter({ hasText: "Shared milestone edited" }),
+    page.getByRole("button", { name: /Shared milestone edited/ }),
   ).toBeVisible();
+  await page.getByRole("button", { name: "Pinned quests" }).click();
   await page
     .getByRole("button", { name: /Write the story/ })
     .first()
     .click();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Launch path",
-  );
-  await expect(page.locator(".quest-card.ping")).toContainText(
-    "Write the story",
-  );
-  await page
-    .locator(".quest-card")
-    .filter({ hasText: "Write the story" })
-    .click();
+  await expect(page.locator(".breadcrumbs strong")).toHaveText("Launch path");
+  await expect(
+    page.locator('[data-id="story"] .quest-node.ping'),
+  ).toBeVisible();
+  await page.locator('[data-id="story"] .quest-node').click();
   await page.reload();
-  await expect(page.getByRole("heading", { level: 1 })).toHaveText(
-    "Launch path",
-  );
+  await expect(page.locator(".breadcrumbs strong")).toHaveText("Launch path");
   await expect(page.getByRole("dialog")).toHaveCount(0);
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("miquest-view")!),
@@ -64,18 +54,16 @@ test("create, validate dependency, protect last appearance, and delete quest", a
   page,
 }) => {
   await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
   await page.getByRole("button", { name: "Add quest", exact: true }).click();
   await page.getByLabel("Title", { exact: true }).fill("A small next step");
   await page
     .getByLabel("Description", { exact: true })
     .fill("A local prototype quest.");
   await page.getByRole("button", { name: "Save quest" }).click();
-  await expect(page.locator(".quest-card")).toHaveCount(9);
-  await page.getByRole("button", { name: "Fit tree to view" }).click();
-  await page
-    .locator(".quest-card")
-    .filter({ hasText: "A small next step" })
-    .click();
+  await expect(page.locator(".quest-node")).toHaveCount(9);
+  await page.getByRole("button", { name: "Fit View" }).click();
+  await page.getByRole("button", { name: /A small next step/ }).click();
   await page.getByRole("button", { name: "Remove from this tree" }).click();
   await expect(page.getByRole("alert")).toContainText("at least one tree");
   page.once("dialog", (dialog) => dialog.dismiss());
@@ -83,7 +71,7 @@ test("create, validate dependency, protect last appearance, and delete quest", a
   await expect(page.getByRole("dialog")).toBeVisible();
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete quest everywhere" }).click();
-  await expect(page.locator(".quest-card")).toHaveCount(8);
+  await expect(page.locator(".quest-node")).toHaveCount(8);
   await page.getByRole("button", { name: "Tree actions" }).click();
   await page
     .getByLabel("Prerequisite quest", { exact: true })
@@ -99,34 +87,68 @@ test("desktop and narrow screenshots, drawer, full-screen journal", async ({
   page,
 }) => {
   await page.goto("/");
-  await expect(page.locator(".quest-card")).toHaveCount(8);
-  await expect(page.locator(".react-flow__controls")).toHaveCSS(
-    "bottom",
-    "55px",
+  await expect(page.locator(".quest-node")).toHaveCount(8);
+  const architecture = page.locator('[data-id="architecture"] .quest-node');
+  await expect(architecture).toHaveAttribute(
+    "aria-label",
+    /Shape the architecture — /,
   );
+  await expect(architecture).toHaveText("");
+  await expect(architecture).toHaveCSS("width", "52px");
+  await expect(page.locator('[data-id="milestone"] .quest-node')).toHaveClass(
+    /milestone/,
+  );
+  await expect(page.locator('[data-id="milestone"] .quest-node')).toHaveCSS(
+    "width",
+    "72px",
+  );
+  await expect(
+    page.getByRole("button", { name: "Add quest", exact: true }),
+  ).toHaveCount(0);
   await page.screenshot({ path: "../docs/screenshots/desktop.png" });
-  await page
-    .locator(".quest-card")
-    .filter({ hasText: "Shape the architecture" })
-    .click();
+  await page.locator('[data-id="architecture"] .quest-node').hover();
+  await expect(page.getByRole("tooltip")).toContainText(
+    "Shape the architecture",
+  );
+  await expect(page.getByRole("tooltip")).not.toContainText(
+    "Acceptance criteria",
+  );
+  await page.screenshot({ path: "../docs/screenshots/tooltip.png" });
+  await page.locator('[data-id="architecture"] .quest-node').click();
+  await expect(page.locator(".relations-grid")).toContainText("Prerequisites");
+  await expect(page.locator(".relations-grid")).toContainText("What's next");
+  expect(
+    await page
+      .locator(".relations-grid")
+      .evaluate((el) =>
+        Boolean(
+          el.compareDocumentPosition(
+            document.querySelector(".quest-description")!,
+          ) & Node.DOCUMENT_POSITION_FOLLOWING,
+        ),
+      ),
+  ).toBe(true);
   await page.screenshot({ path: "../docs/screenshots/desktop-journal.png" });
   await page.keyboard.press("Escape");
   await page.setViewportSize({ width: 390, height: 844 });
   await page.reload();
-  await expect(page.locator(".quest-card")).toHaveCount(8);
+  await expect(page.locator(".quest-node")).toHaveCount(8);
+  const phoneMilestone = await page
+    .locator('[data-id="milestone"] .quest-node')
+    .boundingBox();
+  expect(phoneMilestone).not.toBeNull();
+  expect(phoneMilestone!.x).toBeLessThan(390);
+  expect(phoneMilestone!.x + phoneMilestone!.width).toBeGreaterThan(0);
   await page.screenshot({ path: "../docs/screenshots/narrow.png" });
   await page.getByRole("button", { name: "Open navigation" }).click();
   await page.getByRole("button", { name: "Launch path", exact: true }).click();
   await expect(page.locator(".sidebar")).not.toHaveClass(/is-open/);
-  await page.getByRole("button", { name: /PINNED QUESTS/ }).click();
+  await page.getByRole("button", { name: "Pinned quests" }).click();
   await page
     .getByRole("button", { name: /Write the story/ })
     .first()
     .click();
-  await page
-    .locator(".quest-card")
-    .filter({ hasText: "Write the story" })
-    .click();
+  await page.locator('[data-id="story"] .quest-node').click();
   await expect(page.getByRole("dialog")).toHaveCSS("height", "844px");
   await page.screenshot({ path: "../docs/screenshots/narrow-journal.png" });
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(
@@ -138,6 +160,10 @@ test("desktop and narrow screenshots, drawer, full-screen journal", async ({
 
 test("dragging, pin order, and saved viewport", async ({ page }) => {
   await page.goto("/");
+  const edit = page.getByRole("switch", { name: "Edit mode" });
+  await expect(edit).toHaveAttribute("aria-checked", "false");
+  const pins = page.getByRole("button", { name: "Pinned quests" });
+  await expect(pins).toHaveAttribute("aria-expanded", "false");
   const card = page.locator('[data-id="architecture"]');
   const before = await card.evaluate(
     (el) => (el as HTMLElement).style.transform,
@@ -148,6 +174,16 @@ test("dragging, pin order, and saved viewport", async ({ page }) => {
   await page.mouse.down();
   await page.mouse.move(bounds.x + 75, bounds.y + 90, { steps: 10 });
   await page.mouse.up();
+  expect(await card.evaluate((el) => (el as HTMLElement).style.transform)).toBe(
+    before,
+  );
+  await edit.click();
+  const editBounds = await card.boundingBox();
+  if (!editBounds) throw new Error("Quest is missing in edit mode");
+  await page.mouse.move(editBounds.x + 25, editBounds.y + 25);
+  await page.mouse.down();
+  await page.mouse.move(editBounds.x + 65, editBounds.y + 85, { steps: 10 });
+  await page.mouse.up();
   const after = await card.evaluate(
     (el) => (el as HTMLElement).style.transform,
   );
@@ -157,11 +193,25 @@ test("dragging, pin order, and saved viewport", async ({ page }) => {
   expect(await card.evaluate((el) => (el as HTMLElement).style.transform)).toBe(
     after,
   );
+  await edit.click();
+  await pins.click();
   await page
     .getByRole("button", { name: "Move Write the story up", exact: true })
     .click();
   await expect(page.locator(".pin-row").nth(1)).toContainText(
     "Write the story",
+  );
+  await page
+    .locator('[data-quest-id="story"]')
+    .dragTo(page.locator(".pin-row").first());
+  await expect(page.locator(".pin-row").first()).toHaveAttribute(
+    "data-quest-id",
+    "story",
+  );
+  const oldZoom = await page.evaluate(
+    () =>
+      JSON.parse(localStorage.getItem("miquest-view")!).viewports.foundations
+        .zoom,
   );
   await page.getByRole("button", { name: /^zoom in$/i }).click();
   await expect
@@ -172,12 +222,14 @@ test("dragging, pin order, and saved viewport", async ({ page }) => {
             .foundations?.zoom,
       ),
     )
-    .toBeGreaterThan(0.9);
+    .toBeGreaterThan(oldZoom);
   const viewport = await page.evaluate(
     () =>
       JSON.parse(localStorage.getItem("miquest-view")!).viewports.foundations,
   );
   await page.reload();
+  await expect(edit).toHaveAttribute("aria-checked", "false");
+  await expect(pins).toHaveAttribute("aria-expanded", "false");
   await expect
     .poll(async () =>
       page
@@ -191,6 +243,7 @@ test("tree deletion moves orphaned quests to the chosen tree even with duplicate
   page,
 }) => {
   await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
   await page
     .getByRole("button", { name: "Workspace settings", exact: true })
     .click();
@@ -216,11 +269,8 @@ test("tree deletion moves orphaned quests to the chosen tree even with duplicate
     .getByRole("button", { name: "Launch path", exact: true })
     .last()
     .click();
-  await expect(page.locator(".quest-card")).toHaveCount(7);
-  await page
-    .locator(".quest-card")
-    .filter({ hasText: "Define the north star" })
-    .click();
+  await expect(page.locator(".quest-node")).toHaveCount(7);
+  await page.locator('[data-id="vision"] .quest-node').click();
   await expect(page.getByRole("dialog")).toContainText("Launch path");
 });
 
@@ -229,6 +279,7 @@ test("narrow navigation and journal keep keyboard focus inside", async ({
 }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
   await page.getByRole("button", { name: "Open navigation" }).click();
   await expect(page.locator(".sidebar .brand")).toBeFocused();
   await page.keyboard.press("Shift+Tab");
@@ -241,16 +292,61 @@ test("narrow navigation and journal keep keyboard focus inside", async ({
   await expect(
     page.getByRole("button", { name: "Open navigation" }),
   ).toBeFocused();
-  await page.getByRole("button", { name: "Add quest", exact: true }).click();
+  const quest = page.locator('[data-id="architecture"] .quest-node');
+  await quest.click();
   await expect(
     page.getByRole("button", { name: "Back", exact: true }),
   ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
-  await expect(
-    page.getByRole("button", { name: "Cancel", exact: true }),
-  ).toBeFocused();
+  await expect(page.getByRole("dialog").locator(":focus")).toBeVisible();
   await page.keyboard.press("Escape");
+  await expect(quest).toBeFocused();
+});
+
+test("long descriptions are truncated in the focus tooltip", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  const quest = page.locator('[data-id="architecture"] .quest-node');
+  await quest.click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  const description = `${"Long description ".repeat(24)}ending`;
+  await page
+    .getByRole("textbox", { name: "Description", exact: true })
+    .fill(description);
+  await page.getByRole("button", { name: "Save quest" }).click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await quest.focus();
+  const tooltip = page.getByRole("tooltip");
+  await expect(tooltip).toContainText("Click to read more");
+  await expect(tooltip).not.toContainText("ending");
+  await page.keyboard.press("Escape");
+  await expect(tooltip).not.toBeVisible();
+  await quest.click();
+  await expect(page.locator(".quest-description")).toHaveText(description);
+});
+
+test("touch opens the journal directly", async ({ browser, baseURL }) => {
+  const context = await browser.newContext({ hasTouch: true, baseURL });
+  const page = await context.newPage();
+  await page.goto("/");
+  await page.locator('[data-id="architecture"] .quest-node').tap();
+  await expect(page.getByRole("dialog")).toBeVisible();
+  await context.close();
+});
+
+test("Escape closes a journal even when a related quest tooltip is focused", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.locator('[data-id="architecture"] .quest-node').click();
+  await page.locator(".relations-grid .quest-node").first().focus();
+  await expect(page.getByRole("tooltip")).toContainText("Map the landscape");
+  await page.keyboard.press("Escape");
+  await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(
-    page.getByRole("button", { name: "Add quest", exact: true }),
+    page.locator('[data-id="architecture"] .quest-node'),
   ).toBeFocused();
 });
