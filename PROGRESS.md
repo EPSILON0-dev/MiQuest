@@ -35,7 +35,7 @@ The earlier dependency audit reported seven moderate findings in the development
 
 ## Publication / next step
 
-- Redesign is prepared for publication on existing PR #1; local checks pass. GitHub CI result will be reported after publication.
+- Redesign commit `9533b5d` is pushed to existing PR #1; title and description updated. Both GitHub Actions runs passed, including clean install, lint, build, unit/browser tests, and screenshot upload: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43440368682 and https://github.com/EPSILON0-dev/MiQuest/actions/runs/43440354993.
 - User reviews the live prototype/screenshots and explicitly approves the UI or requests further iteration.
 - Final palette remains undecided. API, SQLite, MCP, real verification, and deployment remain unstarted and gated on UI approval.
 
