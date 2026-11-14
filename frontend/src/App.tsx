@@ -9,7 +9,6 @@ import {
   Controls,
   Handle,
   Position,
-  MarkerType,
   ConnectionMode,
   type Node,
   type NodeProps,
@@ -307,7 +306,8 @@ export default function App() {
         id: `${d.dependsOnQuestId}-${d.questId}`,
         source: d.dependsOnQuestId,
         target: d.questId,
-        type: "straight",
+        type: "default",
+        animated: true,
         sourceHandle: horizontal
           ? dx > 0
             ? "right"
@@ -322,7 +322,6 @@ export default function App() {
           : dy > 0
             ? "top"
             : "bottom",
-        markerEnd: { type: MarkerType.ArrowClosed, width: 12, height: 12 },
         className:
           model.quests.find((q) => q.id === d.dependsOnQuestId)
             ?.completionState !== "none"
