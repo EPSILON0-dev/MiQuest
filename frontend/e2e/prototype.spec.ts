@@ -53,6 +53,19 @@ test("journal, focus, shared content, pins and viewport restoration", async ({
   expect(errors).toEqual([]);
 });
 
+test("switches the interface to Polish and restores the choice", async ({
+  page,
+}) => {
+  await page.goto("/");
+  await page.getByLabel("Language").selectOption("pl");
+
+  await expect(page.getByRole("switch", { name: "Tryb edycji" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Przypięte zadania" })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "pl");
+  await page.reload();
+  await expect(page.getByLabel("Język")).toHaveValue("pl");
+});
+
 test("create, validate dependency, protect last appearance, and delete quest", async ({
   page,
   ids,

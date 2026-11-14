@@ -7,6 +7,7 @@ import {
 } from "./model";
 import { QuestIcon } from "./icons";
 import { iconNames } from "./iconNames";
+import { useI18n } from "./i18n";
 
 type Props = {
   model: Model;
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
+  const t = useI18n();
   const pages = model.pages.filter(
     (page) => page.projectId === quest.projectId,
   );
@@ -47,10 +49,10 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
 
   function save(event: FormEvent) {
     event.preventDefault();
-    if (!draft.title.trim()) return setError("Enter a quest title.");
-    if (!selectedPages.length) return setError("Choose at least one tree.");
+    if (!draft.title.trim()) return setError(t.enterQuestTitle);
+    if (!selectedPages.length) return setError(t.chooseOneTree);
     if (!selectedPages.some((page) => page.id === draft.homePageId))
-      return setError("Choose a home tree containing this quest.");
+      return setError(t.chooseHomeTree);
     if (
       selectedPages.some(
         (page) =>
@@ -60,7 +62,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
           !Number.isFinite(Number(positions[page.id].y)),
       )
     )
-      return setError("Enter a valid position for each tree.");
+      return setError(t.validPosition);
     const updatedQuest = { ...draft, title: draft.title.trim() };
     let result: Model = {
       ...model,
@@ -89,7 +91,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
         result = addDependency(result, quest.id, dependency);
     } catch (cause) {
       return setError(
-        cause instanceof Error ? cause.message : "Unable to save dependencies.",
+        cause instanceof Error ? cause.message : t.dependencySaveError,
       );
     }
     onSave(result);
@@ -98,7 +100,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
   return (
     <form className="editor-form" onSubmit={save}>
       <label className="field">
-        Title
+        {t.title}
         <input
           value={draft.title}
           onChange={(event) =>
@@ -107,7 +109,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
         />
       </label>
       <label className="field">
-        Description
+        {t.description}
         <textarea
           value={draft.description}
           onChange={(event) =>
@@ -116,7 +118,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
         />
       </label>
       <label className="field">
-        Acceptance criteria
+        {t.criteria}
         <textarea
           value={draft.acceptanceCriteria}
           onChange={(event) =>
@@ -125,16 +127,16 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
         />
       </label>
       <label className="field">
-        Work state
+        {t.workState}
         <select
           value={draft.workState}
           onChange={(event) =>
             setDraft({ ...draft, workState: event.target.value as QuestState })
           }
         >
-          <option value="not_started">Not started</option>
-          <option value="in_progress">In progress</option>
-          <option value="blocked">Blocked</option>
+          <option value="not_started">{t.status.not_started}</option>
+          <option value="in_progress">{t.status.in_progress}</option>
+          <option value="blocked">{t.status.blocked}</option>
         </select>
       </label>
       <label className="field-check">
@@ -145,17 +147,17 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
             setDraft({ ...draft, milestone: event.target.checked })
           }
         />
-        Milestone
+        {t.milestone}
       </label>
       <label className="field">
-        Search icons
+        {t.searchIcons}
         <input
           value={iconSearch}
           onChange={(event) => setIconSearch(event.target.value)}
         />
       </label>
       <label className="field">
-        Icon
+        {t.icon}
         <select
           value={draft.icon}
           onChange={(event) => setDraft({ ...draft, icon: event.target.value })}
@@ -177,7 +179,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
         <QuestIcon name={draft.icon} size={20} />
       </span>
       <fieldset>
-        <legend>Trees</legend>
+        <legend>{t.trees}</legend>
         {pages.map((page) => (
           <label className="field-check" key={page.id}>
             <input
@@ -203,7 +205,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
         ))}
       </fieldset>
       <label className="field">
-        Home tree
+        {t.homeTree}
         <select
           value={draft.homePageId}
           onChange={(event) =>
@@ -211,7 +213,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
           }
         >
           <option value="" disabled>
-            Choose a tree
+            {t.chooseTree}
           </option>
           {selectedPages.map((page) => (
             <option key={page.id} value={page.id}>
@@ -222,9 +224,11 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
       </label>
       {selectedPages.map((page) => (
         <fieldset className="form-grid" key={page.id}>
-          <legend>{page.name} position</legend>
+          <legend>
+            {page.name} {t.position}
+          </legend>
           <label className="field">
-            X
+            {t.x}
             <input
               type="number"
               value={positions[page.id].x}
@@ -237,7 +241,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
             />
           </label>
           <label className="field">
-            Y
+            {t.y}
             <input
               type="number"
               value={positions[page.id].y}
@@ -252,7 +256,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
         </fieldset>
       ))}
       <fieldset>
-        <legend>Prerequisites</legend>
+        <legend>{t.prerequisites}</legend>
         {model.quests
           .filter(
             (item) =>
@@ -282,14 +286,14 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
       )}
       <div>
         <button className="button button-primary" type="submit">
-          Save quest
+          {t.saveQuest}
         </button>{" "}
         <button
           className="button button-quiet"
           type="button"
           onClick={onCancel}
         >
-          Cancel
+          {t.cancel}
         </button>
       </div>
     </form>

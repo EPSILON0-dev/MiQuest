@@ -7,6 +7,7 @@ import {
 import { ArrowLeft } from "lucide-react";
 import { QuestIcon } from "./icons";
 import type { ReactNode } from "react";
+import { useI18n } from "./i18n";
 export default function Modal({
   title,
   children,
@@ -20,6 +21,7 @@ export default function Modal({
   icon?: string;
   actions?: ReactNode;
 }) {
+  const t = useI18n();
   return (
     <Dialog
       open
@@ -50,7 +52,7 @@ export default function Modal({
       >
         <div className="modal-header">
           <DialogClose className="button button-quiet">
-            <ArrowLeft size={16} /> Back
+            <ArrowLeft size={16} /> {t.back}
           </DialogClose>
           {icon && (
             <span className="modal-quest-icon">
