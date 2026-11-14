@@ -27,3 +27,11 @@
 ## Delivery
 - [ ] Non-root container, persistent SQLite, backup procedure, and private Tailscale Serve instructions. Backend liveness/readiness endpoints are implemented.
 - [ ] Run clean-checkout build, tests, lint and final acceptance checks; document remaining limits.
+
+## Planned next tasks, in order
+1. [ ] Add a simple root-level command runner to start frontend and backend in development mode.
+2. [ ] Add frontend internationalization with English and Polish.
+3. [ ] Add frontend and backend Dockerfiles and a Compose configuration.
+4. [ ] Document development and container startup, usage, and backup/restore.
+5. [ ] Implement the MCP module and protocol tests using the existing backend services.
+6. [ ] Revisit the in-app chatbox design after MCP; its design and scope are deferred.
