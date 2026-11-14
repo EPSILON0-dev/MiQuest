@@ -1,9 +1,9 @@
 {
   "openapi": "3.1.0",
   "info": {
-    "title": "MiQuest REST API \u2014 proposed contract",
-    "version": "0.1.0-draft",
-    "description": "Design artifact derived from BACKEND_DRAFT.md; DESIGN.md remains authoritative. No backend is implemented or approved by this specification. Private single-owner network boundary, no application accounts/auth. Browser mutations require same-origin JSON; no wildcard CORS. MCP is trusted stdio only and is not described as HTTP. Agent verdict submission is MCP-only.\n\nAll existing-project mutations require expectedRevision and commit atomically before success. Real changes increment project revision once; no-ops leave it unchanged. Stale writes return 409 stale_revision with currentRevision. Unknown request fields are rejected, including actor, completion, ownership and timestamps. DELETE uses JSON bodies and destructive confirmations; permanent deletion loses history.\n\nStable ordering: projects/pages/quests by (createdAt,id), pins by sortOrder, histories by sequence ascending, dependencies by both IDs, appearances by (pageId,questId). Descriptions/evidence are plain text, never executed or fetched."
+    "title": "MiQuest REST API",
+    "version": "0.1.0",
+    "description": "MiQuest REST API for the private single-owner network boundary, without application accounts or authentication. Browser mutations require same-origin JSON; no wildcard CORS. Agent verdict submission is available through the trusted REST boundary. MCP is outside the implemented scope.\n\nAll existing-project mutations require expectedRevision and commit atomically before success. Real changes increment project revision once; no-ops leave it unchanged. Stale writes return 409 stale_revision with currentRevision. Unknown request fields are rejected, including actor, completion, ownership and timestamps. DELETE uses JSON bodies and destructive confirmations; permanent deletion loses history.\n\nStable ordering: projects/pages/quests by (createdAt,id), pins by sortOrder, histories by sequence ascending, dependencies by both IDs, appearances by (pageId,questId). Descriptions/evidence are plain text, never executed or fetched."
   },
   "servers": [
     {
@@ -1998,6 +1998,76 @@
             }
           }
         ]
+      },
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Submit agent verification",
+        "operationId": "postQuestsQuestIdVerifications",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/VerificationResult"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AgentVerification"
+              }
+            }
+          }
+        },
+        "description": "Records an agent verdict. Pass requires evidence and satisfied prerequisites. Actor is fixed to agent by the adapter."
       }
     },
     "/quests/{questId}/override": {
@@ -3568,6 +3638,65 @@
         ],
         "additionalProperties": false,
         "description": "Unexpected errors include requestId; never disclose SQL, stack traces, or local paths. stale_revision details include currentRevision. Validation errors include field paths."
+      },
+      "AgentVerification": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "inconclusive"
+            ]
+          },
+          "reasoning": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000,
+            "pattern": "\\S"
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 100000,
+            "default": ""
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "verdict",
+          "reasoning"
+        ],
+        "additionalProperties": false,
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "verdict": {
+                  "const": "pass"
+                }
+              },
+              "required": [
+                "verdict"
+              ]
+            },
+            "then": {
+              "properties": {
+                "evidence": {
+                  "minLength": 1,
+                  "pattern": "\\S"
+                }
+              },
+              "required": [
+                "evidence"
+              ]
+            }
+          }
+        ]
       }
     },
     "responses": {

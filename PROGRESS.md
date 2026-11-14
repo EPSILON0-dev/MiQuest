@@ -51,3 +51,12 @@ Limits: fixture edits reset after reload; only view context persists. Chromium d
 
 - Added proposed OpenAPI 3.1 contract with a Redoc HTML viewer and a DBML database diagram with browser viewing instructions in `docs/backend/`.
 - Validation: JSON parsed, local references resolved, and Redocly CLI validated the OpenAPI with three advisory warnings (license and 4xx responses on health probes). DBML CLI parsed the diagram and generated SQL. Browser rendering remains unverified. These are design documents; Phase A UI approval remains pending.
+
+## Backend implementation in progress — 2026-11-14
+
+- The user explicitly requested backend implementation and a test suite, then excluded MCP. This authorizes backend work; it does not by itself approve the Phase A UI.
+- Added a FastAPI REST adapter, including controlled agent verdict submission, typed request validation, SQLite/SQLAlchemy domain services and Alembic migration, plus strict Pyright configuration and a pre-commit hook. The frontend still uses fixtures; no MCP server has been added.
+- Validation: 47 backend tests passed on Python 3.12.13 and 3.14.10; Ruff and the strict Pyright pre-commit hook passed. Tests cover REST operations, agent verification, migration rollback, shared membership, cycle races, revision conflicts and response snapshots. A built wheel initialized a database and loaded the API contract; a live loopback server returned `200 {"status":"ok"}` from `/readyz`. HTTP tests required running outside this sandbox because its thread portal hangs.
+- The first domain tests were written before implementation, but their initial run could not reach their intended assertions because dependencies were unavailable. Later fixes used observed red-to-green tests; the initial domain work therefore does not fully meet the requested TDD evidence.
+
+- Type checking covers all backend Python modules and tests in strict Pyright mode. Dynamic REST operation dispatch and JSON decoding require explicit casts; individual dispatched signatures are verified by integration tests rather than by the type checker.

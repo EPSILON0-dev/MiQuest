@@ -14,7 +14,7 @@ npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
-Open http://127.0.0.1:5173. This preview runs on loopback. No backend, accounts, or remote service is involved.
+Open http://127.0.0.1:5173. This fixture preview runs on loopback and does not connect to the backend.
 
 ## Try the prototype
 
@@ -46,6 +46,6 @@ The root stylesheet `frontend/src/index.css` holds semantic theme settings. Icon
 
 [DESIGN.md](DESIGN.md) is authoritative. See [ROADMAP.md](ROADMAP.md), [PROGRESS.md](PROGRESS.md), and [AGENTS.md](AGENTS.md).
 
-**Explicit user UI approval is required before Phase B.** Backend, database, MCP, real verification, and deployment remain deferred. Fixture edits reset on reload.
+The user authorized backend implementation separately; see [backend setup and tests](backend/README.md) and the [API specification](docs/backend/openapi.json). The frontend remains a fixture prototype, and explicit UI approval is still pending before connecting it. MCP and deployment are not implemented. Fixture edits reset on reload.
 
 Known tooling notes: the graph/UI production bundle triggers Vite's 500 kB advisory; the dependency audit reports seven moderate findings in the development-only TypeScript ESLint/minimatch chain. No forced dependency downgrade was applied.

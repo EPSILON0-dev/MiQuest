@@ -1,0 +1,9 @@
+repos:
+  - repo: local
+    hooks:
+      - id: pyright
+        name: Pyright (Pylance type checker)
+        entry: backend/.venv/bin/pyright --project backend
+        language: system
+        pass_filenames: false
+        files: ^backend/.*\.py$
