@@ -12,6 +12,10 @@ Validation so far: backend pytest 48 passed; Ruff and strict Pyright passed; fro
 
 Frontend CI runs lint, build, and unit tests; Backend CI runs Python checks; Integration CI runs Playwright against both services when either changes. The integration environment installs backend runtime dependencies without the development extra. The 16 Playwright tests passed using a fresh runtime-only environment; all three workflow YAML files parsed successfully.
 
+## CI trigger change — 2026-11-14
+
+All three CI workflows run on pull requests and on pushes to `main` only. Existing path filters remain in place. Validation: parsed all three workflow files and checked their push branch, pull request, and path filters.
+
 ## Earlier state — 2026-11-14
 
 The user separately authorized the backend and test suite, while asking to skip MCP for now. Backend implementation is in [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2), branch `feat/backend`, open and unmerged. The frontend remains a fixture prototype from [PR #1](https://github.com/EPSILON0-dev/MiQuest/pull/1), merged on 2026-11-13; explicit UI approval is still pending. Wait for that approval before connecting the frontend or deployment.
