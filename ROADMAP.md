@@ -1,6 +1,6 @@
 # MiQuest v1 roadmap
 
-DESIGN.md defines the agreed scope and acceptance criteria.
+[DESIGN.md](DESIGN.md) defines the product scope. The user separately authorized backend implementation and asked to skip MCP for now; that did not approve the UI prototype. [PROGRESS.md](PROGRESS.md) records actual validation and open PRs.
 
 ## Foundation
 - [x] Initialize Git and consolidate design.
@@ -8,22 +8,22 @@ DESIGN.md defines the agreed scope and acceptance criteria.
 - [x] Commit documentation and publish a private GitHub repository.
 
 ## Phase A — interactive UI prototype
-- [x] Scaffold React/TypeScript/Vite, Tailwind/shadcn, React Flow, bundled icons, and semantic theme variables.
-- [x] Build two fixture projects with 12–20 branching quests, multiple pages, shared milestone, mixed states, historical verification, cross-tree links, and pins.
-- [x] Implement graph navigation, positions, automatic layout, modal/focus handling, responsive navigation, and view restoration.
-- [x] Implement local project/page/quest editing, dependencies, membership/home trees, ordered pins, icons, and safe deletion.
-- [x] Implement the agreed dense icon-only redesign: milestone diamonds, title/description/status tooltips, detailed modal, global Edit mode, compact toolbar, collapsible pins, status cues, and cross-device canvas view restoration.
-- [x] Test invariants and critical interactions; build/lint; capture and inspect 1440×900 and 390×844 screenshots.
-- [x] Create PR and provide launch instructions and walkthrough.
-- [ ] **Explicit user UI approval. Stop here until granted.**
+- [x] Build the fixture-based React graph UI, navigation, quest modal, and editing interactions.
+- [x] Implement the dense icon-only redesign, responsive views, pins, shared quests, and viewport restoration.
+- [x] Test critical interactions, capture and inspect desktop/narrow screenshots, and provide a walkthrough.
+- [x] Merge UI prototype [PR #1](https://github.com/EPSILON0-dev/MiQuest/pull/1); UI approval remains pending.
+- [ ] **Obtain explicit user UI approval.** The frontend remains fixture-based until approved.
 
-## Phase B — only after UI approval
-- [ ] TDD domain models, SQLite constraints/migrations, shared services, and persistence.
-- [ ] TDD REST adapters and connect approved frontend.
-- [ ] TDD official Python MCP stdio adapter with real protocol integration checks.
-- [ ] TDD verification/evidence requirements, audited override/reopen, and retained history.
-- [ ] End-to-end persistence, graph editing, home-tree/membership, and verification checks.
+## Backend — implemented in PR #2
+- [x] Define [OpenAPI and database contracts](docs/backend/README.md).
+- [x] Implement SQLite models, Alembic migration, shared domain services, graph and membership invariants, and ordered pins.
+- [x] Implement REST operations, including controlled agent verdict submission, manual override, reopening, and verification history.
+- [x] Add backend tests, strict Pyright configuration, and a pre-commit type-check hook. See [backend setup](backend/README.md) and [PROGRESS.md](PROGRESS.md) for validation and the TDD evidence limitation.
+- [x] Open backend [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2); review and merge remain outstanding.
+- [ ] Connect the approved frontend to the API, preserving editing and view behavior. **Wait for explicit UI approval.**
+- [ ] Add persisted end-to-end tests for frontend graph editing, membership, and verification.
+- [ ] MCP adapter and protocol tests are deferred at the user's request; revisit only when requested.
 
 ## Delivery
-- [ ] Non-root container, persistent SQLite, health check, backup procedure, and private Tailscale Serve instructions.
-- [ ] Clean checkout build/test/lint and final acceptance checks; document remaining limits.
+- [ ] Non-root container, persistent SQLite, backup procedure, and private Tailscale Serve instructions. Backend liveness/readiness endpoints are implemented.
+- [ ] Run clean-checkout build, tests, lint and final acceptance checks; document remaining limits.

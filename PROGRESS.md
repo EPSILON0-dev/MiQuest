@@ -1,10 +1,10 @@
 # Progress
 
-## Current state — 2026-11-13, redesign
+## Current state — 2026-11-14
 
-The user rejected the first card-based visual direction, supplied FTB graph/modal/tooltip references, and confirmed the redesign through a design interview. This authorizes the redesign, **not approval of the finished UI**. Phase A review remains pending. Do not merge or start Phase B without explicit approval.
+The user separately authorized the backend and test suite, while asking to skip MCP for now. Backend implementation is in [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2), branch `feat/backend`, open and unmerged. The frontend remains a fixture prototype from [PR #1](https://github.com/EPSILON0-dev/MiQuest/pull/1), merged on 2026-11-13; explicit UI approval is still pending. Wait for that approval before connecting the frontend or deployment.
 
-Private repository: https://github.com/EPSILON0-dev/MiQuest. Branch: `feat/phase-a-ui`. PR: https://github.com/EPSILON0-dev/MiQuest/pull/1 (open, unmerged).
+The user rejected the first card-based visual direction and confirmed a redesign through a design interview; that design approval is not approval of the finished UI.
 
 ## Completed redesign
 
@@ -35,9 +35,9 @@ The earlier dependency audit reported seven moderate findings in the development
 
 ## Publication / next step
 
-- Redesign commit `9533b5d` is pushed to existing PR #1; title and description updated. Both GitHub Actions runs passed, including clean install, lint, build, unit/browser tests, and screenshot upload: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43440368682 and https://github.com/EPSILON0-dev/MiQuest/actions/runs/43440354993.
+- Redesign commit `9533b5d` was included in PR #1, merged on 2026-11-13. Both GitHub Actions runs passed, including clean install, lint, build, unit/browser tests, and screenshot upload: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43440368682 and https://github.com/EPSILON0-dev/MiQuest/actions/runs/43440354993.
 - User reviews the live prototype/screenshots and explicitly approves the UI or requests further iteration.
-- Final palette remains undecided. API, SQLite, MCP, real verification, and deployment remain unstarted and gated on UI approval.
+- Final palette remains undecided. Backend REST, SQLite, and verification are implemented in PR #2; MCP is deferred, and UI integration and deployment remain outstanding.
 
 ## Earlier milestones
 
@@ -46,3 +46,17 @@ The earlier dependency audit reported seven moderate findings in the development
 - `c7cf82c`: original progress/PR record. Original CI passed: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43434429272.
 
 Limits: fixture edits reset after reload; only view context persists. Chromium desktop and emulated touch/narrow checks were run, not physical-device or cross-browser validation. Backend persistence/security checks are outside Phase A.
+
+## Backend design artifacts — 2026-11-14
+
+- Added proposed OpenAPI 3.1 contract with a Redoc HTML viewer and a DBML database diagram with browser viewing instructions in `docs/backend/`.
+- Validation: JSON parsed, local references resolved, and Redocly CLI validated the OpenAPI with three advisory warnings (license and 4xx responses on health probes). DBML CLI parsed the diagram and generated SQL. Browser rendering remains unverified. These are design documents; Phase A UI approval remains pending.
+
+## Backend implementation — 2026-11-14
+
+- Added backend CI for pushes and pull requests touching the backend or its workflow. It installs locked dependencies on Python 3.12 and runs Ruff, strict Pyright, and pytest. Local validation on Python 3.14: Ruff and Pyright passed; 47 tests passed.
+- Backend implementation is committed on `feat/backend` and open for review in [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2). The user explicitly requested the backend and test suite, then excluded MCP; that does not approve the Phase A UI.
+- Added a FastAPI REST adapter, including controlled agent verdict submission, typed request validation, SQLite/SQLAlchemy domain services and Alembic migration, plus strict Pyright configuration and a pre-commit hook. The frontend still uses fixtures; no MCP server has been added.
+- Validation: 47 backend tests passed on Python 3.12.13 and 3.14.10; Ruff and the strict Pyright pre-commit hook passed. Tests cover REST operations, agent verification, migration rollback, shared membership, cycle races, revision conflicts and response snapshots. A built wheel initialized a database and loaded the API contract; a live loopback server returned `200 {"status":"ok"}` from `/readyz`. HTTP tests required running outside this sandbox because its thread portal hangs.
+- The first domain tests were written before implementation, but their initial run could not reach their intended assertions because dependencies were unavailable. Later fixes used observed red-to-green tests; the initial domain work therefore does not fully meet the requested TDD evidence.
+- Type checking covers all backend Python modules and tests in strict Pyright mode. Dynamic REST operation dispatch and JSON decoding require explicit casts; individual dispatched signatures are verified by integration tests rather than by the type checker.
