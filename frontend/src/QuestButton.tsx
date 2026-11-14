@@ -9,6 +9,7 @@ import {
 import { QuestIcon } from "./icons";
 import type { Quest } from "./model";
 import { statusNames } from "./questStatus";
+import { useI18n } from "./i18n";
 export default function QuestButton({
   quest,
   status,
@@ -22,10 +23,11 @@ export default function QuestButton({
   className?: string;
   externalTree?: string;
 }) {
+  const t = useI18n();
   const completed = quest.completionState !== "none";
-  const description = quest.description || "No description yet.";
+  const description = quest.description || t.noDescription;
   const truncated = description.length > 320;
-  const label = `${quest.title} — ${statusNames[status]}${completed && status === "locked" ? `, previously ${quest.completionState}` : ""}${externalTree ? ` — Open ${externalTree}` : ""}`;
+  const label = `${quest.title} — ${t.status[status as keyof typeof t.status] ?? statusNames[status]}${completed && status === "locked" ? `, previously ${t.status[quest.completionState as keyof typeof t.status] ?? quest.completionState}` : ""}${externalTree ? ` — ${t.open} ${externalTree}` : ""}`;
   return (
     <Tooltip.Root>
       <Tooltip.Trigger asChild>
@@ -88,12 +90,12 @@ export default function QuestButton({
               : description}
           </p>
           <span className="tooltip-status">
-            {statusNames[status]}
+            {t.status[status as keyof typeof t.status] ?? statusNames[status]}
             {completed && status === "locked"
-              ? ` · Previously ${quest.completionState}`
+              ? ` · ${t.status[quest.completionState as keyof typeof t.status] ?? quest.completionState}`
               : ""}
           </span>
-          {truncated && <small>Click to read more</small>}
+          {truncated && <small>{t.readMore}</small>}
         </Tooltip.Content>
       </Tooltip.Portal>
     </Tooltip.Root>

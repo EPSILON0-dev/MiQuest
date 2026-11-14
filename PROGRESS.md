@@ -2,6 +2,12 @@
 
 ## Current state — 2026-11-14, integration
 
+## Frontend internationalization — 2026-11-14
+
+- Added complete English and Polish UI language packs with compile-time key parity, a persistent sidebar language selector, and `lang` metadata updates.
+- All application chrome, forms, editor validation, confirmations, and accessible labels use the selected pack; project and quest content remains unchanged user data.
+- Validation: frontend build, lint, and 19 unit tests passed; Playwright passed all 17 Chromium tests, including locale switch and reload persistence. Desktop and narrow screenshot captures were refreshed and inspected.
+
 The user explicitly approved the UI prototype and authorized frontend integration and manual prefill. Work is on `feat/integration` from merged `main`. MCP and deployment remain deferred.
 
 The frontend loads persisted project graphs and verification history from the REST API, saves the existing editing and pin flows, reloads after revision conflicts, and offers retry if the backend is unavailable. A multi-step edit may have saved earlier steps when a later request fails; the UI reloads and reports this. Vite proxies API requests to the local backend. `python -m miquest.runtime prefill` populates an empty migrated database atomically with both example graphs and coherent verification history, and refuses populated databases.
