@@ -6,15 +6,17 @@ The example data contains two progressions, 18 quests, three trees, shared miles
 
 ## Run locally
 
-Requires Node.js 22.12+, npm, Python 3.12+, and uv. First initialize and start the backend as described below; run the optional `prefill` command to load the example graphs.
+Requires GNU Make, Node.js 22.12+, npm, Python 3.12+, and uv. From the repository root:
 
 ```sh
-cd frontend
-npm ci
-npm run dev -- --host 127.0.0.1
+make setup
+make migrate
+# Optional: load examples into an empty database
+make prefill
+make dev
 ```
 
-Open http://127.0.0.1:5173. The Vite development server proxies API requests to the backend on loopback.
+Open http://127.0.0.1:5173. The Vite development server proxies API requests to the backend on loopback. Press Ctrl+C to stop both servers. The frontend reloads as you edit; restart `make dev` after backend changes. The launcher requires a POSIX system. `make test` runs the launcher, backend, frontend, and browser tests; install Playwright Chromium first as described below. Set `DATABASE` to use a different database path, for example `make migrate DATABASE=/tmp/miquest.sqlite3` and `make dev DATABASE=/tmp/miquest.sqlite3`.
 
 ## Explore MiQuest
 

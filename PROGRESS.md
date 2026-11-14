@@ -16,6 +16,12 @@ Frontend CI runs lint, build, and unit tests; Backend CI runs Python checks; Int
 
 All three CI workflows run on pull requests and on pushes to `main` only. Existing path filters remain in place. Validation: parsed all three workflow files and checked their push branch, pull request, and path filters.
 
+## Development runner — 2026-11-14
+
+Added root Make targets for setup, explicit migration and prefill, development servers, and tests. The launcher stops both process groups on Ctrl+C or if either server exits. The default database directory is ignored by Git; frontend changes reload automatically, while backend changes require restarting the launcher.
+
+Validation: system GNU Make `make setup`, migration and prefill against a temporary database, repeated-prefill refusal, and live proxy/startup/Ctrl+C shutdown all passed. `make test` passed 2 launcher, 48 backend, 18 frontend, and 16 Chromium browser tests. Ruff passed on the launcher scripts.
+
 ## Earlier state — 2026-11-14
 
 The user separately authorized the backend and test suite, while asking to skip MCP for now. Backend implementation is in [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2), branch `feat/backend`, open and unmerged. The frontend remains a fixture prototype from [PR #1](https://github.com/EPSILON0-dev/MiQuest/pull/1), merged on 2026-11-13; explicit UI approval is still pending. Wait for that approval before connecting the frontend or deployment.

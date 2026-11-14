@@ -29,7 +29,7 @@
 - [ ] Run clean-checkout build, tests, lint and final acceptance checks; document remaining limits.
 
 ## Planned next tasks, in order
-1. [ ] Add a simple root-level command runner to start frontend and backend in development mode.
+1. [x] Add a simple root-level command runner to start frontend and backend in development mode.
 2. [ ] Add frontend internationalization with English and Polish.
 3. [ ] Add frontend and backend Dockerfiles and a Compose configuration.
 4. [ ] Document development and container startup, usage, and backup/restore.
