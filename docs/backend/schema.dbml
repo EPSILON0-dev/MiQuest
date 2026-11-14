@@ -1,0 +1,91 @@
+// Proposed schema; see BACKEND_DRAFT.md for checks, trigger, and transaction rules.
+Table projects {
+  id text [pk, not null]
+  name text [not null]
+  description text [not null, default: '']
+  revision integer [not null, default: 0]
+  created_at text [not null]
+  updated_at text [not null]
+}
+Table pages {
+  id text [pk, not null]
+  project_id text [not null, ref: > projects.id]
+  name text [not null]
+  created_at text [not null]
+  updated_at text [not null]
+  indexes {
+    (id, project_id) [unique]
+    project_id
+  }
+}
+Table quests {
+  id text [pk, not null]
+  project_id text [not null, ref: > projects.id]
+  title text [not null]
+  description text [not null, default: '']
+  acceptance_criteria text [not null, default: '']
+  work_state text [not null, default: 'not_started']
+  completion_state text [not null, default: 'none']
+  icon_name text [not null]
+  milestone integer [not null, default: 0]
+  home_page_id text [not null]
+  created_at text [not null]
+  updated_at text [not null]
+  indexes {
+    (id, project_id) [unique]
+    project_id
+  }
+  Note: 'Home appearance foreign key is deferred until commit; every quest has a home appearance.'
+}
+Table quest_appearances {
+  page_id text [not null]
+  quest_id text [not null]
+  project_id text [not null]
+  position_x real [not null]
+  position_y real [not null]
+  indexes {
+    (page_id, quest_id) [pk]
+    quest_id
+  }
+}
+Table dependencies {
+  quest_id text [not null, note: 'Dependent quest']
+  depends_on_quest_id text [not null, note: 'Prerequisite quest']
+  project_id text [not null]
+  indexes {
+    (quest_id, depends_on_quest_id) [pk]
+    depends_on_quest_id
+  }
+  Note: 'Self-dependencies prohibited; service validates DAG cycles.'
+}
+Table pins {
+  project_id text [not null, ref: > projects.id]
+  quest_id text [not null]
+  sort_order integer [not null]
+  indexes {
+    (project_id, quest_id) [pk]
+    (project_id, sort_order) [unique]
+  }
+}
+Table verifications {
+  id text [pk, not null]
+  quest_id text [not null, ref: > quests.id]
+  sequence integer [not null]
+  verdict text [not null]
+  actor text [not null]
+  evidence text [not null, default: '']
+  reasoning text [not null]
+  snapshot_json text [not null]
+  created_at text [not null]
+  indexes {
+    (quest_id, sequence) [unique]
+  }
+  Note: 'Append-only events; update trigger rejects changes. Permanent quest deletion removes history.'
+}
+Ref: quests.(home_page_id, project_id) > pages.(id, project_id)
+Ref: quests.(home_page_id, id) > quest_appearances.(page_id, quest_id)
+Ref: quest_appearances.(page_id, project_id) > pages.(id, project_id)
+Ref: quest_appearances.(quest_id, project_id) > quests.(id, project_id)
+Ref: dependencies.(quest_id, project_id) > quests.(id, project_id)
+Ref: dependencies.(depends_on_quest_id, project_id) > quests.(id, project_id)
+Ref: pins.(quest_id, project_id) > quests.(id, project_id)

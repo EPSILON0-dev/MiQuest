@@ -1,0 +1,3635 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "MiQuest REST API \u2014 proposed contract",
+    "version": "0.1.0-draft",
+    "description": "Design artifact derived from BACKEND_DRAFT.md; DESIGN.md remains authoritative. No backend is implemented or approved by this specification. Private single-owner network boundary, no application accounts/auth. Browser mutations require same-origin JSON; no wildcard CORS. MCP is trusted stdio only and is not described as HTTP. Agent verdict submission is MCP-only.\n\nAll existing-project mutations require expectedRevision and commit atomically before success. Real changes increment project revision once; no-ops leave it unchanged. Stale writes return 409 stale_revision with currentRevision. Unknown request fields are rejected, including actor, completion, ownership and timestamps. DELETE uses JSON bodies and destructive confirmations; permanent deletion loses history.\n\nStable ordering: projects/pages/quests by (createdAt,id), pins by sortOrder, histories by sequence ascending, dependencies by both IDs, appearances by (pageId,questId). Descriptions/evidence are plain text, never executed or fetched."
+  },
+  "servers": [
+    {
+      "url": "/api/v1"
+    }
+  ],
+  "security": [],
+  "tags": [
+    {
+      "name": "Projects",
+      "description": "Project lifecycle and revisions"
+    },
+    {
+      "name": "Pages",
+      "description": "Trees and explicit deletion plans"
+    },
+    {
+      "name": "Appearances",
+      "description": "Shared quest membership and independent positions"
+    },
+    {
+      "name": "Quests",
+      "description": "Shared content and home page"
+    },
+    {
+      "name": "Dependencies",
+      "description": "Project-wide DAG"
+    },
+    {
+      "name": "Pins",
+      "description": "Manually ordered project-wide shortcuts"
+    },
+    {
+      "name": "Graphs",
+      "description": "Consistent graph snapshots"
+    },
+    {
+      "name": "Verification",
+      "description": "Human actions and immutable history; agent submissions use MCP"
+    },
+    {
+      "name": "Metadata",
+      "description": "Bundled icon manifest"
+    },
+    {
+      "name": "Operations",
+      "description": "Root-level health probes"
+    }
+  ],
+  "paths": {
+    "/projects": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "List projects",
+        "operationId": "getProjects",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Project"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": []
+      },
+      "post": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Create project",
+        "operationId": "postProjects",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Project"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProject"
+              }
+            }
+          }
+        },
+        "description": "Starts at revision 0 with no pages."
+      }
+    },
+    "/projects/{projectId}": {
+      "get": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Read project",
+        "operationId": "getProjectsProjectId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Project"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Update project",
+        "operationId": "patchProjectsProjectId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Project"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProject"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Projects"
+        ],
+        "summary": "Delete project and all history",
+        "operationId": "deleteProjectsProjectId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Deleted"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/icons": {
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "List bundled icons",
+        "operationId": "getIcons",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Icons"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/projects/{projectId}/graph": {
+      "get": {
+        "tags": [
+          "Graphs"
+        ],
+        "summary": "Read full project graph",
+        "operationId": "getProjectsProjectIdGraph",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ProjectGraph"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/pages": {
+      "get": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "List pages",
+        "operationId": "getProjectsProjectIdPages",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Page"
+                      }
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "Create page",
+        "operationId": "postProjectsProjectIdPages",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Page"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/{pageId}": {
+      "get": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "Read page",
+        "operationId": "getPagesPageId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Page"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "Rename page",
+        "operationId": "patchPagesPageId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Page"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PageRequest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "Delete page with explicit quest plan",
+        "operationId": "deletePagesPageId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Deleted"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeletePageRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/pages/{pageId}/graph": {
+      "get": {
+        "tags": [
+          "Graphs"
+        ],
+        "summary": "Read page graph and cross-tree links",
+        "operationId": "getPagesPageIdGraph",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/PageGraph"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/pages/{pageId}/quests/{questId}": {
+      "put": {
+        "tags": [
+          "Appearances"
+        ],
+        "summary": "Add or position quest",
+        "operationId": "putPagesPageIdQuestsQuestId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Appearance"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PositionRequest"
+              }
+            }
+          }
+        },
+        "description": "Adds existing same-project quest or updates position; does not change home."
+      },
+      "patch": {
+        "tags": [
+          "Appearances"
+        ],
+        "summary": "Update appearance position",
+        "operationId": "patchPagesPageIdQuestsQuestId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Appearance"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PositionRequest"
+              }
+            }
+          }
+        },
+        "description": "Appearance must exist; does not change home."
+      },
+      "delete": {
+        "tags": [
+          "Appearances"
+        ],
+        "summary": "Remove appearance",
+        "operationId": "deletePagesPageIdQuestsQuestId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Quest"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RemoveAppearance"
+              }
+            }
+          }
+        },
+        "description": "Reject last appearance. Require explicit newHomePageId when removing home; destination must already contain quest. To move a last appearance, first add the destination."
+      }
+    },
+    "/pages/{pageId}/positions": {
+      "put": {
+        "tags": [
+          "Appearances"
+        ],
+        "summary": "Batch update positions",
+        "operationId": "putPagesPageIdPositions",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Appearance"
+                      }
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PositionsRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/quests": {
+      "get": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "List quests",
+        "operationId": "getProjectsProjectIdQuests",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/QuestView"
+                      }
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      },
+      "post": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "Create quest with initial home appearance",
+        "operationId": "postProjectsProjectIdQuests",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/QuestCreated"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateQuest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quests/{questId}": {
+      "get": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "Read quest and all neighbors",
+        "operationId": "getQuestsQuestId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/QuestDetails"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      },
+      "patch": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "Edit quest",
+        "operationId": "patchQuestsQuestId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/QuestView"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateQuest"
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "tags": [
+          "Quests"
+        ],
+        "summary": "Permanently delete quest and history",
+        "operationId": "deleteQuestsQuestId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Deleted"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DeleteRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quests/{questId}/dependencies": {
+      "post": {
+        "tags": [
+          "Dependencies"
+        ],
+        "summary": "Add prerequisite",
+        "operationId": "postQuestsQuestIdDependencies",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Dependency"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/DependencyRequest"
+              }
+            }
+          }
+        },
+        "description": "Reject self/cross-project/duplicate edges and cycles across the full project. Adding edges may relock quests without clearing historical completion."
+      }
+    },
+    "/quests/{questId}/dependencies/{prerequisiteId}": {
+      "delete": {
+        "tags": [
+          "Dependencies"
+        ],
+        "summary": "Remove prerequisite",
+        "operationId": "deleteQuestsQuestIdDependenciesPrerequisiteId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Dependency"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "prerequisiteId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionRequest"
+              }
+            }
+          }
+        },
+        "description": "Missing edge is an idempotent success."
+      }
+    },
+    "/projects/{projectId}/pins": {
+      "get": {
+        "tags": [
+          "Pins"
+        ],
+        "summary": "List ordered pins",
+        "operationId": "getProjectsProjectIdPins",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Pin"
+                      }
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
+    },
+    "/projects/{projectId}/pins/{questId}": {
+      "put": {
+        "tags": [
+          "Pins"
+        ],
+        "summary": "Pin quest",
+        "operationId": "putProjectsProjectIdPinsQuestId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Pin"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionRequest"
+              }
+            }
+          }
+        },
+        "description": "Idempotent. New pins append; removal compacts order to 0..n-1."
+      },
+      "delete": {
+        "tags": [
+          "Pins"
+        ],
+        "summary": "Unpin quest",
+        "operationId": "deleteProjectsProjectIdPinsQuestId",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/Unpinned"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RevisionRequest"
+              }
+            }
+          }
+        },
+        "description": "Idempotent. New pins append; removal compacts order to 0..n-1."
+      }
+    },
+    "/projects/{projectId}/pin-order": {
+      "put": {
+        "tags": [
+          "Pins"
+        ],
+        "summary": "Reorder all pins",
+        "operationId": "putProjectsProjectIdPinOrder",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/Pin"
+                      }
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PinOrderRequest"
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quests/{questId}/verifications": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Read immutable verification history",
+        "operationId": "getQuestsQuestIdVerifications",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/History"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          {
+            "name": "afterSequence",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 0,
+              "default": 0
+            }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "schema": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 200,
+              "default": 50
+            }
+          }
+        ]
+      }
+    },
+    "/quests/{questId}/override": {
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Override quest",
+        "operationId": "postQuestsQuestIdOverride",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/VerificationResult"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/OverrideRequest"
+              }
+            }
+          }
+        },
+        "description": "Human reason and confirmation required. May bypass prerequisites. Always appends an override event; never marks verified. Actor is set to human by the adapter; caller cannot supply actor."
+      }
+    },
+    "/quests/{questId}/reopen": {
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Reopen quest",
+        "operationId": "postQuestsQuestIdReopen",
+        "responses": {
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/VerificationResult"
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReopenRequest"
+              }
+            }
+          }
+        },
+        "description": "Requires currently completed quest; otherwise invalid_input. Clears completion and resets workState to not_started; preserves history. Actor is set to human by the adapter; caller cannot supply actor."
+      }
+    },
+    "/healthz": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "operationId": "healthz",
+        "summary": "Process liveness",
+        "servers": [
+          {
+            "url": "/"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "ok"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/readyz": {
+      "get": {
+        "tags": [
+          "Operations"
+        ],
+        "operationId": "readyz",
+        "summary": "Database and schema readiness",
+        "servers": [
+          {
+            "url": "/"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Healthy",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": {
+                      "type": "string",
+                      "const": "ok"
+                    }
+                  },
+                  "required": [
+                    "status"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "503": {
+            "description": "Database or schema unavailable; no filesystem paths disclosed."
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Project": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "revision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "description",
+          "revision",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "Page": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "name",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "Quest": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "acceptanceCriteria": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "workState": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "blocked"
+            ]
+          },
+          "completionState": {
+            "type": "string",
+            "enum": [
+              "none",
+              "verified",
+              "overridden"
+            ]
+          },
+          "icon": {
+            "type": "string"
+          },
+          "milestone": {
+            "type": "boolean"
+          },
+          "homePageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "title",
+          "description",
+          "acceptanceCriteria",
+          "workState",
+          "completionState",
+          "icon",
+          "milestone",
+          "homePageId",
+          "createdAt",
+          "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "QuestView": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "acceptanceCriteria": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "workState": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "blocked"
+            ]
+          },
+          "completionState": {
+            "type": "string",
+            "enum": [
+              "none",
+              "verified",
+              "overridden"
+            ]
+          },
+          "icon": {
+            "type": "string"
+          },
+          "milestone": {
+            "type": "boolean"
+          },
+          "homePageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          },
+          "unlocked": {
+            "type": "boolean"
+          },
+          "unsatisfiedPrerequisiteIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "locked",
+              "available",
+              "in_progress",
+              "blocked",
+              "verified",
+              "overridden"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "projectId",
+          "title",
+          "description",
+          "acceptanceCriteria",
+          "workState",
+          "completionState",
+          "icon",
+          "milestone",
+          "homePageId",
+          "createdAt",
+          "updatedAt",
+          "unlocked",
+          "unsatisfiedPrerequisiteIds",
+          "status"
+        ],
+        "additionalProperties": false,
+        "description": "Status is locked first, then completion, then workState (not_started becomes available). Historical completion remains independently visible. Unlocking checks direct prerequisite completion, not transitive locking."
+      },
+      "Appearance": {
+        "type": "object",
+        "properties": {
+          "pageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000,
+            "description": "Finite number."
+          },
+          "y": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000,
+            "description": "Finite number."
+          }
+        },
+        "required": [
+          "pageId",
+          "questId",
+          "x",
+          "y"
+        ],
+        "additionalProperties": false
+      },
+      "Dependency": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "dependsOnQuestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "questId",
+          "dependsOnQuestId"
+        ],
+        "additionalProperties": false,
+        "description": "dependsOnQuestId is prerequisite; questId is dependent."
+      },
+      "Pin": {
+        "type": "object",
+        "properties": {
+          "projectId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "projectId",
+          "questId",
+          "sortOrder"
+        ],
+        "additionalProperties": false
+      },
+      "Verification": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "sequence": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "pass",
+              "fail",
+              "inconclusive",
+              "override",
+              "reopen"
+            ]
+          },
+          "actor": {
+            "type": "string",
+            "enum": [
+              "agent",
+              "human"
+            ]
+          },
+          "evidence": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "reasoning": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "snapshot": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 200,
+                "pattern": "\\S",
+                "description": "Trim before validation."
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 100000
+              },
+              "acceptanceCriteria": {
+                "type": "string",
+                "maxLength": 100000
+              },
+              "prerequisites": {
+                "type": "array",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "questId": {
+                      "type": "string",
+                      "format": "uuid"
+                    },
+                    "completionState": {
+                      "type": "string",
+                      "enum": [
+                        "none",
+                        "verified",
+                        "overridden"
+                      ]
+                    },
+                    "latestCompletionEventId": {
+                      "type": [
+                        "string",
+                        "null"
+                      ],
+                      "format": "uuid"
+                    }
+                  },
+                  "required": [
+                    "questId",
+                    "completionState",
+                    "latestCompletionEventId"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            },
+            "required": [
+              "title",
+              "description",
+              "acceptanceCriteria",
+              "prerequisites"
+            ],
+            "additionalProperties": false
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          }
+        },
+        "required": [
+          "id",
+          "questId",
+          "sequence",
+          "verdict",
+          "actor",
+          "evidence",
+          "reasoning",
+          "snapshot",
+          "createdAt"
+        ],
+        "additionalProperties": false,
+        "description": "Immutable snapshot event. fail/inconclusive preserve completion. Only reopen clears completion and resets workState. Permanent quest/project deletion removes history."
+      },
+      "ProjectGraph": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "$ref": "#/components/schemas/Project"
+          },
+          "pages": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Page"
+            }
+          },
+          "quests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestView"
+            }
+          },
+          "appearances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Appearance"
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Dependency"
+            }
+          },
+          "pins": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Pin"
+            }
+          }
+        },
+        "required": [
+          "project",
+          "pages",
+          "quests",
+          "appearances",
+          "dependencies",
+          "pins"
+        ],
+        "additionalProperties": false
+      },
+      "PageGraph": {
+        "type": "object",
+        "properties": {
+          "project": {
+            "$ref": "#/components/schemas/Project"
+          },
+          "page": {
+            "$ref": "#/components/schemas/Page"
+          },
+          "quests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestView"
+            }
+          },
+          "appearances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Appearance"
+            }
+          },
+          "dependencies": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Dependency"
+            }
+          },
+          "externalLinks": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "direction": {
+                  "type": "string",
+                  "enum": [
+                    "prerequisite",
+                    "next"
+                  ]
+                },
+                "localQuestId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "remoteQuest": {
+                  "$ref": "#/components/schemas/QuestView"
+                }
+              },
+              "required": [
+                "direction",
+                "localQuestId",
+                "remoteQuest"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "pins": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "pin": {
+                  "$ref": "#/components/schemas/Pin"
+                },
+                "quest": {
+                  "$ref": "#/components/schemas/QuestView"
+                }
+              },
+              "required": [
+                "pin",
+                "quest"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "project",
+          "page",
+          "quests",
+          "appearances",
+          "dependencies",
+          "externalLinks",
+          "pins"
+        ],
+        "additionalProperties": false,
+        "description": "Quests/appearances belong to this page; dependencies have both endpoints here. External links cover edges with exactly one endpoint here. Pins include all project pins. Histories are excluded."
+      },
+      "QuestDetails": {
+        "type": "object",
+        "properties": {
+          "quest": {
+            "$ref": "#/components/schemas/QuestView"
+          },
+          "appearances": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Appearance"
+            }
+          },
+          "prerequisites": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestView"
+            }
+          },
+          "nextQuests": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/QuestView"
+            }
+          }
+        },
+        "required": [
+          "quest",
+          "appearances",
+          "prerequisites",
+          "nextQuests"
+        ],
+        "additionalProperties": false
+      },
+      "QuestCreated": {
+        "type": "object",
+        "properties": {
+          "quest": {
+            "$ref": "#/components/schemas/QuestView"
+          },
+          "appearance": {
+            "$ref": "#/components/schemas/Appearance"
+          }
+        },
+        "required": [
+          "quest",
+          "appearance"
+        ],
+        "additionalProperties": false
+      },
+      "VerificationResult": {
+        "type": "object",
+        "properties": {
+          "quest": {
+            "$ref": "#/components/schemas/QuestView"
+          },
+          "verification": {
+            "$ref": "#/components/schemas/Verification"
+          }
+        },
+        "required": [
+          "quest",
+          "verification"
+        ],
+        "additionalProperties": false
+      },
+      "History": {
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Verification"
+            }
+          },
+          "nextAfterSequence": {
+            "type": [
+              "integer",
+              "null"
+            ],
+            "minimum": 1
+          }
+        },
+        "required": [
+          "items",
+          "nextAfterSequence"
+        ],
+        "additionalProperties": false
+      },
+      "Icons": {
+        "type": "object",
+        "properties": {
+          "defaultIcon": {
+            "type": "string",
+            "default": "compass"
+          },
+          "names": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          }
+        },
+        "required": [
+          "defaultIcon",
+          "names"
+        ],
+        "additionalProperties": false
+      },
+      "Deleted": {
+        "type": "object",
+        "properties": {
+          "deletedId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "deletedId"
+        ],
+        "additionalProperties": false
+      },
+      "Unpinned": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "questId"
+        ],
+        "additionalProperties": false
+      },
+      "RevisionRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "DeleteRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "confirmDelete": {
+            "const": true,
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "confirmDelete"
+        ],
+        "additionalProperties": false
+      },
+      "CreateProject": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100000,
+            "default": ""
+          }
+        },
+        "required": [
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateProject": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100000
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ],
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "name"
+            ]
+          },
+          {
+            "required": [
+              "description"
+            ]
+          }
+        ]
+      },
+      "PageRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "name"
+        ],
+        "additionalProperties": false
+      },
+      "PositionRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "x": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000,
+            "description": "Finite number."
+          },
+          "y": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000,
+            "description": "Finite number."
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "x",
+          "y"
+        ],
+        "additionalProperties": false
+      },
+      "RemoveAppearance": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "newHomePageId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "PositionsRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "positions": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "questId": {
+                  "type": "string",
+                  "format": "uuid"
+                },
+                "x": {
+                  "type": "number",
+                  "minimum": -1000000,
+                  "maximum": 1000000,
+                  "description": "Finite number."
+                },
+                "y": {
+                  "type": "number",
+                  "minimum": -1000000,
+                  "maximum": 1000000,
+                  "description": "Finite number."
+                }
+              },
+              "required": [
+                "questId",
+                "x",
+                "y"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "positions"
+        ],
+        "additionalProperties": false,
+        "description": "Existing appearances only; duplicate IDs rejected; atomic. Empty array is a no-op."
+      },
+      "CreateQuest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100000,
+            "default": ""
+          },
+          "acceptanceCriteria": {
+            "type": "string",
+            "maxLength": 100000,
+            "default": ""
+          },
+          "workState": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "blocked"
+            ],
+            "default": "not_started"
+          },
+          "icon": {
+            "type": "string",
+            "default": "compass"
+          },
+          "milestone": {
+            "type": "boolean",
+            "default": false
+          },
+          "pageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000,
+            "description": "Finite number."
+          },
+          "y": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000,
+            "description": "Finite number."
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "title",
+          "pageId",
+          "x",
+          "y",
+          "expectedRevision"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateQuest": {
+        "type": "object",
+        "properties": {
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "acceptanceCriteria": {
+            "type": "string",
+            "maxLength": 100000
+          },
+          "workState": {
+            "type": "string",
+            "enum": [
+              "not_started",
+              "in_progress",
+              "blocked"
+            ]
+          },
+          "icon": {
+            "type": "string"
+          },
+          "milestone": {
+            "type": "boolean"
+          },
+          "homePageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "required": [
+          "expectedRevision"
+        ],
+        "additionalProperties": false,
+        "anyOf": [
+          {
+            "required": [
+              "title"
+            ]
+          },
+          {
+            "required": [
+              "description"
+            ]
+          },
+          {
+            "required": [
+              "acceptanceCriteria"
+            ]
+          },
+          {
+            "required": [
+              "workState"
+            ]
+          },
+          {
+            "required": [
+              "icon"
+            ]
+          },
+          {
+            "required": [
+              "milestone"
+            ]
+          },
+          {
+            "required": [
+              "homePageId"
+            ]
+          }
+        ]
+      },
+      "DependencyRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "dependsOnQuestId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "dependsOnQuestId"
+        ],
+        "additionalProperties": false
+      },
+      "PinOrderRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "questIds": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "questIds"
+        ],
+        "additionalProperties": false,
+        "description": "Exact permutation of current pins, without duplicates."
+      },
+      "OverrideRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          },
+          "confirmOverride": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "reason",
+          "confirmOverride"
+        ],
+        "additionalProperties": false
+      },
+      "ReopenRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 20000,
+            "pattern": "\\S",
+            "description": "Trim before validation."
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "reason"
+        ],
+        "additionalProperties": false
+      },
+      "MoveQuestAction": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "const": "move"
+          },
+          "targetPageId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "x": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000,
+            "description": "Finite number."
+          },
+          "y": {
+            "type": "number",
+            "minimum": -1000000,
+            "maximum": 1000000,
+            "description": "Finite number."
+          }
+        },
+        "required": [
+          "questId",
+          "action",
+          "targetPageId",
+          "x",
+          "y"
+        ],
+        "additionalProperties": false
+      },
+      "RehomeQuestAction": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "const": "rehome"
+          },
+          "targetPageId": {
+            "type": "string",
+            "format": "uuid"
+          }
+        },
+        "required": [
+          "questId",
+          "action",
+          "targetPageId"
+        ],
+        "additionalProperties": false
+      },
+      "DeleteQuestAction": {
+        "type": "object",
+        "properties": {
+          "questId": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "action": {
+            "type": "string",
+            "const": "delete"
+          },
+          "confirmDelete": {
+            "type": "boolean",
+            "const": true
+          }
+        },
+        "required": [
+          "questId",
+          "action",
+          "confirmDelete"
+        ],
+        "additionalProperties": false
+      },
+      "DeletePageRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "confirmDelete": {
+            "type": "boolean",
+            "const": true
+          },
+          "questActions": {
+            "type": "array",
+            "items": {
+              "oneOf": [
+                {
+                  "$ref": "#/components/schemas/MoveQuestAction"
+                },
+                {
+                  "$ref": "#/components/schemas/RehomeQuestAction"
+                },
+                {
+                  "$ref": "#/components/schemas/DeleteQuestAction"
+                }
+              ],
+              "discriminator": {
+                "propertyName": "action",
+                "mapping": {
+                  "move": "#/components/schemas/MoveQuestAction",
+                  "rehome": "#/components/schemas/RehomeQuestAction",
+                  "delete": "#/components/schemas/DeleteQuestAction"
+                }
+              }
+            }
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "confirmDelete",
+          "questActions"
+        ],
+        "additionalProperties": false,
+        "description": "Require a plan for every quest losing its last appearance or home. move adds destination appearance and rehomes if necessary; rehome requires existing destination appearance. Reject duplicates, absent quests, cross-project/invalid destinations, and incomplete plans atomically. delete permanently removes quest and history everywhere."
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": {
+            "type": "object",
+            "properties": {
+              "code": {
+                "type": "string",
+                "enum": [
+                  "project_not_found",
+                  "page_not_found",
+                  "quest_not_found",
+                  "appearance_not_found",
+                  "dependency_exists",
+                  "dependency_cycle",
+                  "quest_would_be_orphaned",
+                  "home_page_required",
+                  "prerequisites_unsatisfied",
+                  "stale_revision",
+                  "invalid_input",
+                  "cross_project_reference",
+                  "self_dependency",
+                  "invalid_home_page",
+                  "invalid_pin_order",
+                  "evidence_required",
+                  "reason_required",
+                  "confirmation_required",
+                  "invalid_icon",
+                  "database_busy",
+                  "internal_error"
+                ]
+              },
+              "message": {
+                "type": "string"
+              },
+              "details": {
+                "type": "object",
+                "additionalProperties": true
+              }
+            },
+            "required": [
+              "code",
+              "message"
+            ],
+            "additionalProperties": false
+          },
+          "requestId": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "error"
+        ],
+        "additionalProperties": false,
+        "description": "Unexpected errors include requestId; never disclose SQL, stack traces, or local paths. stale_revision details include currentRevision. Validation errors include field paths."
+      }
+    },
+    "responses": {
+      "Error404": {
+        "description": "project_not_found, page_not_found, quest_not_found, appearance_not_found",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error409": {
+        "description": "dependency_exists, dependency_cycle, quest_would_be_orphaned, home_page_required, prerequisites_unsatisfied, stale_revision",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error422": {
+        "description": "invalid_input, cross_project_reference, self_dependency, invalid_home_page, invalid_pin_order, evidence_required, reason_required, confirmation_required, invalid_icon",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      },
+      "Error503": {
+        "description": "database_busy",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        },
+        "headers": {
+          "Retry-After": {
+            "schema": {
+              "type": "integer",
+              "const": 1
+            },
+            "description": "Retry after one second."
+          }
+        }
+      },
+      "Error500": {
+        "description": "internal_error",
+        "content": {
+          "application/json": {
+            "schema": {
+              "$ref": "#/components/schemas/Error"
+            }
+          }
+        }
+      }
+    }
+  }
+}

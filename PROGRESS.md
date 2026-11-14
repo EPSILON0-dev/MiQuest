@@ -46,3 +46,8 @@ The earlier dependency audit reported seven moderate findings in the development
 - `c7cf82c`: original progress/PR record. Original CI passed: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43434429272.
 
 Limits: fixture edits reset after reload; only view context persists. Chromium desktop and emulated touch/narrow checks were run, not physical-device or cross-browser validation. Backend persistence/security checks are outside Phase A.
+
+## Backend design artifacts — 2026-11-14
+
+- Added proposed OpenAPI 3.1 contract with a Redoc HTML viewer and a DBML database diagram with browser viewing instructions in `docs/backend/`.
+- Validation: JSON parsed, local references resolved, and Redocly CLI validated the OpenAPI with three advisory warnings (license and 4xx responses on health probes). DBML CLI parsed the diagram and generated SQL. Browser rendering remains unverified. These are design documents; Phase A UI approval remains pending.
