@@ -6,7 +6,7 @@ The user explicitly approved the UI prototype and authorized frontend integratio
 
 The frontend loads persisted project graphs and verification history from the REST API, saves the existing editing and pin flows, reloads after revision conflicts, and offers retry if the backend is unavailable. A multi-step edit may have saved earlier steps when a later request fails; the UI reloads and reports this. Vite proxies API requests to the local backend. `python -m miquest.runtime prefill` populates an empty migrated database atomically with both example graphs and coherent verification history, and refuses populated databases.
 
-Validation so far: backend pytest 48 passed; Ruff and strict Pyright passed; frontend build and 18 unit tests passed; frontend lint passed. The prefill CLI was run on a migrated database and a second invocation was rejected. Desktop and narrow browser screenshots were captured and inspected. Playwright passed all 16 Chromium tests against an isolated backend, including persisted edits, conflict recovery, retry, and the empty workspace. PR publication remains in progress.
+Validation so far: backend pytest 48 passed; Ruff and strict Pyright passed; frontend build and 18 unit tests passed; frontend lint passed. The prefill CLI was run on a migrated database and a second invocation was rejected. Desktop and narrow browser screenshots were captured and inspected. Playwright passed all 16 Chromium tests against an isolated backend, including persisted edits, conflict recovery, retry, and the empty workspace. Integration PR: https://github.com/EPSILON0-dev/MiQuest/pull/4 (open, unmerged).
 
 ## Earlier state — 2026-11-14
 
