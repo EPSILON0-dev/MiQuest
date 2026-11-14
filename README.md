@@ -2,11 +2,11 @@
 
 A self-hosted, single-user quest graph for resuming and advancing long-running projects.
 
-Phase A is an interactive frontend prototype: two progressions, 18 quests, three trees, shared milestones, cross-tree links, pins, and fixture verification history. Quests appear as 52px icon circles, with explicit milestones as 72px diamonds; title, description, and status appear on hover/focus. Changes are held in memory. Your last tree and each tree's canvas size and pan/zoom are restored after reload; Edit mode resets off and the pin panel starts closed.
+The example data contains two progressions, 18 quests, three trees, shared milestones, cross-tree links, pins, and verification history. Quests appear as 52px icon circles, with explicit milestones as 72px diamonds; title, description, and status appear on hover/focus. Changes are saved to the backend. Your last tree and each tree's canvas size and pan/zoom are restored after reload; Edit mode resets off and the pin panel starts closed.
 
 ## Run locally
 
-Requires Node.js 22.12+ and npm.
+Requires Node.js 22.12+, npm, Python 3.12+, and uv. First initialize and start the backend as described below; run the optional `prefill` command to load the example graphs.
 
 ```sh
 cd frontend
@@ -14,9 +14,9 @@ npm ci
 npm run dev -- --host 127.0.0.1
 ```
 
-Open http://127.0.0.1:5173. This fixture preview runs on loopback and does not connect to the backend.
+Open http://127.0.0.1:5173. The Vite development server proxies API requests to the backend on loopback.
 
-## Try the prototype
+## Explore MiQuest
 
 1. Explore **Atlas → Foundations**. Pan and zoom; Fit view is at the lower-left. Turn on Edit mode to drag quests, use Auto layout, or access editing controls. The switch resets off on reload.
 2. Hover or focus a quest to see its title, description, and status. Long descriptions show “Click to read more.” Click, press Enter, or tap once to open the full journal; Back or Escape restores focus and the unblurred tree. The journal has prerequisite and What's next columns above description and acceptance criteria, with expandable history.
@@ -24,7 +24,7 @@ Open http://127.0.0.1:5173. This fixture preview runs on loopback and does not c
 4. On **Launch path**, follow the cross-tree prerequisite or inspect **Review the experience**: historical verification remains visible while a prerequisite is unsatisfied.
 5. Turn on Edit mode to add a quest from the toolbar or canvas context menu, connect handles, or edit workspace settings. Click an edge to remove it; cycles are rejected.
 6. In Edit mode, create/rename/delete progressions and trees. Last appearances cannot be removed; tree deletion requires moving otherwise orphaned quests. Global quest deletion requires confirmation.
-7. In Edit mode, try the local human override/reopen form with a reason and confirmation, then inspect its history. These are prototype records, not backend verification.
+7. In Edit mode, use the human override/reopen form with a reason and confirmation, then inspect its history. These decisions are recorded in the verification history.
 8. At phone width, use the navigation drawer, collapsed pins, and full-screen journal. The saved canvas size and pan/zoom restore the centered view across desktop and phone; the graph stays pannable.
 
 ## Validate and capture screenshots
@@ -54,13 +54,15 @@ Browser tests automatically start the preview and capture five screenshots: [des
 
 ## Backend
 
-The Python backend provides a FastAPI REST API backed by SQLite, with Alembic migrations and verification history. The frontend is still fixture-based and does not call this API. There is no authentication, so keep the service on loopback or behind a trusted private network boundary. MCP and deployment are not included yet.
+The Python backend provides a FastAPI REST API backed by SQLite, with Alembic migrations and verification history. There is no authentication, so keep the service on loopback or behind a trusted private network boundary. MCP and deployment are not included yet.
 
 Install Python 3.12+ and [uv](https://docs.astral.sh/uv/). From the repository root, install dependencies, initialize the database, and start the API:
 
 ```sh
 uv sync --project backend --extra dev
 backend/.venv/bin/python -m miquest.runtime migrate --database ./data/miquest.sqlite3
+# Optional: populate an empty database with example graphs
+backend/.venv/bin/python -m miquest.runtime prefill --database ./data/miquest.sqlite3
 backend/.venv/bin/python -m miquest.runtime serve --database ./data/miquest.sqlite3
 ```
 
@@ -81,6 +83,6 @@ The root stylesheet `frontend/src/index.css` holds semantic theme settings. Icon
 
 [DESIGN.md](DESIGN.md) is authoritative. See [ROADMAP.md](ROADMAP.md), [PROGRESS.md](PROGRESS.md), and [AGENTS.md](AGENTS.md).
 
-The user authorized backend implementation separately; see [backend setup and tests](backend/README.md) and the [API specification](docs/backend/openapi.json). The frontend remains a fixture prototype, and explicit UI approval is still pending before connecting it. MCP and deployment are not implemented. Fixture edits reset on reload.
+The frontend uses the backend REST API; see [backend setup and tests](backend/README.md) and the [API specification](docs/backend/openapi.json). MCP and deployment are not implemented.
 
 Known tooling notes: the graph/UI production bundle triggers Vite's 500 kB advisory; the dependency audit reports seven moderate findings in the development-only TypeScript ESLint/minimatch chain. No forced dependency downgrade was applied.

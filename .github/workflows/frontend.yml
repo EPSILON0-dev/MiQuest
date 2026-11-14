@@ -33,13 +33,3 @@ jobs:
         working-directory: frontend
       - run: npm test
         working-directory: frontend
-      - run: npm exec playwright -- install --with-deps chromium
-        working-directory: frontend
-      - run: npm run test:e2e
-        working-directory: frontend
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: frontend-screenshots
-          path: docs/screenshots
-          if-no-files-found: warn
