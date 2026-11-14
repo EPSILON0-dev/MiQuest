@@ -54,6 +54,7 @@ Limits: fixture edits reset after reload; only view context persists. Chromium d
 
 ## Backend implementation — 2026-11-14
 
+- Added backend CI for pushes and pull requests touching the backend or its workflow. It installs locked dependencies on Python 3.12 and runs Ruff, strict Pyright, and pytest. Local validation on Python 3.14: Ruff and Pyright passed; 47 tests passed.
 - Backend implementation is committed on `feat/backend` and open for review in [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2). The user explicitly requested the backend and test suite, then excluded MCP; that does not approve the Phase A UI.
 - Added a FastAPI REST adapter, including controlled agent verdict submission, typed request validation, SQLite/SQLAlchemy domain services and Alembic migration, plus strict Pyright configuration and a pre-commit hook. The frontend still uses fixtures; no MCP server has been added.
 - Validation: 47 backend tests passed on Python 3.12.13 and 3.14.10; Ruff and the strict Pyright pre-commit hook passed. Tests cover REST operations, agent verification, migration rollback, shared membership, cycle races, revision conflicts and response snapshots. A built wheel initialized a database and loaded the API contract; a live loopback server returned `200 {"status":"ok"}` from `/readyz`. HTTP tests required running outside this sandbox because its thread portal hangs.
