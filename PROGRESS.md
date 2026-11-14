@@ -8,6 +8,10 @@ The frontend loads persisted project graphs and verification history from the RE
 
 Validation so far: backend pytest 48 passed; Ruff and strict Pyright passed; frontend build and 18 unit tests passed; frontend lint passed. The prefill CLI was run on a migrated database and a second invocation was rejected. Desktop and narrow browser screenshots were captured and inspected. Playwright passed all 16 Chromium tests against an isolated backend, including persisted edits, conflict recovery, retry, and the empty workspace. Integration PR: https://github.com/EPSILON0-dev/MiQuest/pull/4 (open, unmerged).
 
+## CI workflow separation — 2026-11-14
+
+Frontend CI runs lint, build, and unit tests; Backend CI runs Python checks; Integration CI runs Playwright against both services when either changes. The integration environment installs backend runtime dependencies without the development extra. The 16 Playwright tests passed using a fresh runtime-only environment; all three workflow YAML files parsed successfully.
+
 ## Earlier state — 2026-11-14
 
 The user separately authorized the backend and test suite, while asking to skip MCP for now. Backend implementation is in [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2), branch `feat/backend`, open and unmerged. The frontend remains a fixture prototype from [PR #1](https://github.com/EPSILON0-dev/MiQuest/pull/1), merged on 2026-11-13; explicit UI approval is still pending. Wait for that approval before connecting the frontend or deployment.

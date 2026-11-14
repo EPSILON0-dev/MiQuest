@@ -4,13 +4,11 @@ on:
   push:
     paths:
       - 'frontend/**'
-      - 'backend/**'
       - '!frontend/**/*.md'
       - '.github/workflows/frontend.yml'
   pull_request:
     paths:
       - 'frontend/**'
-      - 'backend/**'
       - '!frontend/**/*.md'
       - '.github/workflows/frontend.yml'
 
@@ -22,11 +20,6 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v6
-      - uses: actions/setup-python@v6
-        with:
-          python-version: '3.12'
-      - run: pip install uv
-      - run: uv sync --project backend --locked --extra dev
       - uses: actions/setup-node@v7
         with:
           node-version: 22
@@ -40,13 +33,3 @@ jobs:
         working-directory: frontend
       - run: npm test
         working-directory: frontend
-      - run: npm exec playwright -- install --with-deps chromium
-        working-directory: frontend
-      - run: npm run test:e2e
-        working-directory: frontend
-      - uses: actions/upload-artifact@v7
-        if: always()
-        with:
-          name: frontend-screenshots
-          path: docs/screenshots
-          if-no-files-found: warn
