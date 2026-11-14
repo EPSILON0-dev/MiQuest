@@ -1,6 +1,6 @@
 # MiQuest: Web Application Design and Agent Implementation Specification
 
-**Status:** Redesign requirements agreed on 2026-11-13; UI prototype approval pending
+**Status:** Redesign requirements agreed on 2026-11-13; UI prototype approval pending. The user separately authorized backend implementation and deferred MCP; see [ROADMAP.md](ROADMAP.md) and [PROGRESS.md](PROGRESS.md) for current status.
 **Primary goal:** A beautiful, self-hosted, single-user quest graph that helps resume and advance long-running projects.  
 **Non-goal:** A general-purpose project-management suite.
 
@@ -10,10 +10,10 @@
 
 ## 1. Product principles
 
-1. **UI first.** Build a static, interactive frontend with realistic fixture data. Stop for explicit human approval before implementing the backend, database, MCP, or verification.
+1. **UI first.** Build a static, interactive frontend with realistic fixture data. Explicit user approval of the UI remains required before connecting it to the backend or deployment. The user separately authorized backend and database implementation; MCP is deferred for now.
 2. **Graph is the product.** The default view is a large, readable dependency graph, not a table of tasks.
 3. **Keep it small.** One frontend, one Python backend, one SQLite database. No Redis, queues, Kubernetes, hosted LLM API, or multi-user features.
-4. **External agents provide intelligence.** MiQuest exposes data and controlled mutations through MCP; it does not run its own LLM.
+4. **External agents provide intelligence.** MiQuest exposes controlled data and mutations; it does not run its own LLM. REST supports agent verdicts now; MCP is deferred for now.
 5. **Evidence before completion.** Normal completion is performed by an external agent submitting a reasoned verdict with evidence. Manual overrides are conspicuous and audited.
 6. **Unattended after approval.** Backend work is test-driven and should require minimal user involvement.
 
@@ -128,7 +128,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 
 ### Static prototype requirements
 
-- Implement the real React app using hard-coded fixture data only. **No API, database, MCP, or verification backend code at this stage.**
+- Implement the Phase A React prototype using hard-coded fixture data only. The separately authorized backend remains disconnected until UI approval.
 - Fixtures include at least two projects, a branching graph with 12–20 quests, mixed states, a blocked branch, and completed quests. Include multiple pages, a shared explicit `quest.milestone`, a cross-tree prerequisite link, pins, and a historically verified quest with currently unsatisfied prerequisites. Include dense manual winding and radial compositions; basic auto-layout is for editing only.
 - All visual interactions work locally in frontend state, including page/shared-quest editing and edge creation. Fixture edits need not survive reload; localStorage view restoration is required. Verification displays and override forms use fixtures/local state only in Phase A.
 - Provide a repeatable local launch command and Playwright screenshot capture at desktop viewport (e.g. 1440x900) and narrow viewport (e.g. 390x844).
@@ -170,7 +170,7 @@ Implement core business logic once in Python services. REST and MCP are adapters
 - Read page/tree views and cross-tree references as well as the full project graph.
 - Read project graph with nodes, edges, and derived availability.
 - Read verification history and create manual override.
-- Submit agent verification via a controlled endpoint only if needed for the UI; otherwise use MCP.
+- Submit agent verification through the controlled REST endpoint while MCP is deferred. The actor label represents the entry point, not an authenticated identity.
 
 ### MCP tools
 
@@ -208,12 +208,12 @@ Tools should have clear descriptions and typed input schemas. Return structured 
 
 ### Phase B: Backend (unattended, TDD)
 
-Only after Phase A approval:
+The backend was separately authorized. UI integration remains gated on Phase A approval; MCP is deferred at the user's request.
 
 1. Add pytest fixtures and failing tests for database constraints and domain behavior.
 2. Implement SQLAlchemy models, Alembic migration, and services until tests pass.
 3. Add failing REST integration tests, implement endpoints, then connect the approved UI.
-4. Add MCP protocol integration tests (real initialization, tool discovery, tool calls, invalid inputs), then implement MCP adapter.
+4. When the user requests MCP, add protocol integration tests (real initialization, tool discovery, tool calls, invalid inputs), then implement the adapter.
 5. Add failing verification-state tests, then implement verification and override flows.
 6. Add Playwright E2E tests for project creation, quest editing, dependency validation, and verification display.
 7. Add Docker deployment, health check, persistence, and backup documentation.
@@ -226,7 +226,7 @@ Only after Phase A approval:
 - Agent may choose routine implementation details and fix test failures without asking.
 - Agent may run builds, tests, linters, local containers, and make milestone commits.
 - Agent must not modify the approved UI design substantially without asking.
-- Agent must not start Phase B without explicit approval.
+- Backend implementation was explicitly authorized; do not connect the UI or begin deployment before explicit UI approval. MCP is deferred until requested.
 - Maintain `PROGRESS.md` with completed work, test commands, current blocker, and next steps so a fresh agent session can resume.
 - Do not claim completion until all required tests pass; report blocked tasks honestly.
 
@@ -305,4 +305,4 @@ miquest/
 
 ## 12. Instruction to the coding agent
 
-> Implement MiQuest according to this document. Begin with **Phase A only**: a polished, interactive, static React/TypeScript graph UI using fixture data. Prioritize visual quality, usability, and screenshots. Do not build the Python backend, SQLite database, MCP server, or verification implementation until the user explicitly approves the prototype. After approval, implement the remaining scope with strict TDD, automated tests, and minimal interruptions. Keep the architecture small, report actual test results, and do not add features outside this specification.
+> Implement MiQuest according to this document and the current roadmap. The fixture UI still requires explicit approval before backend integration or deployment. Backend implementation was separately authorized; MCP is deferred for now. Use strict TDD, automated tests, and minimal interruptions. Keep the architecture small, report actual test results, and do not add features outside this specification.

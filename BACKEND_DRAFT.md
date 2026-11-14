@@ -1,8 +1,6 @@
 # MiQuest backend draft
 
-Status: proposed implementation specification, not approval to begin Phase B.
-
-DESIGN.md remains authoritative. UI prototype approval is still pending. This document proposes concrete contracts for the agreed scope; it does not change that approval gate. No backend, database, MCP, or deployment implementation is included.
+Status: historical backend design draft. The user subsequently authorized the REST backend and deferred MCP. The backend is implemented in PR #2; UI prototype approval and frontend integration remain pending. [DESIGN.md](DESIGN.md) remains authoritative, and [PROGRESS.md](PROGRESS.md) records actual validation. Where this draft differs from the implementation, use the current [OpenAPI contract](docs/backend/openapi.json) and source code.
 
 ## 1. Architecture and implementation choices
 
@@ -387,7 +385,7 @@ Pinning an existing pin is a no-op; a new pin appends. Unpinning a missing pin i
 
 History limit: 1–200. Events are oldest first, with a cursor only when more remain. Browser override/reopen actor is set by the adapter to `human`; callers cannot supply it. An already-open quest cannot be reopened (`invalid_input`). Repeated overrides append distinct events because each represents a deliberate human decision.
 
-There is no REST agent-pass endpoint in v1. Agent verdicts enter through MCP. The actor labels describe the entry point and supplied provenance, not authenticated identity; the network boundary and invoking agent are trusted.
+The implementation accepts agent pass/fail/inconclusive verdicts via `POST /quests/{questId}/verifications` while MCP is deferred. Actor labels describe the entry point and supplied provenance, not authenticated identity; the network boundary and invoking agent are trusted.
 
 ### Graph payloads
 
@@ -534,4 +532,4 @@ Current documentation consulted while drafting the backend plan:
 - SQLAlchemy SQLite transactions and foreign keys: https://docs.sqlalchemy.org/en/20/dialects/sqlite.html
 - Official MCP Python SDK and stdio/client examples: https://github.com/modelcontextprotocol/python-sdk
 
-Pin concrete dependency versions and verify version-specific APIs when implementation begins. The schema above is a design proposal, not an executed migration.
+Pin concrete dependency versions and verify version-specific APIs when implementation begins. The schema above is a design proposal; the implemented Alembic migration is in `backend/miquest/migrations/`.
