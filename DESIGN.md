@@ -1,6 +1,6 @@
 # MiQuest: Web Application Design and Agent Implementation Specification
 
-**Status:** Redesign requirements agreed on 2026-11-13; UI prototype approval pending. The user separately authorized backend implementation and deferred MCP; see [ROADMAP.md](ROADMAP.md) and [PROGRESS.md](PROGRESS.md) for current status.
+**Status:** Redesign requirements agreed on 2026-11-13; the user explicitly approved the UI prototype and frontend integration on 2026-11-14. MCP remains deferred; see [ROADMAP.md](ROADMAP.md) and [PROGRESS.md](PROGRESS.md) for current status.
 **Primary goal:** A beautiful, self-hosted, single-user quest graph that helps resume and advance long-running projects.  
 **Non-goal:** A general-purpose project-management suite.
 
@@ -10,7 +10,7 @@
 
 ## 1. Product principles
 
-1. **UI first.** Build a static, interactive frontend with realistic fixture data. Explicit user approval of the UI remains required before connecting it to the backend or deployment. The user separately authorized backend and database implementation; MCP is deferred for now.
+1. **UI first.** Build a static, interactive frontend with realistic fixture data. The user explicitly approved the UI prototype and frontend integration. MCP is deferred for now.
 2. **Graph is the product.** The default view is a large, readable dependency graph, not a table of tasks.
 3. **Keep it small.** One frontend, one Python backend, one SQLite database. No Redis, queues, Kubernetes, hosted LLM API, or multi-user features.
 4. **External agents provide intelligence.** MiQuest exposes controlled data and mutations; it does not run its own LLM. REST supports agent verdicts now; MCP is deferred for now.
@@ -208,7 +208,7 @@ Tools should have clear descriptions and typed input schemas. Return structured 
 
 ### Phase B: Backend (unattended, TDD)
 
-The backend was separately authorized. UI integration remains gated on Phase A approval; MCP is deferred at the user's request.
+The backend was separately authorized, and the UI prototype and integration were explicitly approved. MCP is deferred at the user's request.
 
 1. Add pytest fixtures and failing tests for database constraints and domain behavior.
 2. Implement SQLAlchemy models, Alembic migration, and services until tests pass.

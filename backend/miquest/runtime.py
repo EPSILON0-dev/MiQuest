@@ -38,7 +38,7 @@ def build_app(path: Path, allowed_hosts: tuple[str, ...] = ('localhost', '127.0.
 
 def main() -> None:
     parser = argparse.ArgumentParser(description='Run the MiQuest backend')
-    parser.add_argument('action', choices=['migrate', 'serve'])
+    parser.add_argument('action', choices=['migrate', 'prefill', 'serve'])
     parser.add_argument('--database', type=Path, default=Path('./data/miquest.sqlite3'))
     parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', type=int, default=8000)
@@ -46,6 +46,9 @@ def main() -> None:
     args = parser.parse_args()
     if args.action == 'migrate':
         migrate_database(args.database)
+    elif args.action == 'prefill':
+        from .prefill import prefill_database
+        prefill_database(args.database)
     else:
         import uvicorn
         uvicorn.run(build_app(args.database, tuple(args.allowed_hosts or ('localhost', '127.0.0.1'))), host=args.host, port=args.port, proxy_headers=True, forwarded_allow_ips='127.0.0.1,::1')

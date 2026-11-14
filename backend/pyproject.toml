@@ -34,3 +34,4 @@ venv = ".venv"
 
 [tool.setuptools.package-data]
 "miquest.api" = ["openapi.json"]
+"miquest" = ["fixture.json"]

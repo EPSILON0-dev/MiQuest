@@ -1,4 +1,5 @@
-import { useState, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
+import { ApiError, loadModel, persistModel, type LoadedModel } from "./api";
 import { Tooltip } from "radix-ui";
 import QuestButton from "./QuestButton";
 import { statusNames } from "./questStatus";
@@ -38,7 +39,6 @@ import {
   GripVertical,
 } from "lucide-react";
 import {
-  createFixture,
   statusForQuest,
   addDependency,
   deletePage,
@@ -90,8 +90,6 @@ function QuestCard({ data }: NodeProps<QuestNode>) {
   );
 }
 const nodeTypes = { quest: QuestCard };
-const fixture = createFixture();
-const initialView = readView(fixture);
 function uid() {
   return crypto.randomUUID();
 }
@@ -105,7 +103,67 @@ function markReturnFocus() {
 }
 
 export default function App() {
-  const [model, setModel] = useState<Model>(fixture);
+  const [loaded, setLoaded] = useState<LoadedModel | null>(null);
+  const [loadError, setLoadError] = useState("");
+  const [attemptNumber, setAttemptNumber] = useState(0);
+  useEffect(() => {
+    let active = true;
+    loadModel()
+      .then((result) => {
+        if (active) setLoaded(result);
+      })
+      .catch(() => {
+        if (active)
+          setLoadError(
+            "Could not load MiQuest. Check that the backend is running.",
+          );
+      });
+    return () => {
+      active = false;
+    };
+  }, [attemptNumber]);
+  if (!loaded)
+    return (
+      <main className="connection-state" role="status">
+        {loadError ? (
+          <>
+            <p role="alert">{loadError}</p>
+            <button
+              className="button button-primary"
+              onClick={() => {
+                setLoadError("");
+                setAttemptNumber((n) => n + 1);
+              }}
+            >
+              Retry
+            </button>
+          </>
+        ) : (
+          <p>Loading MiQuest…</p>
+        )}
+      </main>
+    );
+  return <Workspace initial={loaded} />;
+}
+
+function Workspace({ initial }: { initial: LoadedModel }) {
+  const [initialView] = useState(() => readView(initial.model));
+  const [model, setLocalModel] = useState<Model>(initial.model);
+  const saved = useRef(initial);
+  const [saving, setSaving] = useState(false);
+  const [needsReload, setNeedsReload] = useState(false);
+  const savingRef = useRef(false);
+  useEffect(() => {
+    const dialogs = document.querySelectorAll<HTMLElement>(".modal-content");
+    dialogs.forEach((dialog) => {
+      dialog.inert = saving;
+    });
+    return () => {
+      dialogs.forEach((dialog) => {
+        dialog.inert = false;
+      });
+    };
+  }, [saving]);
   const [measurements, setMeasurements] = useState<
     Record<string, { width: number; height: number }>
   >({});
@@ -129,6 +187,60 @@ export default function App() {
   const [viewports, setViewports] = useState<Record<string, SavedViewport>>(
     initialView.viewports,
   );
+  function setModel(next: Model) {
+    if (savingRef.current) return;
+    savingRef.current = true;
+    setSaving(true);
+    setLocalModel(next);
+    void persistModel(saved.current.model, next, saved.current.revisions)
+      .then((result) => {
+        saved.current = result;
+        setLocalModel(result.model);
+        setViewports((views) => Object.fromEntries(Object.entries(views).map(([id, view]) => [result.ids[id] ?? id, view])));
+        try {
+          const view = JSON.parse(localStorage.getItem("miquest-view") ?? "{}");
+          if (result.ids[view.pageId]) {
+            view.pageId = result.ids[view.pageId];
+            view.viewports = Object.fromEntries(Object.entries(view.viewports ?? {}).map(([id, viewport]) => [result.ids[id] ?? id, viewport]));
+            localStorage.setItem("miquest-view", JSON.stringify(view));
+          }
+        } catch {
+          // View restoration is optional when browser storage is unavailable.
+        }
+        setPageId((id) => result.ids[id] ?? id);
+        setEmptyProject((id) => result.ids[id] ?? id);
+        setSelectedId((id) => (id ? (result.ids[id] ?? id) : null));
+        setError("");
+      })
+      .catch(async (cause: unknown) => {
+        try {
+          const latest = await loadModel();
+          saved.current = latest;
+          setLocalModel(latest.model);
+          setPageId((id) =>
+            latest.model.pages.some((page) => page.id === id)
+              ? id
+              : (latest.model.pages[0]?.id ?? ""),
+          );
+          setError(
+            cause instanceof ApiError && cause.code === "stale_revision"
+              ? "This change was not saved because the project changed elsewhere. The latest data was reloaded; earlier steps may have been saved."
+              : cause instanceof Error
+                ? `${cause.message} The latest data was reloaded. Some changes may have been saved before the error; please review them.`
+                : "Could not save. The latest data was reloaded; earlier steps may have been saved.",
+          );
+        } catch {
+          setError(
+            "Could not save or reload. Your changes may not have been saved; reload when the backend is available.",
+          );
+          setNeedsReload(true);
+        }
+      })
+      .finally(() => {
+        savingRef.current = false;
+        setSaving(false);
+      });
+  }
   const page = model.pages.find((p) => p.id === pageId);
   const project =
     model.projects.find((p) => p.id === (page?.projectId ?? emptyProject)) ??
@@ -363,9 +475,29 @@ export default function App() {
     setEditing(false);
     setError("");
   }
+  if (needsReload)
+    return (
+      <main className="connection-state">
+        <p role="alert">{error}</p>
+        <button
+          className="button button-primary"
+          onClick={() => window.location.reload()}
+        >
+          Retry
+        </button>
+      </main>
+    );
   return (
     <Tooltip.Provider delayDuration={180} skipDelayDuration={100}>
-      <div className={`app-shell ${editMode ? "edit-mode" : ""}`}>
+      {saving && (
+        <div className="save-status" role="status">
+          Saving…
+        </div>
+      )}
+      <div
+        className={`app-shell ${editMode ? "edit-mode" : ""}`}
+        inert={saving}
+      >
         {drawer && (
           <button
             className="drawer-scrim"
@@ -729,7 +861,7 @@ export default function App() {
                     (change) => change.type === "position",
                   );
                   if (editMode && moves.length)
-                    setModel((current) => ({
+                    setLocalModel((current) => ({
                       ...current,
                       appearances: current.appearances.map((a) => {
                         const move = moves.find(
@@ -742,6 +874,17 @@ export default function App() {
                           : a;
                       }),
                     }));
+                }}
+                onNodeDragStop={(_, node) => {
+                  const next = {
+                    ...model,
+                    appearances: model.appearances.map((a) =>
+                      a.pageId === pageId && a.questId === node.id
+                        ? { ...a, x: node.position.x, y: node.position.y }
+                        : a,
+                    ),
+                  };
+                  setModel(next);
                 }}
                 onConnect={(connection) =>
                   editMode &&
@@ -1070,8 +1213,7 @@ export default function App() {
                     }}
                   >
                     <p className="muted">
-                      Local prototype only. This records a human decision, with
-                      its reason.
+                      This records a human decision, with its reason.
                     </p>
                     <label className="field">
                       Reason
@@ -1159,7 +1301,7 @@ export default function App() {
             }}
           >
             <p className="muted">
-              Shape your progressions and trees. Changes stay in this session.
+              Shape your progressions and trees. Changes are saved to MiQuest.
             </p>
             <section className="journal-section">
               <h2>Progressions</h2>
@@ -1442,8 +1584,8 @@ export default function App() {
             <div className="notice">
               <Settings size={17} />
               <span>
-                Phase A · Fixture edits reset on reload. Your last tree and
-                canvas view are remembered.
+                Your changes are saved. Your last tree and canvas view are
+                remembered.
               </span>
             </div>
           </Modal>

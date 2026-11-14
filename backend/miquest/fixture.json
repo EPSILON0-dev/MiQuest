@@ -1,0 +1,562 @@
+{
+  "projects": [
+    {
+      "id": "atlas",
+      "name": "Atlas",
+      "description": "A thoughtful home for everything worth finding."
+    },
+    {
+      "id": "studio",
+      "name": "Studio",
+      "description": "Make space for creative work."
+    }
+  ],
+  "pages": [
+    {
+      "id": "foundations",
+      "projectId": "atlas",
+      "name": "Foundations"
+    },
+    {
+      "id": "launch",
+      "projectId": "atlas",
+      "name": "Launch path"
+    },
+    {
+      "id": "rhythm",
+      "projectId": "studio",
+      "name": "Creative rhythm"
+    }
+  ],
+  "quests": [
+    {
+      "id": "vision",
+      "title": "Define the north star",
+      "homePageId": "foundations",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "verified",
+      "icon": "compass",
+      "milestone": false,
+      "description": "Atlas should make useful knowledge easy to find again. The brief sets boundaries for the first release.",
+      "acceptanceCriteria": "Name the audience, core problem, and first-release goal in a short brief."
+    },
+    {
+      "id": "research",
+      "title": "Map the landscape",
+      "homePageId": "foundations",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "verified",
+      "icon": "search",
+      "milestone": false,
+      "description": "Reviewed bookmarking and knowledge tools to understand where retrieval breaks down.",
+      "acceptanceCriteria": "Compare three tools and identify gaps Atlas will address."
+    },
+    {
+      "id": "audience",
+      "title": "Know the audience",
+      "homePageId": "foundations",
+      "projectId": "atlas",
+      "workState": "in_progress",
+      "completionState": "none",
+      "icon": "users",
+      "milestone": false,
+      "description": "The early audience is still a hypothesis. Continue with interview notes before choosing the first workflow.",
+      "acceptanceCriteria": "Summarize three audience needs, each supported by an observation."
+    },
+    {
+      "id": "principles",
+      "title": "Set design principles",
+      "homePageId": "foundations",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "verified",
+      "icon": "sparkles",
+      "milestone": false,
+      "description": "The first principles favor calm navigation and a clear path back to saved material.",
+      "acceptanceCriteria": "Document the principles with a practical example of each."
+    },
+    {
+      "id": "architecture",
+      "title": "Shape the architecture",
+      "homePageId": "foundations",
+      "projectId": "atlas",
+      "workState": "in_progress",
+      "completionState": "none",
+      "icon": "layers",
+      "milestone": false,
+      "description": "The sketch separates saved items, collections, and search. Resolve how links between items should work.",
+      "acceptanceCriteria": "Record the core entities, relationships, and one retrieval flow."
+    },
+    {
+      "id": "prototype",
+      "title": "Build the first prototype",
+      "homePageId": "foundations",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "none",
+      "icon": "box",
+      "milestone": false,
+      "description": "Build a narrow working slice once the architecture is settled. Focus on saving and finding one item.",
+      "acceptanceCriteria": "A user can save an item, find it again, and explain the flow unaided."
+    },
+    {
+      "id": "feedback",
+      "title": "Gather early feedback",
+      "homePageId": "foundations",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "none",
+      "icon": "message-circle",
+      "milestone": false,
+      "description": "Use the audience research to recruit early readers and observe their first attempt.",
+      "acceptanceCriteria": "Capture observations from three sessions and list common points of confusion."
+    },
+    {
+      "id": "milestone",
+      "title": "A useful first version",
+      "homePageId": "foundations",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "none",
+      "icon": "flag",
+      "milestone": true,
+      "description": "Bring the prototype and feedback together into a version useful without a walkthrough.",
+      "acceptanceCriteria": "The save-and-find flow works and major feedback is addressed or recorded."
+    },
+    {
+      "id": "story",
+      "title": "Write the story",
+      "homePageId": "launch",
+      "projectId": "atlas",
+      "workState": "in_progress",
+      "completionState": "none",
+      "icon": "book-open",
+      "milestone": false,
+      "description": "Draft why Atlas exists, beginning with the frustration of losing a useful reference.",
+      "acceptanceCriteria": "Explain the problem, audience, and promise in plain language."
+    },
+    {
+      "id": "identity",
+      "title": "Create the identity",
+      "homePageId": "launch",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "none",
+      "icon": "palette",
+      "milestone": false,
+      "description": "Explore a restrained visual identity after the story is clear.",
+      "acceptanceCriteria": "Choose a wordmark direction, palette, and type treatment with examples."
+    },
+    {
+      "id": "site",
+      "title": "Prepare the launch site",
+      "homePageId": "launch",
+      "projectId": "atlas",
+      "workState": "blocked",
+      "completionState": "none",
+      "icon": "globe",
+      "milestone": false,
+      "description": "The launch page is waiting on identity decisions. Its outline has a hero, explanation, and invitation.",
+      "acceptanceCriteria": "A responsive page communicates the promise and offers a clear next step."
+    },
+    {
+      "id": "review",
+      "title": "Review the experience",
+      "homePageId": "launch",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "verified",
+      "icon": "check-circle",
+      "milestone": false,
+      "description": "An earlier walkthrough passed, but the launch site has since been reopened. Repeat the review when it is ready.",
+      "acceptanceCriteria": "Review the full launch experience for clarity, accessibility, and broken paths."
+    },
+    {
+      "id": "launchday",
+      "title": "Share with the world",
+      "homePageId": "launch",
+      "projectId": "atlas",
+      "workState": "not_started",
+      "completionState": "none",
+      "icon": "rocket",
+      "milestone": true,
+      "description": "Coordinate the first public share once the useful version and launch review are ready.",
+      "acceptanceCriteria": "Publish the launch page and share the release with the early audience."
+    },
+    {
+      "id": "space",
+      "title": "Clear a little space",
+      "homePageId": "rhythm",
+      "projectId": "studio",
+      "workState": "not_started",
+      "completionState": "overridden",
+      "icon": "home",
+      "milestone": false,
+      "description": "The desk was cleared enough to begin, even though the storage plan is unfinished.",
+      "acceptanceCriteria": "Keep a clear work surface and a reachable place for current materials."
+    },
+    {
+      "id": "ritual",
+      "title": "Find a daily ritual",
+      "homePageId": "rhythm",
+      "projectId": "studio",
+      "workState": "in_progress",
+      "completionState": "none",
+      "icon": "sun",
+      "milestone": false,
+      "description": "Try a short daily session before checking messages. Mornings seem easiest to protect.",
+      "acceptanceCriteria": "Complete five short sessions and note a sustainable time and duration."
+    },
+    {
+      "id": "ideas",
+      "title": "Collect the sparks",
+      "homePageId": "rhythm",
+      "projectId": "studio",
+      "workState": "not_started",
+      "completionState": "none",
+      "icon": "lightbulb",
+      "milestone": false,
+      "description": "Collect fragments in one place instead of leaving them across notebooks and browser tabs.",
+      "acceptanceCriteria": "Gather existing fragments into one list and tag promising starting points."
+    },
+    {
+      "id": "practice",
+      "title": "Make something small",
+      "homePageId": "rhythm",
+      "projectId": "studio",
+      "workState": "not_started",
+      "completionState": "none",
+      "icon": "pen-tool",
+      "milestone": true,
+      "description": "Use the ritual and idea list to make something small enough to finish in one sitting.",
+      "acceptanceCriteria": "Finish one small piece and write a sentence about what to try next."
+    },
+    {
+      "id": "share",
+      "title": "Share the work",
+      "homePageId": "rhythm",
+      "projectId": "studio",
+      "workState": "not_started",
+      "completionState": "none",
+      "icon": "send",
+      "milestone": false,
+      "description": "Choose a finished piece and share it with someone who can offer thoughtful feedback.",
+      "acceptanceCriteria": "Send the work with a specific question and record the response."
+    }
+  ],
+  "appearances": [
+    {
+      "pageId": "foundations",
+      "questId": "vision",
+      "x": 0,
+      "y": 165
+    },
+    {
+      "pageId": "foundations",
+      "questId": "research",
+      "x": 85,
+      "y": 40
+    },
+    {
+      "pageId": "foundations",
+      "questId": "audience",
+      "x": 85,
+      "y": 285
+    },
+    {
+      "pageId": "foundations",
+      "questId": "principles",
+      "x": 90,
+      "y": -80
+    },
+    {
+      "pageId": "foundations",
+      "questId": "architecture",
+      "x": 205,
+      "y": 40
+    },
+    {
+      "pageId": "foundations",
+      "questId": "prototype",
+      "x": 320,
+      "y": 65
+    },
+    {
+      "pageId": "foundations",
+      "questId": "feedback",
+      "x": 270,
+      "y": 310
+    },
+    {
+      "pageId": "foundations",
+      "questId": "milestone",
+      "x": 300,
+      "y": 185
+    },
+    {
+      "pageId": "launch",
+      "questId": "story",
+      "x": 20,
+      "y": 80
+    },
+    {
+      "pageId": "launch",
+      "questId": "identity",
+      "x": 125,
+      "y": 135
+    },
+    {
+      "pageId": "launch",
+      "questId": "site",
+      "x": 230,
+      "y": 80
+    },
+    {
+      "pageId": "launch",
+      "questId": "review",
+      "x": 335,
+      "y": 135
+    },
+    {
+      "pageId": "launch",
+      "questId": "launchday",
+      "x": 550,
+      "y": 180
+    },
+    {
+      "pageId": "rhythm",
+      "questId": "space",
+      "x": 20,
+      "y": 165
+    },
+    {
+      "pageId": "rhythm",
+      "questId": "ritual",
+      "x": 130,
+      "y": 65
+    },
+    {
+      "pageId": "rhythm",
+      "questId": "ideas",
+      "x": 130,
+      "y": 265
+    },
+    {
+      "pageId": "rhythm",
+      "questId": "practice",
+      "x": 250,
+      "y": 165
+    },
+    {
+      "pageId": "rhythm",
+      "questId": "share",
+      "x": 260,
+      "y": 300
+    },
+    {
+      "pageId": "launch",
+      "questId": "milestone",
+      "x": 420,
+      "y": 250
+    }
+  ],
+  "dependencies": [
+    {
+      "questId": "research",
+      "dependsOnQuestId": "vision"
+    },
+    {
+      "questId": "audience",
+      "dependsOnQuestId": "vision"
+    },
+    {
+      "questId": "principles",
+      "dependsOnQuestId": "research"
+    },
+    {
+      "questId": "architecture",
+      "dependsOnQuestId": "research"
+    },
+    {
+      "questId": "prototype",
+      "dependsOnQuestId": "architecture"
+    },
+    {
+      "questId": "feedback",
+      "dependsOnQuestId": "audience"
+    },
+    {
+      "questId": "milestone",
+      "dependsOnQuestId": "prototype"
+    },
+    {
+      "questId": "milestone",
+      "dependsOnQuestId": "feedback"
+    },
+    {
+      "questId": "story",
+      "dependsOnQuestId": "principles"
+    },
+    {
+      "questId": "identity",
+      "dependsOnQuestId": "story"
+    },
+    {
+      "questId": "site",
+      "dependsOnQuestId": "identity"
+    },
+    {
+      "questId": "review",
+      "dependsOnQuestId": "site"
+    },
+    {
+      "questId": "launchday",
+      "dependsOnQuestId": "milestone"
+    },
+    {
+      "questId": "launchday",
+      "dependsOnQuestId": "review"
+    },
+    {
+      "questId": "ritual",
+      "dependsOnQuestId": "space"
+    },
+    {
+      "questId": "ideas",
+      "dependsOnQuestId": "space"
+    },
+    {
+      "questId": "practice",
+      "dependsOnQuestId": "ritual"
+    },
+    {
+      "questId": "practice",
+      "dependsOnQuestId": "ideas"
+    },
+    {
+      "questId": "share",
+      "dependsOnQuestId": "practice"
+    }
+  ],
+  "verifications": [
+    {
+      "id": "v1",
+      "questId": "vision",
+      "verdict": "pass",
+      "evidence": "Vision brief reviewed.",
+      "reasoning": "The direction and intended audience are clear.",
+      "actor": "agent",
+      "createdAt": "2026-10-12"
+    },
+    {
+      "id": "v3",
+      "questId": "research",
+      "verdict": "pass",
+      "evidence": "Landscape comparison notes.",
+      "reasoning": "Three tools and their gaps are documented.",
+      "actor": "agent",
+      "createdAt": "2026-10-15"
+    },
+    {
+      "id": "v4",
+      "questId": "principles",
+      "verdict": "pass",
+      "evidence": "Design principles brief.",
+      "reasoning": "Each principle has a practical example.",
+      "actor": "agent",
+      "createdAt": "2026-10-18"
+    },
+    {
+      "id": "v5",
+      "questId": "space",
+      "verdict": "override",
+      "evidence": "",
+      "reasoning": "The desk is usable; the remaining storage can wait.",
+      "actor": "human",
+      "createdAt": "2026-10-20"
+    },
+    {
+      "id": "history0",
+      "questId": "story",
+      "verdict": "pass",
+      "actor": "agent",
+      "evidence": "Earlier launch materials reviewed.",
+      "reasoning": "The earlier version met its criteria.",
+      "createdAt": "2026-10-21"
+    },
+    {
+      "id": "history1",
+      "questId": "identity",
+      "verdict": "pass",
+      "actor": "agent",
+      "evidence": "Earlier launch materials reviewed.",
+      "reasoning": "The earlier version met its criteria.",
+      "createdAt": "2026-10-22"
+    },
+    {
+      "id": "history2",
+      "questId": "site",
+      "verdict": "pass",
+      "actor": "agent",
+      "evidence": "Earlier launch materials reviewed.",
+      "reasoning": "The earlier version met its criteria.",
+      "createdAt": "2026-10-23"
+    },
+    {
+      "id": "v2",
+      "questId": "review",
+      "verdict": "pass",
+      "evidence": "Earlier walkthrough notes.",
+      "reasoning": "The previous experience met the criteria before the launch site was reopened.",
+      "actor": "agent",
+      "createdAt": "2026-10-25"
+    },
+    {
+      "id": "history3",
+      "questId": "site",
+      "verdict": "reopen",
+      "actor": "human",
+      "evidence": "",
+      "reasoning": "The earlier launch work needs another iteration.",
+      "createdAt": "2026-10-26"
+    },
+    {
+      "id": "history4",
+      "questId": "identity",
+      "verdict": "reopen",
+      "actor": "human",
+      "evidence": "",
+      "reasoning": "The earlier launch work needs another iteration.",
+      "createdAt": "2026-10-27"
+    },
+    {
+      "id": "history5",
+      "questId": "story",
+      "verdict": "reopen",
+      "actor": "human",
+      "evidence": "",
+      "reasoning": "The earlier launch work needs another iteration.",
+      "createdAt": "2026-10-28"
+    }
+  ],
+  "pins": [
+    {
+      "projectId": "atlas",
+      "questId": "architecture"
+    },
+    {
+      "projectId": "atlas",
+      "questId": "milestone"
+    },
+    {
+      "projectId": "atlas",
+      "questId": "story"
+    },
+    {
+      "projectId": "studio",
+      "questId": "ritual"
+    }
+  ]
+}

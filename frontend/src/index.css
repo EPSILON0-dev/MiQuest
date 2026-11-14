@@ -26,6 +26,7 @@
   --tooltip: #171a1e;
   --radius: 4px;
   --shadow: 0 6px 20px #0004;
+  --saving-overlay: #0004;
   color: var(--text);
   background: var(--background);
 }
@@ -34,6 +35,23 @@
 }
 body {
   margin: 0;
+}
+.connection-state {
+  min-height: 100dvh;
+  display: grid;
+  align-content: center;
+  justify-items: center;
+  gap: 16px;
+  padding: 24px;
+  text-align: center;
+}
+.save-status {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  background: var(--saving-overlay);
 }
 button,
 input,
