@@ -1,5 +1,10 @@
 # Progress
 
+## Sidebar footer — 2026-11-15
+
+- Grouped language, import, and workspace controls at the bottom of the sidebar and allowed the project list to scroll. Included the pending HTML title change to `MiQuest`.
+- Validation: frontend build and the desktop/narrow sidebar browser test passed; both screenshots were inspected. Frontend lint passed with the existing hook dependency warning. The build retains its large-bundle advisory.
+
 ## Modal and workspace settings — 2026-11-15
 
 - Replaced modal Back controls with a top-right close button, retaining quest history and keyboard focus behavior. Grouped trees under collapsible projects in workspace settings, with the current project expanded by default and tree creation under each project.
