@@ -48,8 +48,9 @@ def run(commands: Sequence[Sequence[str]]) -> int:
 
 
 if __name__ == "__main__":
-    if len(sys.argv) != 2:
-        sys.exit("Usage: python scripts/dev.py DATABASE")
+    if len(sys.argv) not in (2, 3):
+        sys.exit("Usage: python scripts/dev.py DATABASE [HOST]")
+    host = sys.argv[2] if len(sys.argv) == 3 else "127.0.0.1"
     sys.exit(
         run(
             [
@@ -69,7 +70,7 @@ if __name__ == "__main__":
                     "dev",
                     "--",
                     "--host",
-                    "127.0.0.1",
+                    host,
                     "--strictPort",
                 ],
             ]
