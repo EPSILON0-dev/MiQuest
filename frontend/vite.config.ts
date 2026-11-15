@@ -7,7 +7,10 @@ export default defineConfig({
     proxy: {
       "/api": {
         target: process.env.MIQUEST_BACKEND_URL || "http://127.0.0.1:8000",
-        changeOrigin: false,
+        changeOrigin: true,
+        configure: (proxy) => {
+          proxy.on("proxyReq", (proxyReq) => proxyReq.removeHeader("origin"));
+        },
       },
     },
   },
