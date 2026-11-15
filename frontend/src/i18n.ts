@@ -11,6 +11,18 @@ const en = {
     "Could not save or reload. Your changes may not have been saved; reload when the backend is available.",
   retry: "Retry",
   saving: "Saving…",
+  saveChanges: "Save changes",
+  discardChanges: "Discard changes",
+  unsavedChanges: "Unsaved changes",
+  unsavedPrompt: "Save or discard your changes before continuing.",
+  draftSaveError:
+    "Could not save changes. Your draft is still here; try again.",
+  refreshNeeded: "This project changed elsewhere. Reload to continue.",
+  draftConflict:
+    "This project changed elsewhere. Your draft is preserved; discard and reload to continue.",
+  loadingGraph: "Loading tree…",
+  loadingHistory: "Loading verification history…",
+  historyError: "Could not load verification history.",
   language: "Language",
   edit: "Edit mode",
   pins: "Pins",
@@ -149,6 +161,19 @@ const packs = {
       "Nie można zapisać ani ponownie załadować danych. Zmiany mogły nie zostać zapisane; odśwież stronę, gdy backend będzie dostępny.",
     retry: "Ponów",
     saving: "Zapisywanie…",
+    saveChanges: "Zapisz zmiany",
+    discardChanges: "Odrzuć zmiany",
+    unsavedChanges: "Niezapisane zmiany",
+    unsavedPrompt: "Zapisz lub odrzuć zmiany przed kontynuowaniem.",
+    draftSaveError:
+      "Nie udało się zapisać zmian. Szkic jest zachowany; spróbuj ponownie.",
+    refreshNeeded:
+      "Projekt zmienił się w innym miejscu. Odśwież stronę, aby kontynuować.",
+    draftConflict:
+      "Projekt zmienił się w innym miejscu. Szkic jest zachowany; odrzuć go i odśwież stronę, aby kontynuować.",
+    loadingGraph: "Ładowanie drzewa…",
+    loadingHistory: "Ładowanie historii weryfikacji…",
+    historyError: "Nie udało się załadować historii weryfikacji.",
     language: "Język",
     edit: "Tryb edycji",
     pins: "Przypięte",

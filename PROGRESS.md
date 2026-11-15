@@ -1,5 +1,12 @@
 # Progress
 
+## Tree drafts and on-demand loading — 2026-11-15
+
+- Tree edits are staged in one in-memory draft with Save/Discard and navigation protection. Saves use a single revision-checked backend transaction; failures preserve the draft, while conflicts require discard and reload. Pins, verification, and workspace management remain immediate after resolving a draft.
+- Navigation loads project/tree metadata first, then caches each opened page graph. Quest verification history is paginated and cached only when that quest is opened. Shared memberships, cross-tree links, and unloaded-tree deletion use focused reads. WebSocket invalidation and persistent drafts remain deferred.
+- Validation: backend pytest 51 passed (outside sandbox because the HTTP portal hangs inside it); backend Ruff and strict Pyright passed. Frontend build, lint, and 26 unit tests passed. Playwright passed 22 Chromium tests, plus a separately run navigation Save/failure/retry test; local server binding required running outside the sandbox. Desktop and narrow draft screenshots were captured and inspected. Vite retains its existing chunk-size advisory.
+- The initial full browser run identified three tests with obsolete autosave expectations; those were updated for explicit Save and passed in the final suite. A focused review found and fixed dependency ordering, stale membership merging, identifier remapping, remote quest status, and the history/override race.
+
 ## Current state — 2026-11-14, integration
 
 ## Frontend internationalization — 2026-11-14

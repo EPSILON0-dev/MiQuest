@@ -283,3 +283,54 @@ def test_commit_failure_never_returns_snapshot(tmp_path: Path) -> None:
     asyncio.run(run())
     with make_session_factory(engine)() as db:
         assert list(db.scalars(select(Project))) == []
+
+
+def test_tree_draft_is_atomic_and_rejects_cross_project_changes(tmp_path: Path) -> None:
+    engine = create_engine_for_path(tmp_path / 'draft.sqlite')
+    config = Config(str(Path(__file__).resolve().parents[1] / 'alembic.ini'))
+    with engine.connect() as connection:
+        config.attributes['connection'] = connection
+        command.upgrade(config, 'head')
+    app = create_app(make_session_factory(engine), allowed_hosts=('testserver',))
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
+            p = (await client.post('/api/v1/projects', json={'name': 'P'})).json()['data']['id']
+            other = (await client.post('/api/v1/projects', json={'name': 'Other'})).json()['data']['id']
+            page = (await client.post(f'/api/v1/projects/{p}/pages', json={'name': 'Page', 'expectedRevision': 0})).json()['data']['id']
+            other_page = (await client.post(f'/api/v1/projects/{other}/pages', json={'name': 'Other', 'expectedRevision': 0})).json()['data']['id']
+            quest = (await client.post(f'/api/v1/projects/{p}/quests', json={'title': 'Original', 'pageId': page, 'x': 0, 'y': 0, 'expectedRevision': 1})).json()['data']['quest']['id']
+            foreign = (await client.post(f'/api/v1/projects/{other}/quests', json={'title': 'Foreign', 'pageId': other_page, 'x': 0, 'y': 0, 'expectedRevision': 1})).json()['data']['quest']['id']
+            path = f'/api/v1/projects/{p}/tree-draft'
+            edit = {'operation': 'update_quest', 'arguments': {'questId': quest, 'title': 'Changed'}}
+            cycle = {'operation': 'add_dependency', 'arguments': {'questId': quest, 'dependsOnQuestId': quest}}
+            rejected = await client.post(path, json={'expectedRevision': 2, 'operations': [edit, cycle]})
+            assert rejected.status_code == 422, rejected.text
+            assert (await client.get(f'/api/v1/quests/{quest}')).json()['data']['quest']['title'] == 'Original'
+            cross_project = {'operation': 'update_quest', 'arguments': {'questId': foreign, 'title': 'Wrong'}}
+            rejected = await client.post(path, json={'expectedRevision': 2, 'operations': [edit, cross_project]})
+            assert rejected.status_code == 422, rejected.text
+            assert (await client.get(f'/api/v1/quests/{foreign}')).json()['data']['quest']['title'] == 'Foreign'
+            assert (await client.get(f'/api/v1/quests/{quest}')).json()['data']['quest']['title'] == 'Original'
+            create = {'operation': 'create_quest', 'clientId': 'temp', 'arguments': {'pageId': page, 'title': 'New', 'x': 3, 'y': 4}}
+            link = {'operation': 'add_dependency', 'arguments': {'questId': 'temp', 'dependsOnQuestId': quest}}
+            saved = await client.post(path, json={'expectedRevision': 2, 'operations': [edit, create, link]})
+            assert saved.status_code == 200, saved.text
+            new_id = saved.json()['data']['ids']['temp']
+            assert saved.json()['projectRevision'] == 5
+            graph = (await client.get(f'/api/v1/projects/{p}/graph')).json()['data']
+            assert any(q['id'] == quest and q['title'] == 'Changed' for q in graph['quests'])
+            assert any(d['questId'] == new_id and d['dependsOnQuestId'] == quest for d in graph['dependencies'])
+            bad_edit = {'operation': 'update_quest', 'arguments': {'questId': quest, 'title': 'Must roll back'}}
+            closes_cycle = {'operation': 'add_dependency', 'arguments': {'questId': quest, 'dependsOnQuestId': new_id}}
+            cycle_response = await client.post(path, json={'expectedRevision': 5, 'operations': [bad_edit, closes_cycle]})
+            assert cycle_response.status_code == 409
+            assert cycle_response.json()['error']['code'] == 'dependency_cycle'
+            assert (await client.get(f'/api/v1/quests/{quest}')).json()['data']['quest']['title'] == 'Changed'
+            invalid = await client.post(path, json={'expectedRevision': 5, 'operations': [bad_edit, {'operation': 'delete_quest', 'arguments': {'questId': new_id}}]})
+            assert invalid.status_code == 422
+            assert (await client.get(f'/api/v1/quests/{quest}')).json()['data']['quest']['title'] == 'Changed'
+            stale = await client.post(path, json={'expectedRevision': 2, 'operations': [edit]})
+            assert stale.status_code == 409
+            assert stale.json()['error']['code'] == 'stale_revision'
+    asyncio.run(run())

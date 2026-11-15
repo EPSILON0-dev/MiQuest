@@ -74,6 +74,7 @@ class PageGraph(TypedDict):
     page: Page
     quests: list[QuestView]
     appearances: list[QuestAppearance]
+    memberships: list[QuestAppearance]
     dependencies: list[Dependency]
     externalLinks: list[ExternalLink]
     pins: list[PinnedQuest]
@@ -82,6 +83,11 @@ class PageGraph(TypedDict):
 class VerificationHistory(TypedDict):
     items: list[Verification]
     nextAfterSequence: int | None
+
+
+class PageMemberships(TypedDict):
+    quests: list[QuestView]
+    appearances: list[QuestAppearance]
 
 
 def now() -> str:
@@ -443,19 +449,36 @@ def get_project_graph(db: Session, project_id: str) -> ProjectGraph:
 
 
 @read_snapshot
+def get_page_memberships(db: Session, page_id: str) -> PageMemberships:
+    get_page(db, page_id)
+    local_ids = select(QuestAppearance.quest_id).where(QuestAppearance.page_id == page_id)
+    quests = list(db.scalars(select(Quest).where(Quest.id.in_(local_ids)).order_by(Quest.created_at, Quest.id)))
+    appearances = list(db.scalars(select(QuestAppearance).where(QuestAppearance.quest_id.in_(local_ids)).order_by(QuestAppearance.page_id, QuestAppearance.quest_id)))
+    return {'quests': [quest_view(db, quest) for quest in quests], 'appearances': appearances}
+
+
+@read_snapshot
 def get_page_graph(db: Session, page_id: str) -> PageGraph:
-    page = get_page(db, page_id); graph = get_project_graph(db, page.project_id)
-    appearances = [a for a in graph['appearances'] if a.page_id == page_id]
-    ids = {a.quest_id for a in appearances}; views = {q['id']: q for q in graph['quests']}
+    page = get_page(db, page_id)
+    appearances = list(db.scalars(select(QuestAppearance).where(QuestAppearance.page_id == page_id).order_by(QuestAppearance.quest_id)))
+    ids = {a.quest_id for a in appearances}
+    memberships = list(db.scalars(select(QuestAppearance).where(QuestAppearance.quest_id.in_(ids)).order_by(QuestAppearance.page_id, QuestAppearance.quest_id)))
+    edges = list(db.scalars(select(Dependency).where(
+        (Dependency.quest_id.in_(ids)) | (Dependency.depends_on_quest_id.in_(ids)),
+    ).order_by(Dependency.quest_id, Dependency.depends_on_quest_id)))
+    pins = list_pins(db, page.project_id)
+    related_ids = ids | {edge.quest_id for edge in edges} | {edge.depends_on_quest_id for edge in edges} | {pin.quest_id for pin in pins}
+    quests = list(db.scalars(select(Quest).where(Quest.id.in_(related_ids)).order_by(Quest.created_at, Quest.id)))
+    views = {quest.id: quest_view(db, quest) for quest in quests}
     internal: list[Dependency] = []; external: list[ExternalLink] = []
-    for edge in graph['dependencies']:
+    for edge in edges:
         dependent, prerequisite = edge.quest_id, edge.depends_on_quest_id
         if dependent in ids and prerequisite in ids: internal.append(edge)
         elif dependent in ids: external.append({'direction': 'prerequisite', 'localQuestId': dependent, 'remoteQuest': views[prerequisite]})
         elif prerequisite in ids: external.append({'direction': 'next', 'localQuestId': prerequisite, 'remoteQuest': views[dependent]})
-    return {'project': graph['project'], 'page': page, 'quests': [q for q in graph['quests'] if q['id'] in ids],
-            'appearances': appearances, 'dependencies': internal, 'externalLinks': external,
-            'pins': [{'pin': pin, 'quest': views[pin.quest_id]} for pin in graph['pins']]}
+    return {'project': project(db, page.project_id), 'page': page, 'quests': [views[q.id] for q in quests if q.id in ids],
+            'appearances': appearances, 'memberships': memberships, 'dependencies': internal, 'externalLinks': external,
+            'pins': [{'pin': pin, 'quest': views[pin.quest_id]} for pin in pins]}
 
 
 @mutation
@@ -544,3 +567,70 @@ def reopen_quest(db: Session, quest_id: str, reason: str, actor: str='human', ex
     if actor not in ('human', 'agent') or q.completion_state == 'none': fail('invalid_input')
     event = verification(db, q, 'reopen', actor, reason); changed(p)
     return q, event
+
+
+@mutation
+def save_tree_draft(db: Session, project_id: str, expected_revision: int, operations: list[dict[str, object]]) -> dict[str, dict[str, str]]:
+    from pydantic import ValidationError
+
+    from . import schemas
+
+    project(db, project_id, expected_revision)
+    ids: dict[str, str] = {}
+    definitions: dict[str, tuple[type[schemas.Input], tuple[str, ...]]] = {
+        'create_quest': (schemas.CreateQuest, ()),
+        'update_quest': (schemas.UpdateQuest, ('questId',)),
+        'delete_quest': (schemas.DeleteRequest, ('questId',)),
+        'add_quest_to_page': (schemas.PositionRequest, ('pageId', 'questId')),
+        'update_quest_appearance': (schemas.PositionRequest, ('pageId', 'questId')),
+        'remove_quest_from_page': (schemas.RemoveAppearance, ('pageId', 'questId')),
+        'update_page_positions': (schemas.PositionsRequest, ('pageId',)),
+        'add_dependency': (schemas.DependencyRequest, ('questId',)),
+        'remove_dependency': (schemas.RevisionRequest, ('questId', 'dependsOnQuestId')),
+    }
+
+    def resolve(value: object, model: type[Quest] | type[Page]) -> str:
+        if not isinstance(value, str): fail('invalid_input')
+        value = ids.get(value, value)
+        obj = get(db, model, value, 'quest_not_found' if model is Quest else 'page_not_found')
+        if obj.project_id != project_id: fail('cross_project_reference')
+        return value
+
+    for operation in operations:
+        name = operation['operation']
+        if not isinstance(name, str) or name not in definitions: fail('invalid_input')
+        raw = operation['arguments']
+        if not isinstance(raw, dict): fail('invalid_input')
+        arguments = cast(dict[str, object], raw).copy()
+        if 'expectedRevision' in arguments: fail('invalid_input')
+        schema, path_fields = definitions[name]
+        paths: dict[str, object] = {}
+        for field in path_fields:
+            value = arguments.pop(field, None)
+            paths[{'questId': 'quest_id', 'pageId': 'page_id', 'dependsOnQuestId': 'depends_on_quest_id'}[field]] = resolve(value, Page if field == 'pageId' else Quest)
+        for field, model in [('pageId', Page), ('homePageId', Page), ('newHomePageId', Page), ('dependsOnQuestId', Quest)]:
+            if field in arguments and arguments[field] is not None:
+                arguments[field] = resolve(arguments[field], model)
+        if name == 'update_page_positions' and isinstance(arguments.get('positions'), list):
+            for position in cast(list[object], arguments['positions']):
+                if isinstance(position, dict) and 'questId' in position:
+                    item = cast(dict[str, object], position)
+                    item['questId'] = resolve(item['questId'], Quest)
+        try:
+            validated = schema.model_validate({**arguments, 'expectedRevision': 0}).model_dump(exclude_unset=True)
+        except ValidationError:
+            fail('invalid_input')
+        validated.pop('expected_revision')
+        if 'icon' in validated: validated['icon_name'] = validated.pop('icon')
+        client_id = operation.get('client_id')
+        if name == 'create_quest':
+            if not isinstance(client_id, str) or not client_id or client_id in ids: fail('invalid_input')
+            paths['project_id'] = project_id
+        elif client_id is not None: fail('invalid_input')
+        handler = cast(Callable[..., object], globals()[name].__wrapped__)
+        result = handler(db, **paths, **validated)
+        db.flush()
+        if name == 'create_quest':
+            created = cast(tuple[Quest, QuestAppearance], result)
+            ids[cast(str, client_id)] = created[0].id
+    return {'ids': ids}

@@ -39,6 +39,10 @@ test("edits membership, home tree, and position of a shared quest", async ({
   await page.getByRole("checkbox", { name: "Foundations" }).uncheck();
   await page.getByRole("button", { name: "Save quest" }).click();
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(
+    0,
+  );
   await expect(
     page.locator(`[data-id="${ids.milestone}"] .quest-node`),
   ).toHaveCount(0);
@@ -106,7 +110,7 @@ test("shows historical verification while a prerequisite is unsatisfied", async 
   await expect(page.getByText("Earlier walkthrough notes.")).toBeVisible();
 });
 
-test("reloads current data after a concurrent edit conflicts", async ({
+test("preserves the draft after a concurrent edit conflicts", async ({
   page,
   request,
   ids,
@@ -130,13 +134,15 @@ test("reloads current data after a concurrent edit conflicts", async ({
   expect(response.ok(), await response.text()).toBeTruthy();
   await page.getByLabel("Title", { exact: true }).fill("Stale edit");
   await page.getByRole("button", { name: "Save quest" }).click();
-  await expect(page.getByRole("alert")).toContainText(
-    "latest data was reloaded",
-  );
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("alert")).toContainText(
+    "Your draft is preserved",
+  );
   await expect(
-    page.getByRole("button", { name: /Changed elsewhere/ }),
-  ).toBeVisible();
+    page.getByRole("button", { name: "Save changes" }),
+  ).toBeDisabled();
+  await expect(page.getByRole("button", { name: /Stale edit/ })).toBeVisible();
 });
 
 test("retries loading after the backend is unavailable", async ({ page }) => {
@@ -182,4 +188,194 @@ test("creates a first progression and tree in an empty database", async ({
   await expect(
     page.getByRole("button", { name: "First tree", exact: true }),
   ).toBeVisible();
+});
+
+test("loads and caches opened tree graphs and clicked quest histories", async ({
+  page,
+  ids,
+}) => {
+  const requests: string[] = [];
+  page.on("request", (request) => {
+    if (request.url().includes("/api/v1/"))
+      requests.push(new URL(request.url()).pathname);
+  });
+  await page.goto("/");
+  await expect(
+    page.locator(`[data-id="${ids.vision}"] .quest-node`),
+  ).toBeVisible();
+  expect(requests.filter((url) => url.endsWith("/graph"))).toEqual([
+    `/api/v1/pages/${ids.foundations}/graph`,
+  ]);
+  expect(requests.filter((url) => url.endsWith("/verifications"))).toEqual([]);
+  await page.locator(`[data-id="${ids.vision}"] .quest-node`).click();
+  await expect
+    .poll(() => requests.filter((url) => url.endsWith("/verifications")).length)
+    .toBe(1);
+  await page.keyboard.press("Escape");
+  await page.locator(`[data-id="${ids.vision}"] .quest-node`).click();
+  await page.keyboard.press("Escape");
+  expect(requests.filter((url) => url.endsWith("/verifications"))).toEqual([
+    `/api/v1/quests/${ids.vision}/verifications`,
+  ]);
+  await page.getByRole("button", { name: "Launch path", exact: true }).click();
+  await expect(
+    page.locator(`[data-id="${ids.story}"] .quest-node`),
+  ).toBeVisible();
+  await page.getByRole("button", { name: "Foundations", exact: true }).click();
+  await expect(
+    page.locator(`[data-id="${ids.vision}"] .quest-node`),
+  ).toBeVisible();
+  expect(requests.filter((url) => url.endsWith("/graph"))).toEqual([
+    `/api/v1/pages/${ids.foundations}/graph`,
+    `/api/v1/pages/${ids.launch}/graph`,
+  ]);
+});
+
+test("keeps edits local until save and preserves a draft after a failed save", async ({
+  page,
+  request,
+  ids,
+}) => {
+  await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await page.locator(`[data-id="${ids.architecture}"] .quest-node`).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Draft title");
+  await page.getByRole("button", { name: "Save quest" }).click();
+  await page.keyboard.press("Escape");
+  const readTitle = async () =>
+    (await (await request.get(`/api/v1/quests/${ids.architecture}`)).json())
+      .data.quest.title as string;
+  expect(await readTitle()).toBe("Shape the architecture");
+  await page.route("**/tree-draft", (route) =>
+    route.fulfill({
+      status: 500,
+      json: { error: { code: "failed", message: "Save failed" } },
+    }),
+  );
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("alert")).toContainText("Save failed");
+  expect(await readTitle()).toBe("Shape the architecture");
+  await expect(page.getByRole("button", { name: /Draft title/ })).toBeVisible();
+  await page.unroute("**/tree-draft");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect.poll(readTitle).toBe("Draft title");
+  await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(
+    0,
+  );
+});
+
+test("asks to save or discard before leaving a dirty tree", async ({
+  page,
+  request,
+  ids,
+}) => {
+  await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await page.locator(`[data-id="${ids.architecture}"] .quest-node`).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Discard this");
+  await page.getByRole("button", { name: "Save quest" }).click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Launch path", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Unsaved changes" });
+  await expect(dialog).toBeVisible();
+  await dialog.getByRole("button", { name: "Discard changes" }).click();
+  await expect(
+    page.locator(`[data-id="${ids.story}"] .quest-node`),
+  ).toBeVisible();
+  const quest = (
+    await (await request.get(`/api/v1/quests/${ids.architecture}`)).json()
+  ).data.quest;
+  expect(quest.title).toBe("Shape the architecture");
+});
+
+test("draft controls fit on a narrow screen", async ({ page, ids }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await page.locator(`[data-id="${ids.architecture}"] .quest-node`).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("A revised quest");
+  await page.getByRole("button", { name: "Save quest" }).click();
+  await page.keyboard.press("Escape");
+  for (const name of ["Save changes", "Discard changes"]) {
+    const button = page.getByRole("button", { name });
+    await expect(button).toBeInViewport();
+  }
+  await page.screenshot({ path: "/tmp/miquest-draft-narrow.png" });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({ path: "/tmp/miquest-draft-desktop.png" });
+});
+
+test("refreshes memberships for quests on a newly opened tree", async ({
+  page,
+  request,
+  ids,
+}) => {
+  await page.goto("/");
+  await expect(
+    page.locator(`[data-id="${ids.milestone}"] .quest-node`),
+  ).toBeVisible();
+  const graph = await (
+    await request.get(`/api/v1/pages/${ids.foundations}/graph`)
+  ).json();
+  const update = await request.patch(`/api/v1/quests/${ids.milestone}`, {
+    data: { homePageId: ids.launch, expectedRevision: graph.projectRevision },
+  });
+  expect(update.ok()).toBeTruthy();
+  const revision = (await update.json()).projectRevision;
+  const remove = await request.delete(
+    `/api/v1/pages/${ids.foundations}/quests/${ids.milestone}`,
+    {
+      data: { expectedRevision: revision },
+    },
+  );
+  expect(remove.ok()).toBeTruthy();
+  await page.getByRole("button", { name: "Launch path", exact: true }).click();
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await page.locator(`[data-id="${ids.milestone}"] .quest-node`).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await expect(
+    page.getByRole("checkbox", { name: "Foundations" }),
+  ).not.toBeChecked();
+});
+
+test("saves before navigating and stays on the draft when saving fails", async ({
+  page,
+  request,
+  ids,
+}) => {
+  await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await page.locator(`[data-id="${ids.architecture}"] .quest-node`).click();
+  await page.getByRole("button", { name: "Edit", exact: true }).click();
+  await page.getByLabel("Title", { exact: true }).fill("Saved on navigation");
+  await page.getByRole("button", { name: "Save quest" }).click();
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Launch path", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Unsaved changes" });
+  await expect(dialog).toBeVisible();
+  await page.route("**/tree-draft", (route) =>
+    route.fulfill({
+      status: 500,
+      json: { error: { code: "failed", message: "Save failed" } },
+    }),
+  );
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+  await expect(dialog.getByRole("alert")).toContainText("Save failed");
+  await expect(
+    page.locator(`[data-id="${ids.architecture}"] .quest-node`),
+  ).toHaveCount(1);
+  const readTitle = async () =>
+    (await (await request.get(`/api/v1/quests/${ids.architecture}`)).json())
+      .data.quest.title as string;
+  expect(await readTitle()).toBe("Shape the architecture");
+  await page.unroute("**/tree-draft");
+  await dialog.getByRole("button", { name: "Save changes" }).click();
+  await expect(dialog).toHaveCount(0);
+  await expect(
+    page.locator(`[data-id="${ids.story}"] .quest-node`),
+  ).toBeVisible();
+  await expect.poll(readTitle).toBe("Saved on navigation");
 });
