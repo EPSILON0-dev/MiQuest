@@ -2,7 +2,7 @@ DATABASE ?= ./data/miquest.sqlite3
 PYTHON := backend/.venv/bin/python
 .DEFAULT_GOAL := dev
 
-.PHONY: setup migrate prefill dev test
+.PHONY: setup migrate prefill dev dev-net test
 
 setup:
 	uv sync --project backend --locked --extra dev
@@ -16,6 +16,9 @@ prefill:
 
 dev:
 	$(PYTHON) scripts/dev.py "$(DATABASE)"
+
+dev-net:
+	npm --prefix frontend run dev -- --host 0.0.0.0
 
 test:
 	$(PYTHON) -m unittest discover -s scripts -p 'test_*.py'
