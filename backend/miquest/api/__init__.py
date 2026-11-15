@@ -66,7 +66,10 @@ def create_app(session_factory: Callable[[], Session], allowed_hosts: tuple[str,
     @app.exception_handler(RequestValidationError)
     async def validation_error(request: Request, exc: RequestValidationError) -> JSONResponse:
         fields = ['.'.join(str(part) for part in item['loc']) for item in exc.errors()]
-        return error('invalid_input', 'Invalid request.', 422, {'fields': fields})
+        details: dict[str, object] = {'fields': fields}
+        if request.url.path.startswith('/api/v1/imports'):
+            details['messages'] = [item['msg'] for item in exc.errors()]
+        return error('invalid_input', 'Invalid request.', 422, details)
 
     @app.exception_handler(Exception)
     async def unexpected_error(request: Request, exc: Exception) -> JSONResponse:

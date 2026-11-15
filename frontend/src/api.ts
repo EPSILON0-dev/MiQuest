@@ -20,6 +20,14 @@ type PageGraph = {
 };
 type History = { items: Verification[]; nextAfterSequence: number | null };
 
+export type ImportPreview = { project: string; pages: string[]; quests: number; dependencies: number };
+export async function previewImport(document: object): Promise<ImportPreview> {
+  return (await request<ImportPreview>("/imports/preview", "POST", document)).data;
+}
+export async function createImport(document: object): Promise<void> {
+  await request("/imports", "POST", document);
+}
+
 export class ApiError extends Error {
   code: string;
   status: number;
@@ -50,7 +58,7 @@ async function request<T>(
     const error = result.error ?? result;
     throw new ApiError(
       error.code ?? "request_failed",
-      error.message ?? `Request failed (${response.status})`,
+      error.details?.messages?.join("; ") ?? error.message ?? `Request failed (${response.status})`,
       response.status,
     );
   }

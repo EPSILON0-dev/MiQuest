@@ -61,6 +61,7 @@ import {
 } from "./model";
 import { QuestIcon } from "./icons";
 import Modal from "./Modal";
+import ImportProject from "./ImportProject";
 import QuestEditor from "./QuestEditor";
 import { readView, restoreViewport, type SavedViewport } from "./view";
 import {
@@ -271,6 +272,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const [draggedPin, setDraggedPin] = useState<string | null>(null);
   const [draft, setDraft] = useState<Quest | null>(null);
   const [management, setManagement] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [pinsOpen, setPinsOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<string[]>([]);
@@ -1199,6 +1201,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     );
   return (
     <Tooltip.Provider delayDuration={180} skipDelayDuration={100}>
+      {importing && <ImportProject onClose={() => setImporting(false)} />}
       {saving && (
         <div className="save-status" role="status">
           {t.saving}
@@ -1345,6 +1348,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               <option value="pl">Polski</option>
             </select>
           </label>
+          {editMode && <button className="settings-button" onClick={() => guard(() => {
+            markReturnFocus(); setImporting(true);
+          })}>{t.importProject}</button>}
           {editMode && (
             <button
               className="settings-button"

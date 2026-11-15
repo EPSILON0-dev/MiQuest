@@ -30,6 +30,7 @@
 - Quest details modal showing description, prerequisites, next quests, acceptance criteria, verification history, and evidence.
 - Manual and REST editing of projects, pages, quests, dependencies, icons, positions, home trees, and pins.
 - SQLite persistence and database migrations.
+- Import a new project from a validated JSON file, with a summary before confirmation and an automatically drafted layout.
 - Verification states and immutable verification records.
 - Manual completion override with a typed reason and visual distinction from agent-verified completion.
 - Containerized self-hosted deployment with persistent data, health check, and documented backup procedure.
@@ -39,7 +40,7 @@
 
 - Accounts, teams, roles, notifications, calendar, time tracking, gamification points, GitHub integration, automatic repository scanning, embedded AI chat, model hosting, autonomous background verification, OR dependencies, cross-project edges, and mobile-native apps.
 - Elaborate workflow engines, microservices, task queues, complex authorization frameworks, specialized automatic winding/radial layout algorithms, pixel styling, and automatic next-task ranking.
-- Uploads are excluded entirely, including quest icons and artwork. Use one bundled icon library.
+- Uploads are excluded except for project JSON imports; quest icons and artwork cannot be uploaded. Use one bundled icon library.
 - Embedded agent chat and harness integration are deferred beyond v1.
 
 ## 3. Stack

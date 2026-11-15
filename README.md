@@ -56,6 +56,8 @@ Browser tests automatically start the preview and capture five screenshots: [des
 
 ## Backend
 
+To import a new project, enable Edit mode, select **Import project**, choose a JSON file, and review the summary before confirming. Each import creates a separate project with incomplete quests. The [generator skill](skills/miquest-project/SKILL.md) includes the format schema and an example for agents.
+
 The Python backend provides a FastAPI REST API backed by SQLite, with Alembic migrations and verification history. There is no authentication, so keep the service on loopback or behind a trusted private network boundary. Deployment is not included yet.
 
 Install Python 3.12+ and [uv](https://docs.astral.sh/uv/). From the repository root, install dependencies, initialize the database, and start the API:
