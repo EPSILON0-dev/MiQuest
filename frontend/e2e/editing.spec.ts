@@ -1,5 +1,41 @@
 import { test, expect } from "./fixtures";
 
+test("manages trees inside expandable projects", async ({ page }, testInfo) => {
+  await page.goto("/");
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await page.getByRole("button", { name: "Workspace settings" }).click();
+  const dialog = page.getByRole("dialog", { name: "Workspace settings" });
+  const atlas = dialog
+    .locator(".manage-project")
+    .filter({
+      has: page.getByRole("button", { name: "Atlas", exact: true }),
+    });
+  const studio = dialog
+    .locator(".manage-project")
+    .filter({
+      has: page.getByRole("button", { name: "Studio", exact: true }),
+    });
+  await expect(
+    atlas.getByRole("button", { name: "Atlas", exact: true }),
+  ).toHaveAttribute("aria-expanded", "true");
+  await expect(atlas).toContainText("Foundations");
+  await expect(
+    studio.getByRole("button", { name: "Studio", exact: true }),
+  ).toHaveAttribute("aria-expanded", "false");
+  await studio.getByRole("button", { name: "Studio", exact: true }).click();
+  await studio.getByLabel("New tree name").fill("Studio ideas");
+  await studio.getByRole("button", { name: "Create", exact: true }).click();
+  await expect(studio).toContainText("Studio ideas");
+  await expect(atlas).not.toContainText("Studio ideas");
+  await page.screenshot({ path: testInfo.outputPath("settings-desktop.png") });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.screenshot({ path: testInfo.outputPath("settings-narrow.png") });
+  await studio.getByRole("button", { name: "Studio", exact: true }).click();
+  await expect(studio.getByText("Studio ideas")).toHaveCount(0);
+  await dialog.getByRole("button", { name: "Close", exact: true }).click();
+  await expect(dialog).toHaveCount(0);
+});
+
 test("creates a progression and its first tree", async ({ page }) => {
   await page.goto("/");
   await page.getByRole("switch", { name: "Edit mode" }).click();
@@ -12,16 +48,14 @@ test("creates a progression and its first tree", async ({ page }) => {
   const treeForm = page
     .locator("form")
     .filter({ has: page.getByLabel("New tree name") });
-  await expect(treeForm.getByLabel("Tree progression")).toHaveValue(
-    (await treeForm
-      .getByRole("option", { name: "Expedition" })
-      .getAttribute("value")) as string,
-  );
+  await expect(
+    treeForm.locator("xpath=ancestor::div[contains(@class, 'manage-project')]"),
+  ).toContainText("Expedition");
   await treeForm.getByLabel("New tree name").fill("First steps");
   await treeForm.getByRole("button", { name: "Create" }).click();
   await expect(
-    page.locator(".manage-row").filter({ hasText: "First steps" }),
-  ).toContainText("Expedition");
+    page.locator(".manage-project").filter({ hasText: "Expedition" }),
+  ).toContainText("First steps");
 });
 
 test("edits membership, home tree, and position of a shared quest", async ({
@@ -181,8 +215,8 @@ test("creates a first progression and tree in an empty database", async ({
   await tree.getByLabel("New tree name").fill("First tree");
   await tree.getByRole("button", { name: "Create" }).click();
   await expect(
-    page.locator(".manage-row").filter({ hasText: "First tree" }),
-  ).toContainText("Fresh start");
+    page.locator(".manage-project").filter({ hasText: "Fresh start" }),
+  ).toContainText("First tree");
   await expect(page.getByText("Saving…")).toHaveCount(0);
   await page.reload();
   await expect(

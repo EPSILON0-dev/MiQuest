@@ -22,6 +22,7 @@
 - [x] Open backend [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2); merged.
 - [x] Connect the approved frontend to the API, preserving editing and view behavior.
 - [x] Add persisted end-to-end tests for frontend graph editing, membership, and verification.
+- [x] Add validated JSON project import and a project-generation skill.
 
 ## Delivery
 - [ ] Non-root container, persistent SQLite, backup procedure, and private Tailscale Serve instructions. Backend liveness/readiness endpoints are implemented.

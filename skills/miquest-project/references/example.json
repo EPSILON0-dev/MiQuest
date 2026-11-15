@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "project": {"name": "Launch a website", "description": "Plan and publish a small website."},
+  "pages": [{"key": "main", "name": "Main", "quests": ["plan", "build", "launch"]}],
+  "quests": [
+    {"key": "plan", "title": "Plan the site", "homePage": "main", "acceptanceCriteria": "The audience and purpose are clear."},
+    {"key": "build", "title": "Build the site", "homePage": "main", "acceptanceCriteria": "The site works on desktop and narrow screens."},
+    {"key": "launch", "title": "Launch", "homePage": "main", "milestone": true}
+  ],
+  "dependencies": [{"quest": "build", "dependsOn": "plan"}, {"quest": "launch", "dependsOn": "build"}],
+  "pins": ["launch"]
+}

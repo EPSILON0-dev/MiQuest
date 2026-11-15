@@ -30,6 +30,7 @@
 - Quest details modal showing description, prerequisites, next quests, acceptance criteria, verification history, and evidence.
 - Manual and REST editing of projects, pages, quests, dependencies, icons, positions, home trees, and pins.
 - SQLite persistence and database migrations.
+- Import a new project from a validated JSON file, with a summary before confirmation and an automatically drafted layout.
 - Verification states and immutable verification records.
 - Manual completion override with a typed reason and visual distinction from agent-verified completion.
 - Containerized self-hosted deployment with persistent data, health check, and documented backup procedure.
@@ -39,7 +40,7 @@
 
 - Accounts, teams, roles, notifications, calendar, time tracking, gamification points, GitHub integration, automatic repository scanning, embedded AI chat, model hosting, autonomous background verification, OR dependencies, cross-project edges, and mobile-native apps.
 - Elaborate workflow engines, microservices, task queues, complex authorization frameworks, specialized automatic winding/radial layout algorithms, pixel styling, and automatic next-task ranking.
-- Uploads are excluded entirely, including quest icons and artwork. Use one bundled icon library.
+- Uploads are excluded except for project JSON imports; quest icons and artwork cannot be uploaded. Use one bundled icon library.
 - Embedded agent chat and harness integration are deferred beyond v1.
 
 ## 3. Stack
@@ -87,7 +88,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 - **Top bar:** compact 44px toolbar with current progression/tree and a global Edit mode switch (initially off). Creation and Auto layout controls appear only in Edit mode. Fit view sits at the lower-left of the canvas.
 - **Main canvas:** active tree occupies most of the viewport; understated background; directional dependency edges; smooth pan/zoom; selected node emphasized.
 - **Pinned quests:** manually ordered quest-title shortcuts in a collapsible top-right panel, initially closed, with a pin icon and count. Pins are progression-wide, including quests on other pages; clicking opens the quest on its home tree. Normal mode supports pin/unpin, drag reordering, and keyboard reordering; pins add no separate task-management behavior.
-- **Quest details:** modal over the tree with a blurred background. Title bar contains Back, icon, title, and pin control. Back closes the modal, removes the blur, and restores the tree view.
+- **Quest details:** modal over the tree with a blurred background. Title bar contains the icon, title, pin control, and a close button at the top right. Closing the modal removes the blur and restores the tree view.
 - **Modal content:** two upper columns show prerequisites and What's next as navigable icons; description and acceptance criteria follow below. Verification history/evidence is expandable, with agent verification and human override clearly distinguished.
 - **Edit mode:** one global switch, initially off and reset to off on reload. When on, it reveals all CRUD actions, override controls, layout actions, dependency handles, and enables node dragging. Normal mode keeps the graph navigable and supports pin/unpin, keyboard pin reorder, and quest inspection.
 - **Hover/focus tooltip:** a large dark rectangular tooltip shows only title, description, and status. Descriptions longer than 320 characters are truncated with a “Click to read more” affordance. Click, Enter, or one tap opens the full modal.
@@ -108,7 +109,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 
 ### Editing interactions
 
-- Click, Enter, or one touch on a quest opens its modal; Back or Escape closes it. Keep focus within the modal while open and return focus to the originating control when closed. Hover/focus exposes the tooltip.
+- Click, Enter, or one touch on a quest opens its modal; the close button or Escape closes it. Keep focus within the modal while open and return focus to the originating control when closed. Hover/focus exposes the tooltip.
 - Global Edit mode exposes creation, rename/deletion, override, layout, dependency handles, and node drag. The initial page is the quest's home tree; it can be changed to another page containing that quest. Normal mode still supports pin/unpin and drag/keyboard pin reorder.
 - The UI supports the core editing workflow. Completion remains governed by verification/override rules.
 - Separate “Remove from this page” from “Delete quest everywhere.” Global deletion requires confirmation and removes dependency links.
@@ -117,6 +118,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 - Create/remove dependency via visible controls or connect handles.
 - Drag nodes to position manually; auto-layout button can reorganize on demand.
 - Confirm destructive deletion; display errors for cycle/invalid-edge attempts.
+- In workspace settings, list trees under collapsible projects, with the current project expanded initially and tree creation inside each project.
 - Undo/redo is optional for v1, not a blocker.
 - Keep editor forms simple and keyboard accessible.
 

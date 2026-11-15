@@ -3,6 +3,15 @@ import { useSyncExternalStore } from "react";
 export type Locale = "en" | "pl";
 
 const en = {
+  closeModal: "Close",
+  newTreeForProject: (name: string) => `New tree in ${name}`,
+  importProject: "Import project",
+  importFile: "Choose a JSON file",
+  importInvalid:
+    "Could not validate the file. Check its format and references.",
+  importConfirm: "Create project",
+  importSummary: (quests: number, dependencies: number) =>
+    `${quests} quests, ${dependencies} dependencies`,
   loading: "Loading MiQuest…",
   loadError: "Could not load MiQuest. Check that the backend is running.",
   saveError:
@@ -153,6 +162,15 @@ const en = {
 const packs = {
   en,
   pl: {
+    closeModal: "Zamknij",
+    newTreeForProject: (name: string) => `Nowe drzewo w ${name}`,
+    importProject: "Importuj projekt",
+    importFile: "Wybierz plik JSON",
+    importInvalid:
+      "Nie można sprawdzić pliku. Sprawdź jego format i odwołania.",
+    importConfirm: "Utwórz projekt",
+    importSummary: (quests: number, dependencies: number) =>
+      `Zadania: ${quests}, zależności: ${dependencies}`,
     loading: "Ładowanie MiQuest…",
     loadError:
       "Nie można załadować MiQuest. Sprawdź, czy backend jest uruchomiony.",

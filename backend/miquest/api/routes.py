@@ -8,10 +8,25 @@ from sqlalchemy import inspect
 from sqlalchemy.orm import Session
 
 from miquest import schemas, services
+from miquest.importer import ImportDocument, import_project
 
 type JSONValue = None | bool | int | float | str | list[JSONValue] | dict[str, JSONValue]
 
 router = APIRouter()
+
+
+@router.post('/imports/preview')
+def preview_import(document: ImportDocument) -> dict[str, object]:
+    return {'data': {'project': document.project.name, 'pages': [page.name for page in document.pages],
+                     'quests': len(document.quests), 'dependencies': len(document.dependencies)}}
+
+
+@router.post('/imports', status_code=201)
+def create_import(request: Request, document: ImportDocument) -> dict[str, object]:
+    session_factory = cast(Callable[[], Session], request.app.state.session_factory)
+    with session_factory() as db:
+        project = import_project(db, document)
+        return {'data': {'id': project.id}}
 
 
 def serialize(db: Session, value: object) -> JSONValue:

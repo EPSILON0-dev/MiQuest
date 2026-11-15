@@ -82,7 +82,7 @@ test("tree and quest navigation support browser back and forward", async ({
   await expect(page).toHaveURL(
     new RegExp(`${questUrl(project, ids.launch, ids.story)}$`),
   );
-  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`${treeUrl(project, ids.launch)}$`));
 });
@@ -102,7 +102,7 @@ test("direct quest links survive reload and close to the requested tree", async 
   await expect(
     page.getByRole("dialog", { name: "Write the story" }),
   ).toBeVisible();
-  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page).toHaveURL(new RegExp(`${treeUrl(project, ids.launch)}$`));
 });
@@ -219,7 +219,7 @@ test("cross-tree quest links navigate to the home tree and highlight the quest",
   ).toBeVisible();
 });
 
-test("same-tree related quests and modal Back follow quest history", async ({
+test("same-tree related quests and modal Close follow quest history", async ({
   page,
   request,
   ids,
@@ -232,7 +232,7 @@ test("same-tree related quests and modal Back follow quest history", async ({
   const identity = page.getByRole("dialog", { name: "Create the identity" });
   await expect(identity).toBeVisible();
   await expect(page).toHaveURL(/\/quests\/[^/]+$/);
-  await identity.getByRole("button", { name: "Back", exact: true }).click();
+  await identity.getByRole("button", { name: "Close", exact: true }).click();
   await expect(story).toBeVisible();
   await expect(page).toHaveURL(
     new RegExp(`${questUrl(project, ids.launch, ids.story)}$`),
@@ -471,7 +471,7 @@ test("cancelling navigation from a direct quest keeps its modal back inside the 
   await expect(page).toHaveURL(
     new RegExp(`${questUrl(project, ids.foundations, ids.architecture)}$`),
   );
-  await page.getByRole("button", { name: "Back", exact: true }).click();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
   await expect(page.getByRole("dialog")).toHaveCount(0);
   await expect(page).toHaveURL(
     new RegExp(`${treeUrl(project, ids.foundations)}$`),

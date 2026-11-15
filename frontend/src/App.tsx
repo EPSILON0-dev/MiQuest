@@ -61,6 +61,7 @@ import {
 } from "./model";
 import { QuestIcon } from "./icons";
 import Modal from "./Modal";
+import ImportProject from "./ImportProject";
 import QuestEditor from "./QuestEditor";
 import { readView, restoreViewport, type SavedViewport } from "./view";
 import {
@@ -271,6 +272,8 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const [draggedPin, setDraggedPin] = useState<string | null>(null);
   const [draft, setDraft] = useState<Quest | null>(null);
   const [management, setManagement] = useState(false);
+  const [managementExpanded, setManagementExpanded] = useState<string[]>([]);
+  const [importing, setImporting] = useState(false);
   const [drawer, setDrawer] = useState(false);
   const [pinsOpen, setPinsOpen] = useState(false);
   const [collapsed, setCollapsed] = useState<string[]>([]);
@@ -632,6 +635,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
           writeRoute(remapRoute(route, result.ids), "replace");
         setPageId((id) => result.ids[id] ?? id);
         setEmptyProject((id) => result.ids[id] ?? id);
+        setManagementExpanded((ids) => ids.map((id) => result.ids[id] ?? id));
         setSelectedId((id) => (id ? (result.ids[id] ?? id) : null));
         setError("");
       })
@@ -675,6 +679,10 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const project =
     model.projects.find((p) => p.id === (page?.projectId ?? emptyProject)) ??
     model.projects[0];
+  function openManagement(projectId = project?.id) {
+    setManagementExpanded(projectId ? [projectId] : []);
+    setManagement(true);
+  }
   const selected = model.quests.find((q) => q.id === selectedId);
   const projectQuests = model.quests.filter((q) => q.projectId === project?.id);
   const appearances = model.appearances.filter((a) => a.pageId === pageId);
@@ -1199,6 +1207,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     );
   return (
     <Tooltip.Provider delayDuration={180} skipDelayDuration={100}>
+      {importing && <ImportProject onClose={() => setImporting(false)} />}
       {saving && (
         <div className="save-status" role="status">
           {t.saving}
@@ -1262,7 +1271,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       void prepareQuestList(project.id).catch(
                         handleLookupError,
                       );
-                    setManagement(true);
+                    openManagement();
                   });
                 }}
               >
@@ -1322,7 +1331,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                               void prepareQuestList(project.id).catch(
                                 handleLookupError,
                               );
-                            setManagement(true);
+                            openManagement(p.id);
                           });
                         }}
                       >
@@ -1348,12 +1357,25 @@ function Workspace({ initial }: { initial: LoadedModel }) {
           {editMode && (
             <button
               className="settings-button"
+              onClick={() =>
+                guard(() => {
+                  markReturnFocus();
+                  setImporting(true);
+                })
+              }
+            >
+              {t.importProject}
+            </button>
+          )}
+          {editMode && (
+            <button
+              className="settings-button"
               onClick={() => {
                 guard(() => {
                   markReturnFocus();
                   if (project)
                     void prepareQuestList(project.id).catch(handleLookupError);
-                  setManagement(true);
+                  openManagement();
                 });
               }}
             >
@@ -1440,7 +1462,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                           void prepareQuestList(project.id).catch(
                             handleLookupError,
                           );
-                        setManagement(true);
+                        openManagement();
                       });
                     }}
                   >
@@ -1710,7 +1732,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         ? newQuest
                         : () => {
                             markReturnFocus();
-                            setManagement(true);
+                            openManagement();
                           }
                   }
                 >
@@ -2102,57 +2124,147 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             <section className="journal-section">
               <h2>{t.progressions}</h2>
               {model.projects.map((p) => (
-                <div className="manage-row" key={p.id}>
-                  <Layers size={17} />
-                  <strong>{p.name}</strong>
-                  <button
-                    className="icon-button"
-                    aria-label={t.renameProgression(p.name)}
-                    onClick={() => {
-                      const name = window
-                        .prompt(t.progressionName, p.name)
-                        ?.trim();
-                      if (name)
-                        setImmediateModel({
-                          ...model,
-                          projects: model.projects.map((item) =>
-                            item.id === p.id ? { ...item, name } : item,
-                          ),
-                        });
-                    }}
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    className="icon-button danger"
-                    aria-label={t.deleteProgression(p.name)}
-                    onClick={() => {
-                      if (!window.confirm(t.deleteProgressionConfirm(p.name)))
-                        return;
-                      let next = model;
-                      model.quests
-                        .filter((q) => q.projectId === p.id)
-                        .forEach((q) => {
-                          next = deleteQuest(next, q.id);
-                        });
-                      next = {
-                        ...next,
-                        projects: next.projects.filter(
-                          (item) => item.id !== p.id,
-                        ),
-                        pages: next.pages.filter(
-                          (item) => item.projectId !== p.id,
-                        ),
-                      };
-                      setImmediateModel(next);
-                      if (project?.id === p.id) {
-                        setEmptyProject(next.projects[0]?.id ?? "");
-                        navigate(next.pages[0]?.id ?? "");
+                <div className="manage-project" key={p.id}>
+                  <div className="manage-row">
+                    <button
+                      className="manage-project-toggle"
+                      aria-expanded={managementExpanded.includes(p.id)}
+                      onClick={() =>
+                        setManagementExpanded((current) =>
+                          current.includes(p.id)
+                            ? current.filter((id) => id !== p.id)
+                            : [...current, p.id],
+                        )
                       }
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
+                    >
+                      {managementExpanded.includes(p.id) ? (
+                        <ChevronDown size={14} />
+                      ) : (
+                        <ChevronRight size={14} />
+                      )}
+                      <Layers size={17} /> <strong>{p.name}</strong>
+                    </button>
+                    <button
+                      className="icon-button"
+                      aria-label={t.renameProgression(p.name)}
+                      onClick={() => {
+                        const name = window
+                          .prompt(t.progressionName, p.name)
+                          ?.trim();
+                        if (name)
+                          setImmediateModel({
+                            ...model,
+                            projects: model.projects.map((item) =>
+                              item.id === p.id ? { ...item, name } : item,
+                            ),
+                          });
+                      }}
+                    >
+                      <Pencil size={14} />
+                    </button>
+                    <button
+                      className="icon-button danger"
+                      aria-label={t.deleteProgression(p.name)}
+                      onClick={() => {
+                        if (!window.confirm(t.deleteProgressionConfirm(p.name)))
+                          return;
+                        let next = model;
+                        model.quests
+                          .filter((q) => q.projectId === p.id)
+                          .forEach((q) => {
+                            next = deleteQuest(next, q.id);
+                          });
+                        next = {
+                          ...next,
+                          projects: next.projects.filter(
+                            (item) => item.id !== p.id,
+                          ),
+                          pages: next.pages.filter(
+                            (item) => item.projectId !== p.id,
+                          ),
+                        };
+                        setImmediateModel(next);
+                        if (project?.id === p.id) {
+                          setEmptyProject(next.projects[0]?.id ?? "");
+                          navigate(next.pages[0]?.id ?? "");
+                        }
+                      }}
+                    >
+                      <Trash2 size={14} />
+                    </button>
+                  </div>
+                  {managementExpanded.includes(p.id) && (
+                    <div className="manage-trees">
+                      {model.pages
+                        .filter((tree) => tree.projectId === p.id)
+                        .map((tree) => (
+                          <div className="manage-row" key={tree.id}>
+                            <GitBranch size={17} />
+                            <span>
+                              <strong>{tree.name}</strong>
+                            </span>
+                            <button
+                              className="icon-button"
+                              aria-label={t.renameTree(tree.name)}
+                              onClick={() => {
+                                const name = window
+                                  .prompt(t.treeName, tree.name)
+                                  ?.trim();
+                                if (name)
+                                  setImmediateModel({
+                                    ...model,
+                                    pages: model.pages.map((item) =>
+                                      item.id === tree.id
+                                        ? { ...item, name }
+                                        : item,
+                                    ),
+                                  });
+                              }}
+                            >
+                              <Pencil size={14} />
+                            </button>
+                            <button
+                              className="icon-button danger"
+                              aria-label={t.deleteTree(tree.name)}
+                              onClick={() => {
+                                void removeTree(tree);
+                              }}
+                            >
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        ))}
+                      <form
+                        className="inline-form"
+                        aria-label={t.newTreeForProject(p.name)}
+                        onSubmit={(e) => {
+                          e.preventDefault();
+                          const data = new FormData(e.currentTarget);
+                          const name = String(data.get("name")).trim();
+                          const projectId = p.id;
+                          if (!name) return;
+                          const id = uid();
+                          setImmediateModel({
+                            ...model,
+                            pages: [...model.pages, { id, name, projectId }],
+                          });
+                          navigate(id, projectId);
+                          e.currentTarget.reset();
+                        }}
+                      >
+                        <input
+                          name="name"
+                          aria-label={t.newTreeName}
+                          placeholder={t.newTreeName}
+                          required
+                        />
+                        <button className="button button-secondary">
+                          <Plus size={14} />
+                          {t.create}
+                        </button>
+                      </form>
+                    </div>
+                  )}
                 </div>
               ))}
               <form
@@ -2174,6 +2286,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       },
                     ],
                   });
+                  setManagementExpanded([id]);
                   setEmptyProject(id);
                   navigate("", id);
                   e.currentTarget.reset();
@@ -2186,93 +2299,6 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   required
                 />
                 <button className="button button-secondary">
-                  <Plus size={14} />
-                  {t.create}
-                </button>
-              </form>
-            </section>
-            <section className="journal-section">
-              <h2>{t.trees}</h2>
-              {model.pages.map((p) => (
-                <div className="manage-row" key={p.id}>
-                  <GitBranch size={17} />
-                  <span>
-                    <strong>{p.name}</strong>
-                    <small>
-                      {
-                        model.projects.find(
-                          (project) => project.id === p.projectId,
-                        )?.name
-                      }
-                    </small>
-                  </span>
-                  <button
-                    className="icon-button"
-                    aria-label={t.renameTree(p.name)}
-                    onClick={() => {
-                      const name = window.prompt(t.treeName, p.name)?.trim();
-                      if (name)
-                        setImmediateModel({
-                          ...model,
-                          pages: model.pages.map((item) =>
-                            item.id === p.id ? { ...item, name } : item,
-                          ),
-                        });
-                    }}
-                  >
-                    <Pencil size={14} />
-                  </button>
-                  <button
-                    className="icon-button danger"
-                    aria-label={t.deleteTree(p.name)}
-                    onClick={() => {
-                      void removeTree(p);
-                    }}
-                  >
-                    <Trash2 size={14} />
-                  </button>
-                </div>
-              ))}
-              <form
-                className="inline-form"
-                onSubmit={(e) => {
-                  e.preventDefault();
-                  const data = new FormData(e.currentTarget);
-                  const name = String(data.get("name")).trim();
-                  const projectId = String(data.get("project"));
-                  if (!name || !model.projects.some((p) => p.id === projectId))
-                    return;
-                  const id = uid();
-                  setImmediateModel({
-                    ...model,
-                    pages: [...model.pages, { id, name, projectId }],
-                  });
-                  navigate(id, projectId);
-                  e.currentTarget.reset();
-                }}
-              >
-                <select
-                  name="project"
-                  aria-label={t.treeProgression}
-                  key={emptyProject || project?.id}
-                  defaultValue={emptyProject || project?.id}
-                >
-                  {model.projects.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.name}
-                    </option>
-                  ))}
-                </select>
-                <input
-                  name="name"
-                  aria-label={t.newTreeName}
-                  placeholder={t.newTreeName}
-                  required
-                />
-                <button
-                  className="button button-secondary"
-                  disabled={!model.projects.length}
-                >
                   <Plus size={14} />
                   {t.create}
                 </button>

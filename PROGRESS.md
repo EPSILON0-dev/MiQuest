@@ -1,5 +1,15 @@
 # Progress
 
+## Modal and workspace settings — 2026-11-15
+
+- Replaced modal Back controls with a top-right close button, retaining quest history and keyboard focus behavior. Grouped trees under collapsible projects in workspace settings, with the current project expanded by default and tree creation under each project.
+- Validation: frontend build and 29 unit tests passed; lint passed with the existing hook dependency warning. Desktop and narrow settings screenshots were captured and inspected. The full browser run passed 38 of 39 tests; after fixing initial close-button focus, both focused keyboard/Escape tests passed on rerun.
+
+## JSON project import — 2026-11-15
+
+- Added a JSON file picker with server validation, a summary and confirmation. Each import creates a separate project in one transaction, starts quests incomplete, and drafts page positions from dependencies. The repository skill includes the versioned schema and an example.
+- Validation: 53 backend tests passed, including invalid graphs and rollback after a mid-import failure; Ruff passed. Frontend unit tests passed (29), the build passed, and the import browser test passed at desktop and narrow widths; screenshots were inspected. Frontend lint passed with one existing hook dependency warning. The build retains the existing large-bundle advisory.
+
 ## Documentation scope change — 2026-11-15
 
 - Removed the planned agent integration from the design, roadmap, API descriptions, and project documentation. The importer design will be decided separately.
