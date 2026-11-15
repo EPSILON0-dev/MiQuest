@@ -265,7 +265,7 @@ test("keeps edits local until save and preserves a draft after a failed save", a
   );
 });
 
-test("asks to save or discard before leaving a dirty tree", async ({
+test("asks before discarding a draft when leaving a tree", async ({
   page,
   request,
   ids,
@@ -277,10 +277,8 @@ test("asks to save or discard before leaving a dirty tree", async ({
   await page.getByLabel("Title", { exact: true }).fill("Discard this");
   await page.getByRole("button", { name: "Save quest" }).click();
   await page.keyboard.press("Escape");
+  page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Launch path", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Unsaved changes" });
-  await expect(dialog).toBeVisible();
-  await dialog.getByRole("button", { name: "Discard changes" }).click();
   await expect(
     page.locator(`[data-id="${ids.story}"] .quest-node`),
   ).toBeVisible();
@@ -341,7 +339,7 @@ test("refreshes memberships for quests on a newly opened tree", async ({
   ).not.toBeChecked();
 });
 
-test("saves before navigating and stays on the draft when saving fails", async ({
+test("keeps the draft after a failed save before navigating", async ({
   page,
   request,
   ids,
@@ -353,17 +351,14 @@ test("saves before navigating and stays on the draft when saving fails", async (
   await page.getByLabel("Title", { exact: true }).fill("Saved on navigation");
   await page.getByRole("button", { name: "Save quest" }).click();
   await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: "Launch path", exact: true }).click();
-  const dialog = page.getByRole("dialog", { name: "Unsaved changes" });
-  await expect(dialog).toBeVisible();
   await page.route("**/tree-draft", (route) =>
     route.fulfill({
       status: 500,
       json: { error: { code: "failed", message: "Save failed" } },
     }),
   );
-  await dialog.getByRole("button", { name: "Save changes" }).click();
-  await expect(dialog.getByRole("alert")).toContainText("Save failed");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("alert")).toContainText("Save failed");
   await expect(
     page.locator(`[data-id="${ids.architecture}"] .quest-node`),
   ).toHaveCount(1);
@@ -372,8 +367,9 @@ test("saves before navigating and stays on the draft when saving fails", async (
       .data.quest.title as string;
   expect(await readTitle()).toBe("Shape the architecture");
   await page.unroute("**/tree-draft");
-  await dialog.getByRole("button", { name: "Save changes" }).click();
-  await expect(dialog).toHaveCount(0);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect.poll(readTitle).toBe("Saved on navigation");
+  await page.getByRole("button", { name: "Launch path", exact: true }).click();
   await expect(
     page.locator(`[data-id="${ids.story}"] .quest-node`),
   ).toBeVisible();

@@ -12,6 +12,7 @@ import {
 } from "./api";
 import { Tooltip } from "radix-ui";
 import { remapModelIds, statusForLoadedQuest } from "./cache";
+import { formatRoute, parseRoute, type Route } from "./route";
 import QuestButton from "./QuestButton";
 import {
   ReactFlow,
@@ -109,7 +110,9 @@ function QuestCard({ data }: NodeProps<QuestNode>) {
 }
 const nodeTypes = { quest: QuestCard };
 function uid() {
-  return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 function markReturnFocus() {
   document
@@ -162,9 +165,78 @@ export default function App() {
   return <Workspace initial={loaded} />;
 }
 
+function readRouteIds(): Record<string, string> {
+  try {
+    const value: unknown = JSON.parse(
+      sessionStorage.getItem("miquest-route-ids") ?? "{}",
+    );
+    if (!value || typeof value !== "object" || Array.isArray(value)) return {};
+    return Object.fromEntries(
+      Object.entries(value).filter(
+        (entry): entry is [string, string] => typeof entry[1] === "string",
+      ),
+    );
+  } catch {
+    return {};
+  }
+}
+function remapRoute(route: Route, ids: Record<string, string>): Route {
+  const projectId = ids[route.projectId] ?? route.projectId;
+  return route.pageId
+    ? {
+        projectId,
+        pageId: ids[route.pageId] ?? route.pageId,
+        ...(route.questId
+          ? { questId: ids[route.questId] ?? route.questId }
+          : {}),
+      }
+    : { projectId };
+}
 function Workspace({ initial }: { initial: LoadedModel }) {
   const t = useI18n();
   const [initialView] = useState(() => readView(initial.model));
+  const [initialRouteIds] = useState(readRouteIds);
+  const [initialRoute] = useState(() => {
+    const parsed = parseRoute(window.location.hash);
+    const requested = parsed ? remapRoute(parsed, initialRouteIds) : parsed;
+    const page =
+      requested &&
+      initial.model.pages.find(
+        (item) =>
+          item.id === requested.pageId &&
+          item.projectId === requested.projectId,
+      );
+    if (
+      requested &&
+      (page ||
+        (!requested.pageId &&
+          initial.model.projects.some(
+            (item) => item.id === requested.projectId,
+          )))
+    )
+      return requested;
+    const fallback = initial.model.pages.find(
+      (item) => item.id === initialView.pageId,
+    );
+    return fallback
+      ? { projectId: fallback.projectId, pageId: fallback.id }
+      : undefined;
+  });
+  const [historySession] = useState(() =>
+    typeof window.history.state?.miquest?.session === "string"
+      ? window.history.state.miquest.session
+      : uid(),
+  );
+  const historyIndex = useRef(
+    typeof window.history.state?.miquest?.index === "number"
+      ? window.history.state.miquest.index
+      : 0,
+  );
+  const restoringHistory = useRef(false);
+  const closingQuest = useRef(false);
+  const currentCloseBack = useRef(
+    window.history.state?.miquest?.closeBack === true,
+  );
   const [model, setLocalModel] = useState<Model>(initial.model);
   const saved = useRef(initial);
   const [baseline, setBaseline] = useState(initial.model);
@@ -185,9 +257,15 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const [measurements, setMeasurements] = useState<
     Record<string, { width: number; height: number }>
   >({});
-  const [pageId, setPageId] = useState(initialView.pageId);
-  const [emptyProject, setEmptyProject] = useState("");
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [pageId, setPageId] = useState(
+    initialRoute ? (initialRoute.pageId ?? "") : initialView.pageId,
+  );
+  const [emptyProject, setEmptyProject] = useState(
+    initialRoute && !initialRoute.pageId ? initialRoute.projectId : "",
+  );
+  const [selectedId, setSelectedId] = useState<string | null>(
+    initialRoute?.questId ?? null,
+  );
   const [editing, setEditing] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [draggedPin, setDraggedPin] = useState<string | null>(null);
@@ -208,7 +286,18 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
   const [conflicted, setConflicted] = useState(false);
   const allowUnload = useRef(false);
-  const lastSavedIds = useRef<Record<string, string>>({});
+  const lastSavedIds = useRef<Record<string, string>>(initialRouteIds);
+  function rememberRouteIds(ids: Record<string, string>) {
+    lastSavedIds.current = { ...lastSavedIds.current, ...ids };
+    try {
+      sessionStorage.setItem(
+        "miquest-route-ids",
+        JSON.stringify(lastSavedIds.current),
+      );
+    } catch {
+      /* Storage is optional. */
+    }
+  }
   const [loadedPages, setLoadedPages] = useState<Set<string>>(() => new Set());
   const pageRevisions = useRef<Record<string, number>>({});
   const graphRequests = useRef(
@@ -300,6 +389,21 @@ function Workspace({ initial }: { initial: LoadedModel }) {
         setBaseline(merged);
         setLocalModel(merged);
         setLoadedPages((pages) => new Set([...pages, pageId]));
+        const requested = parseRoute(window.location.hash);
+        if (
+          requested?.pageId === pageId &&
+          requested.questId &&
+          !merged.appearances.some(
+            (a) => a.pageId === pageId && a.questId === requested.questId,
+          )
+        ) {
+          setSelectedId(null);
+          window.history.replaceState(
+            window.history.state,
+            "",
+            formatRoute({ projectId, pageId }),
+          );
+        }
         setGraphError("");
       })
       .catch(() => {
@@ -343,7 +447,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     return () => {
       active = false;
     };
-  }, [selectedId, histories, historyAttempt]);
+  }, [selectedId, histories, historyAttempt, loadedPages]);
   const dirty = JSON.stringify(model) !== JSON.stringify(baseline);
   useEffect(() => {
     if (!dirty) return;
@@ -356,6 +460,60 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     window.addEventListener("beforeunload", warn);
     return () => window.removeEventListener("beforeunload", warn);
   }, [dirty]);
+  useEffect(() => {
+    const hash = initialRoute ? formatRoute(initialRoute) : "#/";
+    window.history.replaceState(
+      {
+        miquest: {
+          session: historySession,
+          index: historyIndex.current,
+          closeBack:
+            window.history.state?.miquest?.session === historySession &&
+            window.history.state.miquest.closeBack === true,
+        },
+      },
+      "",
+      hash,
+    );
+  }, [historySession, initialRoute]);
+  function writeRoute(
+    route: Route | undefined,
+    mode: "push" | "replace",
+    closeBack = false,
+  ) {
+    const hash = route ? formatRoute(route) : "#/";
+    if (mode === "push" && window.location.hash === hash) return;
+    if (mode === "push") {
+      historyIndex.current += 1;
+      currentCloseBack.current = closeBack;
+      window.history.pushState(
+        {
+          miquest: {
+            session: historySession,
+            index: historyIndex.current,
+            closeBack,
+          },
+        },
+        "",
+        hash,
+      );
+    } else {
+      window.history.replaceState(window.history.state, "", hash);
+    }
+  }
+  function leaveDraft(nextRoute?: Route): boolean {
+    if (!dirty) return true;
+    if (!window.confirm(t.leaveDraftConfirm)) return false;
+    if (conflicted) {
+      allowUnload.current = true;
+      if (nextRoute) writeRoute(nextRoute, "replace");
+      window.location.reload();
+      return false;
+    }
+    setLocalModel(saved.current.model);
+    setError("");
+    return true;
+  }
   function setModel(next: Model) {
     if (!savingRef.current) setLocalModel(next);
   }
@@ -374,7 +532,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
         project.id,
         saved.current.revisions[project.id],
       );
-      lastSavedIds.current = result.ids;
+      rememberRouteIds(result.ids);
       const remapped = remapModelIds(model, result.ids);
       for (const page of model.pages) {
         if (
@@ -393,6 +551,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
       setBaseline(remapped);
       setLocalModel(remapped);
       setSelectedId((id) => (id ? (result.ids[id] ?? id) : null));
+      const route = parseRoute(window.location.hash);
+      if (route?.questId && result.ids[route.questId])
+        writeRoute({ ...route, questId: result.ids[route.questId] }, "replace");
       setError("");
       return true;
     } catch (cause) {
@@ -429,6 +590,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     setLocalModel(next);
     void persistModel(saved.current.model, next, saved.current.revisions)
       .then((result) => {
+        rememberRouteIds(result.ids);
         for (const tree of result.model.pages) {
           const oldRevision = saved.current.revisions[tree.projectId];
           if (pageRevisions.current[tree.id] === oldRevision)
@@ -460,6 +622,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
         } catch {
           // View restoration is optional when browser storage is unavailable.
         }
+        const route = parseRoute(window.location.hash);
+        if (
+          route &&
+          (result.ids[route.projectId] ||
+            (route.pageId && result.ids[route.pageId]) ||
+            (route.questId && result.ids[route.questId]))
+        )
+          writeRoute(remapRoute(route, result.ids), "replace");
         setPageId((id) => result.ids[id] ?? id);
         setEmptyProject((id) => result.ids[id] ?? id);
         setSelectedId((id) => (id ? (result.ids[id] ?? id) : null));
@@ -529,15 +699,43 @@ function Workspace({ initial }: { initial: LoadedModel }) {
       /* View restoration is optional when browser storage is unavailable. */
     }
   }
-  function navigate(id: string) {
-    if (id !== pageId) {
-      guard(() => navigateNow(id));
+  function navigate(id: string, routeProjectId?: string) {
+    const targetProject =
+      model.pages.find((p) => p.id === id)?.projectId ??
+      routeProjectId ??
+      project?.id;
+    const target = targetProject
+      ? id
+        ? { projectId: targetProject, pageId: id }
+        : { projectId: targetProject }
+      : undefined;
+    if (
+      (id !== pageId || (!id && targetProject !== emptyProject)) &&
+      !leaveDraft(target)
+    )
       return;
-    }
-    navigateNow(id);
+    if (!id && targetProject) setEmptyProject(targetProject);
+    navigateNow(id, "push", routeProjectId);
   }
-  function navigateNow(id: string) {
-    const destination = saved.current.model.pages.find((p) => p.id === id);
+  function navigateNow(
+    id: string,
+    mode: "push" | "none" = "push",
+    routeProjectId?: string,
+  ) {
+    const destination =
+      saved.current.model.pages.find((p) => p.id === id) ??
+      model.pages.find((p) => p.id === id);
+    if (mode === "push") {
+      const projectId = destination?.projectId ?? routeProjectId ?? project?.id;
+      writeRoute(
+        projectId
+          ? id
+            ? { projectId, pageId: id }
+            : { projectId }
+          : undefined,
+        "push",
+      );
+    }
     if (destination && pageRevisions.current[id] !== undefined)
       saved.current.revisions[destination.projectId] =
         pageRevisions.current[id];
@@ -555,6 +753,12 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   }
   function openQuest(id: string) {
     markReturnFocus();
+    if (page && selectedId !== id)
+      writeRoute(
+        { projectId: page.projectId, pageId, questId: id },
+        "push",
+        true,
+      );
     setSelectedId(id);
     setEditing(false);
     setError("");
@@ -562,7 +766,12 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     setOverrideReason("");
   }
   function goHome(q: Quest) {
-    guard(() => goHomeNow(q));
+    if (
+      q.homePageId !== pageId &&
+      !leaveDraft({ projectId: q.projectId, pageId: q.homePageId })
+    )
+      return;
+    goHomeNow(q);
   }
   function goHomeNow(q: Quest) {
     navigateNow(q.homePageId);
@@ -850,10 +1059,129 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     }
   }
   function closeQuest() {
+    const historyState = window.history.state?.miquest;
+    if (historyState?.session === historySession && historyState.closeBack) {
+      if (closingQuest.current) return;
+      closingQuest.current = true;
+      window.history.back();
+      return;
+    }
+    if (page) writeRoute({ projectId: page.projectId, pageId }, "replace");
     setSelectedId(null);
     setEditing(false);
     setError("");
   }
+  useEffect(() => {
+    const onPopState = (event: PopStateEvent) => {
+      closingQuest.current = false;
+      if (restoringHistory.current) {
+        restoringHistory.current = false;
+        return;
+      }
+      const parsed = parseRoute(window.location.hash);
+      const requested = parsed
+        ? remapRoute(parsed, lastSavedIds.current)
+        : parsed;
+      const destination =
+        requested &&
+        (requested.pageId
+          ? model.pages.some(
+              (item) =>
+                item.id === requested.pageId &&
+                item.projectId === requested.projectId,
+            )
+          : model.projects.some((item) => item.id === requested.projectId));
+      const target = destination ? requested : undefined;
+      const fallback =
+        model.pages.find((item) => item.id === initialView.pageId) ??
+        model.pages[0];
+      const targetPage = target ? (target.pageId ?? "") : (fallback?.id ?? "");
+      const state = event.state?.miquest as
+        { session?: string; index?: number; closeBack?: boolean } | undefined;
+      const targetIndex =
+        state?.session === historySession && typeof state?.index === "number"
+          ? state.index
+          : undefined;
+      const restore = () => {
+        if (targetIndex !== undefined && targetIndex !== historyIndex.current) {
+          restoringHistory.current = true;
+          window.history.go(historyIndex.current - targetIndex);
+        } else {
+          const current = model.pages.find((p) => p.id === pageId);
+          const route: Route | undefined = current
+            ? {
+                projectId: current.projectId,
+                pageId,
+                ...(selectedId ? { questId: selectedId } : {}),
+              }
+            : emptyProject
+              ? { projectId: emptyProject }
+              : undefined;
+          window.history.replaceState(
+            {
+              miquest: {
+                session: historySession,
+                index: historyIndex.current,
+                closeBack: currentCloseBack.current,
+              },
+            },
+            "",
+            route ? formatRoute(route) : "#/",
+          );
+        }
+      };
+      if (savingRef.current) {
+        restore();
+        return;
+      }
+      if (
+        (targetPage !== pageId ||
+          (!targetPage && target?.projectId !== emptyProject)) &&
+        !leaveDraft(target)
+      ) {
+        if (!allowUnload.current) restore();
+        return;
+      }
+      currentCloseBack.current =
+        state?.session === historySession && state?.closeBack === true;
+      if (targetIndex !== undefined) historyIndex.current = targetIndex;
+      else
+        window.history.replaceState(
+          {
+            miquest: {
+              session: historySession,
+              index: historyIndex.current,
+              closeBack: false,
+            },
+          },
+          "",
+          window.location.href,
+        );
+      if (target && formatRoute(target) !== window.location.hash)
+        writeRoute(target, "replace");
+      if (target && !target.pageId) setEmptyProject(target.projectId);
+      navigateNow(targetPage, "none");
+      const validQuest =
+        target?.questId &&
+        (!loadedPages.has(targetPage) ||
+          model.appearances.some(
+            (a) => a.pageId === targetPage && a.questId === target.questId,
+          ));
+      setSelectedId(validQuest ? target.questId! : null);
+      if (target?.questId && !validQuest)
+        writeRoute(
+          { projectId: target.projectId, pageId: targetPage },
+          "replace",
+        );
+      if (!target && fallback)
+        writeRoute(
+          { projectId: fallback.projectId, pageId: fallback.id },
+          "replace",
+        );
+    };
+    window.addEventListener("popstate", onPopState);
+    return () => window.removeEventListener("popstate", onPopState);
+  });
   if (needsReload)
     return (
       <main className="connection-state">
@@ -949,8 +1277,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       setCollapsed(collapsed.filter((id) => id !== p.id));
                     else setCollapsed([...collapsed, p.id]);
                     if (!model.pages.some((page) => page.projectId === p.id)) {
-                      setEmptyProject(p.id);
-                      navigate("");
+                      navigate("", p.id);
                     }
                   }}
                 >
@@ -1125,14 +1452,15 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 aria-checked={editMode}
                 className="edit-switch"
                 onClick={() => {
-                  guard(() => {
+                  if (editMode && !leaveDraft()) return;
+                  {
                     setEditMode(!editMode);
                     setEditing(false);
                     setDraft(null);
                     setManagement(false);
                     setShowOverride(false);
                     setError("");
-                  });
+                  }
                 }}
               >
                 <Pencil size={13} />
@@ -1481,7 +1809,11 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                                       )?.name
                                     : undefined
                                 }
-                                onClick={() => goHome(q)}
+                                onClick={() =>
+                                  visibleIds.has(q.id)
+                                    ? openQuest(q.id)
+                                    : goHome(q)
+                                }
                               />
                             ))
                           ) : (
@@ -1840,7 +2172,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     ],
                   });
                   setEmptyProject(id);
-                  navigate("");
+                  navigate("", id);
                   e.currentTarget.reset();
                 }}
               >
@@ -1912,7 +2244,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     ...model,
                     pages: [...model.pages, { id, name, projectId }],
                   });
-                  navigate(id);
+                  navigate(id, projectId);
                   e.currentTarget.reset();
                 }}
               >

@@ -304,6 +304,7 @@ p {
   border-bottom: 1px solid var(--border-subtle);
 }
 .breadcrumbs {
+  user-select: none;
   display: flex;
   align-items: center;
   gap: 9px;
