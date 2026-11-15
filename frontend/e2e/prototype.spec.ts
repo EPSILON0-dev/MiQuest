@@ -26,8 +26,9 @@ test("journal, focus, shared content, pins and viewport restoration", async ({
     .getByLabel("Title", { exact: true })
     .fill("Shared milestone edited");
   await page.getByRole("button", { name: "Save quest" }).click();
-  await expect(page.getByText("Saving…")).toHaveCount(0);
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saving…")).toHaveCount(0);
   await page.getByRole("button", { name: "Foundations", exact: true }).click();
   await page.reload();
   await expect(
@@ -60,7 +61,9 @@ test("switches the interface to Polish and restores the choice", async ({
   await page.getByLabel("Language").selectOption("pl");
 
   await expect(page.getByRole("switch", { name: "Tryb edycji" })).toBeVisible();
-  await expect(page.getByRole("button", { name: "Przypięte zadania" })).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Przypięte zadania" }),
+  ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "pl");
   await page.reload();
   await expect(page.getByLabel("Język")).toHaveValue("pl");
@@ -207,6 +210,8 @@ test("dragging, pin order, and saved viewport", async ({ page, ids }) => {
     (el) => (el as HTMLElement).style.transform,
   );
   expect(after).not.toBe(before);
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saving…")).toHaveCount(0);
   await page.getByRole("button", { name: "Launch path", exact: true }).click();
   await page.getByRole("button", { name: "Foundations", exact: true }).click();
   expect(await card.evaluate((el) => (el as HTMLElement).style.transform)).toBe(
@@ -339,6 +344,8 @@ test("long descriptions are truncated in the focus tooltip", async ({
     .fill(description);
   await page.getByRole("button", { name: "Save quest" }).click();
   await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByText("Saving…")).toHaveCount(0);
   await page.getByRole("switch", { name: "Edit mode" }).click();
   await quest.focus();
   const tooltip = page.getByRole("tooltip");

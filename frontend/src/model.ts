@@ -13,6 +13,14 @@ export type Quest = {
   icon: string;
   milestone: boolean;
   homePageId: string;
+  status?:
+    | "locked"
+    | "available"
+    | "in_progress"
+    | "verified"
+    | "overridden"
+    | "blocked";
+  unsatisfiedPrerequisiteIds?: string[];
 };
 export type Appearance = {
   pageId: string;

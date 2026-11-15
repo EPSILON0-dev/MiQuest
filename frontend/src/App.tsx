@@ -1,6 +1,17 @@
 import { useEffect, useState, useRef } from "react";
-import { ApiError, loadModel, persistModel, type LoadedModel } from "./api";
+import {
+  ApiError,
+  loadModel,
+  loadPageGraph,
+  loadPageMemberships,
+  loadProjectQuests,
+  loadVerificationHistory,
+  persistModel,
+  saveTreeDraft,
+  type LoadedModel,
+} from "./api";
 import { Tooltip } from "radix-ui";
+import { remapModelIds, statusForLoadedQuest } from "./cache";
 import QuestButton from "./QuestButton";
 import {
   ReactFlow,
@@ -44,6 +55,7 @@ import {
   deleteQuest,
   removeAppearance,
   type Model,
+  type Page,
   type Quest,
 } from "./model";
 import { QuestIcon } from "./icons";
@@ -155,6 +167,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const [initialView] = useState(() => readView(initial.model));
   const [model, setLocalModel] = useState<Model>(initial.model);
   const saved = useRef(initial);
+  const [baseline, setBaseline] = useState(initial.model);
   const [saving, setSaving] = useState(false);
   const [needsReload, setNeedsReload] = useState(false);
   const savingRef = useRef(false);
@@ -192,14 +205,237 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const [viewports, setViewports] = useState<Record<string, SavedViewport>>(
     initialView.viewports,
   );
+  const [pendingAction, setPendingAction] = useState<(() => void) | null>(null);
+  const [conflicted, setConflicted] = useState(false);
+  const allowUnload = useRef(false);
+  const lastSavedIds = useRef<Record<string, string>>({});
+  const [loadedPages, setLoadedPages] = useState<Set<string>>(() => new Set());
+  const pageRevisions = useRef<Record<string, number>>({});
+  const graphRequests = useRef(
+    new Map<string, ReturnType<typeof loadPageGraph>>(),
+  );
+  const historyRequests = useRef(
+    new Map<string, ReturnType<typeof loadVerificationHistory>>(),
+  );
+  const [histories, setHistories] = useState<Set<string>>(() => new Set());
+  const [graphError, setGraphError] = useState("");
+  const [historyError, setHistoryError] = useState("");
+  const [graphAttempt, setGraphAttempt] = useState(0);
+  const [historyAttempt, setHistoryAttempt] = useState(0);
+  useEffect(() => {
+    if (!ping || !loadedPages.has(pageId)) return;
+    const focus = window.setTimeout(() => {
+      flow.current?.fitView({
+        nodes: [{ id: ping }],
+        duration: 450,
+        maxZoom: 1,
+      });
+      document
+        .querySelector<HTMLElement>(`[data-id="${ping}"] button`)
+        ?.focus();
+    }, 100);
+    const clear = window.setTimeout(() => setPing(""), 3000);
+    return () => {
+      window.clearTimeout(focus);
+      window.clearTimeout(clear);
+    };
+  }, [ping, pageId, loadedPages]);
+  useEffect(() => {
+    if (!pageId || saving || loadedPages.has(pageId)) return;
+    let active = true;
+    let request = graphRequests.current.get(pageId);
+    if (!request) {
+      request = loadPageGraph(pageId);
+      graphRequests.current.set(pageId, request);
+    }
+    request
+      .then(({ model: fragment, revision }) => {
+        if (!active) return;
+        const mergeBy = <T,>(
+          old: T[],
+          incoming: T[],
+          key: (item: T) => string,
+        ) => {
+          const result = new Map(old.map((item) => [key(item), item]));
+          incoming.forEach((item) => result.set(key(item), item));
+          return [...result.values()];
+        };
+        const base = saved.current.model;
+        const projectId = fragment.pages[0].projectId;
+        const localIds = new Set(
+          fragment.appearances
+            .filter((a) => a.pageId === pageId)
+            .map((a) => a.questId),
+        );
+        const merged: Model = {
+          ...base,
+          projects: mergeBy(base.projects, fragment.projects, (p) => p.id),
+          pages: mergeBy(base.pages, fragment.pages, (p) => p.id),
+          quests: mergeBy(base.quests, fragment.quests, (q) => q.id),
+          appearances: mergeBy(
+            base.appearances.filter(
+              (a) => a.pageId !== pageId && !localIds.has(a.questId),
+            ),
+            fragment.appearances,
+            (a) => `${a.pageId}:${a.questId}`,
+          ),
+          dependencies: mergeBy(
+            base.dependencies.filter(
+              (d) =>
+                !localIds.has(d.questId) && !localIds.has(d.dependsOnQuestId),
+            ),
+            fragment.dependencies,
+            (d) => `${d.questId}:${d.dependsOnQuestId}`,
+          ),
+          pins: [
+            ...base.pins.filter((p) => p.projectId !== projectId),
+            ...fragment.pins,
+          ],
+        };
+        pageRevisions.current[pageId] = revision;
+        saved.current = {
+          model: merged,
+          revisions: { ...saved.current.revisions, [projectId]: revision },
+        };
+        setBaseline(merged);
+        setLocalModel(merged);
+        setLoadedPages((pages) => new Set([...pages, pageId]));
+        setGraphError("");
+      })
+      .catch(() => {
+        graphRequests.current.delete(pageId);
+        if (active) setGraphError(getMessages().loadError);
+      });
+    return () => {
+      active = false;
+    };
+  }, [pageId, loadedPages, graphAttempt, saving]);
+  useEffect(() => {
+    if (!selectedId || histories.has(selectedId)) return;
+    // New quests have no server history yet.
+    if (!saved.current.model.quests.some((q) => q.id === selectedId)) return;
+    let active = true;
+    let request = historyRequests.current.get(selectedId);
+    if (!request) {
+      request = loadVerificationHistory(selectedId);
+      historyRequests.current.set(selectedId, request);
+    }
+    request
+      .then(({ items }) => {
+        if (!active) return;
+        const merge = (value: Model): Model => ({
+          ...value,
+          verifications: [
+            ...value.verifications.filter((v) => v.questId !== selectedId),
+            ...items,
+          ],
+        });
+        saved.current = { ...saved.current, model: merge(saved.current.model) };
+        setBaseline(saved.current.model);
+        setLocalModel(merge);
+        setHistories((values) => new Set([...values, selectedId]));
+        setHistoryError("");
+      })
+      .catch(() => {
+        historyRequests.current.delete(selectedId);
+        if (active) setHistoryError(getMessages().historyError);
+      });
+    return () => {
+      active = false;
+    };
+  }, [selectedId, histories, historyAttempt]);
+  const dirty = JSON.stringify(model) !== JSON.stringify(baseline);
+  useEffect(() => {
+    if (!dirty) return;
+    const warn = (event: BeforeUnloadEvent) => {
+      if (!allowUnload.current) {
+        event.preventDefault();
+        event.returnValue = "";
+      }
+    };
+    window.addEventListener("beforeunload", warn);
+    return () => window.removeEventListener("beforeunload", warn);
+  }, [dirty]);
   function setModel(next: Model) {
+    if (!savingRef.current) setLocalModel(next);
+  }
+  function guard(action: () => void) {
+    if (dirty) setPendingAction(() => action);
+    else action();
+  }
+  async function saveDraft(): Promise<boolean> {
+    if (!project || savingRef.current || conflicted) return false;
+    savingRef.current = true;
+    setSaving(true);
+    try {
+      const result = await saveTreeDraft(
+        saved.current.model,
+        model,
+        project.id,
+        saved.current.revisions[project.id],
+      );
+      lastSavedIds.current = result.ids;
+      const remapped = remapModelIds(model, result.ids);
+      for (const page of model.pages) {
+        if (
+          page.projectId === project.id &&
+          pageRevisions.current[page.id] === saved.current.revisions[project.id]
+        )
+          pageRevisions.current[page.id] = result.revision;
+      }
+      saved.current = {
+        model: remapped,
+        revisions: {
+          ...saved.current.revisions,
+          [project.id]: result.revision,
+        },
+      };
+      setBaseline(remapped);
+      setLocalModel(remapped);
+      setSelectedId((id) => (id ? (result.ids[id] ?? id) : null));
+      setError("");
+      return true;
+    } catch (cause) {
+      if (cause instanceof ApiError && cause.code === "stale_revision") {
+        setConflicted(true);
+        setError(t.draftConflict);
+      } else
+        setError(
+          cause instanceof Error
+            ? `${t.draftSaveError} ${cause.message}`
+            : t.draftSaveError,
+        );
+      return false;
+    } finally {
+      savingRef.current = false;
+      setSaving(false);
+    }
+  }
+  function discardDraft() {
+    if (conflicted) {
+      allowUnload.current = true;
+      window.location.reload();
+      return false;
+    }
+    setLocalModel(saved.current.model);
+    setError("");
+    return true;
+  }
+  function setImmediateModel(next: Model) {
     if (savingRef.current) return;
     savingRef.current = true;
+    graphRequests.current.clear();
     setSaving(true);
     setLocalModel(next);
     void persistModel(saved.current.model, next, saved.current.revisions)
       .then((result) => {
+        for (const tree of result.model.pages) {
+          const oldRevision = saved.current.revisions[tree.projectId];
+          if (pageRevisions.current[tree.id] === oldRevision)
+            pageRevisions.current[tree.id] = result.revisions[tree.projectId];
+        }
         saved.current = result;
+        setBaseline(result.model);
         setLocalModel(result.model);
         setViewports((views) =>
           Object.fromEntries(
@@ -233,6 +469,12 @@ function Workspace({ initial }: { initial: LoadedModel }) {
         try {
           const latest = await loadModel();
           saved.current = latest;
+          graphRequests.current.clear();
+          historyRequests.current.clear();
+          pageRevisions.current = {};
+          setLoadedPages(new Set());
+          setHistories(new Set());
+          setBaseline(latest.model);
           setLocalModel(latest.model);
           setPageId((id) =>
             latest.model.pages.some((page) => page.id === id)
@@ -288,6 +530,18 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     }
   }
   function navigate(id: string) {
+    if (id !== pageId) {
+      guard(() => navigateNow(id));
+      return;
+    }
+    navigateNow(id);
+  }
+  function navigateNow(id: string) {
+    const destination = saved.current.model.pages.find((p) => p.id === id);
+    if (destination && pageRevisions.current[id] !== undefined)
+      saved.current.revisions[destination.projectId] =
+        pageRevisions.current[id];
+    setGraphError("");
     setPageId(id);
     saveView(id);
     setDrawer(false);
@@ -308,20 +562,12 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     setOverrideReason("");
   }
   function goHome(q: Quest) {
-    navigate(q.homePageId);
+    guard(() => goHomeNow(q));
+  }
+  function goHomeNow(q: Quest) {
+    navigateNow(q.homePageId);
     setPing(q.id);
     setPinsOpen(false);
-    window.setTimeout(() => {
-      flow.current?.fitView({
-        nodes: [{ id: q.id }],
-        duration: 450,
-        maxZoom: 1,
-      });
-      document
-        .querySelector<HTMLElement>(`[data-id="${q.id}"] button`)
-        ?.focus();
-    }, 100);
-    window.setTimeout(() => setPing(""), 3000);
   }
   function attempt(action: () => void) {
     try {
@@ -331,8 +577,45 @@ function Workspace({ initial }: { initial: LoadedModel }) {
       setError(e instanceof Error ? e.message : "Something went wrong");
     }
   }
+  const questLists = useRef(new Map<string, number>());
+  function handleLookupError(cause: unknown) {
+    if (cause instanceof ApiError && cause.code === "stale_revision") {
+      setConflicted(true);
+      setError(dirty ? t.draftConflict : t.refreshNeeded);
+    } else setError(t.loadError);
+  }
+  async function prepareQuestList(projectId: string) {
+    if (
+      questLists.current.get(projectId) === saved.current.revisions[projectId]
+    )
+      return;
+    const { quests, revision } = await loadProjectQuests(projectId);
+    if (revision !== saved.current.revisions[projectId]) {
+      throw new ApiError("stale_revision", t.draftConflict, 409);
+    }
+    const addMissing = (value: Model): Model => ({
+      ...value,
+      quests: [
+        ...value.quests,
+        ...quests.filter((q) => !value.quests.some((old) => old.id === q.id)),
+      ],
+    });
+    saved.current = {
+      ...saved.current,
+      model: addMissing(saved.current.model),
+    };
+    setBaseline(saved.current.model);
+    setLocalModel(addMissing);
+    questLists.current.set(projectId, revision);
+  }
   function newQuest() {
     if (!editMode || !page || !project) return;
+    void prepareQuestList(project.id)
+      .then(() => newQuestReady())
+      .catch(handleLookupError);
+  }
+  function newQuestReady() {
+    if (!page || !project) return;
     markReturnFocus();
     setDraft({
       id: uid(),
@@ -463,26 +746,107 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     .map((d) => model.quests.find((q) => q.id === d.dependsOnQuestId)!)
     .filter(Boolean);
   function togglePin(q: Quest) {
-    setModel({
-      ...model,
-      pins: model.pins.some((p) => p.questId === q.id)
-        ? model.pins.filter((p) => p.questId !== q.id)
-        : [...model.pins, { questId: q.id, projectId: q.projectId }],
+    guard(() => {
+      const current = saved.current.model;
+      const questId = lastSavedIds.current[q.id] ?? q.id;
+      if (!current.quests.some((quest) => quest.id === questId)) return;
+      setImmediateModel({
+        ...current,
+        pins: current.pins.some((p) => p.questId === questId)
+          ? current.pins.filter((p) => p.questId !== questId)
+          : [...current.pins, { questId, projectId: q.projectId }],
+      });
     });
   }
   function movePin(questId: string, direction: number) {
-    const pins = [...model.pins];
-    const index = pins.findIndex((p) => p.questId === questId);
-    const other = pins.findIndex(
-      (p) =>
-        p.questId ===
-        currentPins[
-          currentPins.findIndex((p) => p.questId === questId) + direction
-        ]?.questId,
-    );
-    if (other >= 0) {
-      [pins[index], pins[other]] = [pins[other], pins[index]];
-      setModel({ ...model, pins });
+    guard(() => {
+      const current = saved.current.model;
+      const pins = [...current.pins];
+      const index = pins.findIndex((p) => p.questId === questId);
+      const sameProject = pins.filter((p) => p.projectId === project?.id);
+      const otherId =
+        sameProject[
+          sameProject.findIndex((p) => p.questId === questId) + direction
+        ]?.questId;
+      const other = pins.findIndex((p) => p.questId === otherId);
+      if (index >= 0 && other >= 0) {
+        [pins[index], pins[other]] = [pins[other], pins[index]];
+        setImmediateModel({ ...current, pins });
+      }
+    });
+  }
+  function movePinTo(questId: string, targetId: string) {
+    guard(() => {
+      const current = saved.current.model;
+      const pins = [...current.pins];
+      const from = pins.findIndex((p) => p.questId === questId);
+      const to = pins.findIndex((p) => p.questId === targetId);
+      if (from >= 0 && to >= 0) {
+        const [moved] = pins.splice(from, 1);
+        pins.splice(to, 0, moved);
+        setImmediateModel({ ...current, pins });
+      }
+    });
+  }
+  async function removeTree(tree: Page) {
+    try {
+      const preview = await loadPageMemberships(tree.id);
+      if (saved.current.revisions[tree.projectId] !== preview.revision) {
+        setError(t.draftConflict);
+        return;
+      }
+      const base = saved.current.model;
+      const quests = new Map(base.quests.map((q) => [q.id, q]));
+      preview.quests.forEach((q) => quests.set(q.id, q));
+      const appearances = new Map(
+        base.appearances.map((a) => [`${a.pageId}:${a.questId}`, a]),
+      );
+      preview.appearances.forEach((a) =>
+        appearances.set(`${a.pageId}:${a.questId}`, a),
+      );
+      const expanded = {
+        ...base,
+        quests: [...quests.values()],
+        appearances: [...appearances.values()],
+      };
+      const destinations = expanded.pages.filter(
+        (item) => item.projectId === tree.projectId && item.id !== tree.id,
+      );
+      let destination: string | undefined;
+      const orphans = preview.appearances.some(
+        (a) =>
+          a.pageId === tree.id &&
+          !preview.appearances.some(
+            (b) => b.questId === a.questId && b.pageId !== tree.id,
+          ),
+      );
+      if (orphans) {
+        if (!destinations.length) throw new Error(t.lastTreeError);
+        const choice = window.prompt(
+          t.moveOrphans(
+            destinations
+              .map((item, index) => `${index + 1}: ${item.name}`)
+              .join(", "),
+          ),
+          "1",
+        );
+        if (choice === null) return;
+        destination = destinations[Number(choice) - 1]?.id;
+        if (!destination) throw new Error(t.invalidTree);
+      }
+      if (!window.confirm(t.deleteTreeConfirm(tree.name))) return;
+      const next = deletePage(expanded, tree.id, destination);
+      saved.current = { ...saved.current, model: expanded };
+      setBaseline(expanded);
+      setImmediateModel(next);
+      setEmptyProject(tree.projectId);
+      if (pageId === tree.id)
+        navigateNow(
+          next.pages.find((item) => item.projectId === tree.projectId)?.id ??
+            "",
+        );
+    } catch (cause) {
+      setError(cause instanceof Error ? cause.message : t.loadError);
     }
   }
   function closeQuest() {
@@ -561,8 +925,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 className="icon-button"
                 aria-label={t.manageProgressions}
                 onClick={() => {
-                  markReturnFocus();
-                  setManagement(true);
+                  guard(() => {
+                    markReturnFocus();
+                    if (project)
+                      void prepareQuestList(project.id).catch(
+                        handleLookupError,
+                      );
+                    setManagement(true);
+                  });
                 }}
               >
                 <Plus size={15} />
@@ -615,9 +985,15 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       <button
                         className="new-tree"
                         onClick={() => {
-                          setEmptyProject(p.id);
-                          markReturnFocus();
-                          setManagement(true);
+                          guard(() => {
+                            setEmptyProject(p.id);
+                            markReturnFocus();
+                            if (project)
+                              void prepareQuestList(project.id).catch(
+                                handleLookupError,
+                              );
+                            setManagement(true);
+                          });
                         }}
                       >
                         <Plus size={13} /> {t.newTree}
@@ -643,8 +1019,12 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             <button
               className="settings-button"
               onClick={() => {
-                markReturnFocus();
-                setManagement(true);
+                guard(() => {
+                  markReturnFocus();
+                  if (project)
+                    void prepareQuestList(project.id).catch(handleLookupError);
+                  setManagement(true);
+                });
               }}
             >
               <Settings size={17} /> {t.settings}
@@ -653,7 +1033,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
           )}
         </aside>
         <main className="main" inert={drawer || undefined}>
-          <header className="topbar">
+          <header className={`topbar ${dirty ? "has-draft" : ""}`}>
             <button
               className="icon-button mobile-menu"
               aria-label={t.openNavigation}
@@ -677,6 +1057,31 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               <strong>{page?.name ?? t.noTree}</strong>
             </div>
             <div className="top-actions">
+              {conflicted && !dirty && (
+                <button
+                  className="button button-secondary"
+                  onClick={() => window.location.reload()}
+                >
+                  {t.retry}
+                </button>
+              )}
+              {dirty && (
+                <>
+                  <button
+                    className="button button-secondary"
+                    onClick={() => discardDraft()}
+                  >
+                    {t.discardChanges}
+                  </button>
+                  <button
+                    className="button button-primary"
+                    disabled={conflicted}
+                    onClick={() => void saveDraft()}
+                  >
+                    {t.saveChanges}
+                  </button>
+                </>
+              )}
               {editMode && (
                 <>
                   <button
@@ -690,7 +1095,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   <button
                     className="button button-secondary"
                     onClick={newQuest}
-                    disabled={!page}
+                    disabled={!page || !loadedPages.has(pageId)}
                   >
                     <Plus size={15} />
                     <span>{t.addQuest}</span>
@@ -699,8 +1104,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     className="icon-button"
                     aria-label={t.treeActions}
                     onClick={() => {
-                      markReturnFocus();
-                      setManagement(true);
+                      guard(() => {
+                        markReturnFocus();
+                        if (project)
+                          void prepareQuestList(project.id).catch(
+                            handleLookupError,
+                          );
+                        setManagement(true);
+                      });
                     }}
                   >
                     <MoreHorizontal size={18} />
@@ -714,12 +1125,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 aria-checked={editMode}
                 className="edit-switch"
                 onClick={() => {
-                  setEditMode(!editMode);
-                  setEditing(false);
-                  setDraft(null);
-                  setManagement(false);
-                  setShowOverride(false);
-                  setError("");
+                  guard(() => {
+                    setEditMode(!editMode);
+                    setEditing(false);
+                    setDraft(null);
+                    setManagement(false);
+                    setShowOverride(false);
+                    setError("");
+                  });
                 }}
               >
                 <Pencil size={13} />
@@ -766,22 +1179,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                           onDrop={(event) => {
                             event.preventDefault();
                             if (!draggedPin || draggedPin === q.id) return;
-                            const pins = [...model.pins];
-                            const from = pins.findIndex(
-                              (p) =>
-                                p.questId === draggedPin &&
-                                p.projectId === project?.id,
-                            );
-                            const to = pins.findIndex(
-                              (p) =>
-                                p.questId === q.id &&
-                                p.projectId === project?.id,
-                            );
-                            if (from >= 0 && to >= 0) {
-                              const [moved] = pins.splice(from, 1);
-                              pins.splice(to, 0, moved);
-                              setModel({ ...model, pins });
-                            }
+                            movePinTo(draggedPin, q.id);
                             setDraggedPin(null);
                           }}
                         >
@@ -832,7 +1230,22 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 </button>
               </div>
             )}
-            {nodes.length ? (
+            {pageId && !loadedPages.has(pageId) ? (
+              <div className="empty-state" role="status">
+                <p>{graphError || t.loadingGraph}</p>
+                {graphError && (
+                  <button
+                    className="button button-secondary"
+                    onClick={() => {
+                      setGraphError("");
+                      setGraphAttempt((n) => n + 1);
+                    }}
+                  >
+                    {t.retry}
+                  </button>
+                )}
+              </div>
+            ) : nodes.length ? (
               <ReactFlow<QuestNode>
                 colorMode="dark"
                 key={pageId}
@@ -1056,7 +1469,11 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                               <QuestButton
                                 key={q.id}
                                 quest={q}
-                                status={statusForQuest(model, q.id)}
+                                status={statusForLoadedQuest(
+                                  model,
+                                  q.id,
+                                  visibleIds,
+                                )}
                                 externalTree={
                                   !visibleIds.has(q.id)
                                     ? model.pages.find(
@@ -1097,7 +1514,11 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   {editMode && (
                     <button
                       className="button button-secondary"
-                      onClick={() => setEditing(true)}
+                      onClick={() => {
+                        void prepareQuestList(selected.projectId)
+                          .then(() => setEditing(true))
+                          .catch(handleLookupError);
+                      }}
                     >
                       <Pencil size={13} />
                       {t.editQuest}
@@ -1141,8 +1562,24 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     </span>
                     <ChevronDown size={16} />
                   </summary>
-                  {model.verifications.filter((v) => v.questId === selected.id)
-                    .length ? (
+                  {!histories.has(selected.id) &&
+                  baseline.quests.some((q) => q.id === selected.id) ? (
+                    <p className="muted">
+                      {historyError || t.loadingHistory}{" "}
+                      {historyError && (
+                        <button
+                          onClick={() => {
+                            setHistoryError("");
+                            setHistoryAttempt((n) => n + 1);
+                          }}
+                        >
+                          {t.retry}
+                        </button>
+                      )}
+                    </p>
+                  ) : model.verifications.filter(
+                      (v) => v.questId === selected.id,
+                    ).length ? (
                     model.verifications
                       .filter((v) => v.questId === selected.id)
                       .map((v) => (
@@ -1169,7 +1606,10 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   <div className="journal-actions">
                     <button
                       className="button button-quiet"
-                      onClick={() => setShowOverride(!showOverride)}
+                      disabled={!histories.has(selected.id)}
+                      onClick={() =>
+                        guard(() => setShowOverride(!showOverride))
+                      }
                     >
                       <ShieldCheck size={14} />
                       {t.overrideReopen}
@@ -1210,7 +1650,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       event.preventDefault();
                       if (!overrideReason.trim()) return;
                       if (!window.confirm(t.overrideConfirm)) return;
-                      setModel({
+                      setImmediateModel({
                         ...model,
                         quests: model.quests.map((q) =>
                           q.id === selected.id
@@ -1250,7 +1690,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         disabled={!overrideReason.trim()}
                         onClick={() => {
                           if (!window.confirm(t.reopenConfirm)) return;
-                          setModel({
+                          setImmediateModel({
                             ...model,
                             quests: model.quests.map((q) =>
                               q.id === selected.id
@@ -1288,6 +1728,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 {error && (
                   <p role="alert" className="error">
                     {error}
+                    {conflicted && !dirty && (
+                      <button
+                        className="button button-secondary"
+                        onClick={() => window.location.reload()}
+                      >
+                        {t.retry}
+                      </button>
+                    )}
                   </p>
                 )}
               </>
@@ -1330,7 +1778,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         .prompt(t.progressionName, p.name)
                         ?.trim();
                       if (name)
-                        setModel({
+                        setImmediateModel({
                           ...model,
                           projects: model.projects.map((item) =>
                             item.id === p.id ? { ...item, name } : item,
@@ -1361,7 +1809,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                           (item) => item.projectId !== p.id,
                         ),
                       };
-                      setModel(next);
+                      setImmediateModel(next);
                       if (project?.id === p.id) {
                         setEmptyProject(next.projects[0]?.id ?? "");
                         navigate(next.pages[0]?.id ?? "");
@@ -1380,7 +1828,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   const name = String(form.get("name")).trim();
                   if (!name) return;
                   const id = uid();
-                  setModel({
+                  setImmediateModel({
                     ...model,
                     projects: [
                       ...model.projects,
@@ -1429,7 +1877,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     onClick={() => {
                       const name = window.prompt(t.treeName, p.name)?.trim();
                       if (name)
-                        setModel({
+                        setImmediateModel({
                           ...model,
                           pages: model.pages.map((item) =>
                             item.id === p.id ? { ...item, name } : item,
@@ -1442,51 +1890,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   <button
                     className="icon-button danger"
                     aria-label={t.deleteTree(p.name)}
-                    onClick={() =>
-                      attempt(() => {
-                        const destinations = model.pages.filter(
-                          (item) =>
-                            item.projectId === p.projectId && item.id !== p.id,
-                        );
-                        let destination: string | undefined;
-                        const orphans = model.appearances.some(
-                          (a) =>
-                            a.pageId === p.id &&
-                            !model.appearances.some(
-                              (b) =>
-                                b.questId === a.questId && b.pageId !== p.id,
-                            ),
-                        );
-                        if (orphans) {
-                          if (!destinations.length)
-                            throw new Error(t.lastTreeError);
-                          const choice = window.prompt(
-                            t.moveOrphans(
-                              destinations
-                                .map(
-                                  (item, index) => `${index + 1}: ${item.name}`,
-                                )
-                                .join(", "),
-                            ),
-                            "1",
-                          );
-                          if (choice === null) return;
-                          destination = destinations[Number(choice) - 1]?.id;
-                          if (!destination) throw new Error(t.invalidTree);
-                        }
-                        if (!window.confirm(t.deleteTreeConfirm(p.name)))
-                          return;
-                        const next = deletePage(model, p.id, destination);
-                        setModel(next);
-                        setEmptyProject(p.projectId);
-                        if (pageId === p.id)
-                          navigate(
-                            next.pages.find(
-                              (item) => item.projectId === p.projectId,
-                            )?.id ?? "",
-                          );
-                      })
-                    }
+                    onClick={() => {
+                      void removeTree(p);
+                    }}
                   >
                     <Trash2 size={14} />
                   </button>
@@ -1502,7 +1908,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   if (!name || !model.projects.some((p) => p.id === projectId))
                     return;
                   const id = uid();
-                  setModel({
+                  setImmediateModel({
                     ...model,
                     pages: [...model.pages, { id, name, projectId }],
                   });
@@ -1545,15 +1951,16 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 onSubmit={(e) => {
                   e.preventDefault();
                   const data = new FormData(e.currentTarget);
-                  attempt(() =>
+                  attempt(() => {
                     setModel(
                       addDependency(
                         model,
                         String(data.get("dependent")),
                         dependencySource,
                       ),
-                    ),
-                  );
+                    );
+                    setManagement(false);
+                  });
                 }}
               >
                 <select
@@ -1584,6 +1991,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             {error && (
               <p className="error" role="alert">
                 {error}
+                {conflicted && !dirty && (
+                  <button
+                    className="button button-secondary"
+                    onClick={() => window.location.reload()}
+                  >
+                    {t.retry}
+                  </button>
+                )}
               </p>
             )}
             <div className="notice">
@@ -1593,6 +2008,51 @@ function Workspace({ initial }: { initial: LoadedModel }) {
           </Modal>
         )}
       </div>
+      {pendingAction && (
+        <Modal title={t.unsavedChanges} onClose={() => setPendingAction(null)}>
+          <p>{t.unsavedPrompt}</p>
+          {error && (
+            <p role="alert" className="error">
+              {error}
+            </p>
+          )}
+          <div className="form-actions">
+            <button
+              className="button button-quiet"
+              onClick={() => setPendingAction(null)}
+            >
+              {t.cancel}
+            </button>
+            <button
+              className="button button-secondary"
+              onClick={() => {
+                if (discardDraft()) {
+                  const action = pendingAction;
+                  setPendingAction(null);
+                  action();
+                }
+              }}
+            >
+              {t.discardChanges}
+            </button>
+            <button
+              className="button button-primary"
+              disabled={saving || conflicted}
+              onClick={() => {
+                void saveDraft().then((ok) => {
+                  if (ok) {
+                    const action = pendingAction;
+                    setPendingAction(null);
+                    action();
+                  }
+                });
+              }}
+            >
+              {t.saveChanges}
+            </button>
+          </div>
+        </Modal>
+      )}
     </Tooltip.Provider>
   );
 }

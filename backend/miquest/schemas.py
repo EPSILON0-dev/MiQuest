@@ -133,3 +133,15 @@ class AgentVerification(RevisionRequest):
     verdict: Literal['pass', 'fail', 'inconclusive']
     reasoning: Reason
     evidence: Text = ''
+
+
+class DraftOperation(Input):
+    operation: Literal['create_quest', 'update_quest', 'delete_quest', 'add_quest_to_page',
+                       'update_quest_appearance', 'remove_quest_from_page', 'update_page_positions',
+                       'add_dependency', 'remove_dependency']
+    arguments: dict[str, object]
+    client_id: str | None = None
+
+
+class TreeDraftRequest(RevisionRequest):
+    operations: list[DraftOperation]

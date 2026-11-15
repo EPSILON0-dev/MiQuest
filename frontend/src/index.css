@@ -1185,6 +1185,16 @@ p {
     padding: 0 7px;
     gap: 5px;
   }
+  .topbar.has-draft {
+    height: auto;
+    min-height: 44px;
+    flex-wrap: wrap;
+    padding-bottom: 5px;
+  }
+  .has-draft .top-actions {
+    width: 100%;
+    justify-content: flex-end;
+  }
   .breadcrumbs {
     flex: 1;
     font-size: 11px;

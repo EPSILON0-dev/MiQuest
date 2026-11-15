@@ -2288,6 +2288,167 @@
           }
         }
       }
+    },
+    "/projects/{projectId}/tree-draft": {
+      "post": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "Save tree draft atomically",
+        "description": "Applies the supplied tree operations in order under a single project revision check and transaction. A failure rolls back every operation.",
+        "operationId": "postProjectsProjectIdTreeDraft",
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/TreeDraftRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "ids": {
+                          "type": "object",
+                          "additionalProperties": {
+                            "type": "string"
+                          }
+                        }
+                      },
+                      "required": [
+                        "ids"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "409": {
+            "$ref": "#/components/responses/Error409"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/pages/{pageId}/memberships": {
+      "get": {
+        "tags": [
+          "Pages"
+        ],
+        "summary": "Read quest memberships for a page",
+        "operationId": "getPagesPageIdMemberships",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "quests": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/QuestView"
+                          }
+                        },
+                        "appearances": {
+                          "type": "array",
+                          "items": {
+                            "$ref": "#/components/schemas/Appearance"
+                          }
+                        }
+                      },
+                      "required": [
+                        "quests",
+                        "appearances"
+                      ],
+                      "additionalProperties": false
+                    },
+                    "projectRevision": {
+                      "type": "integer",
+                      "minimum": 0
+                    }
+                  },
+                  "required": [
+                    "data",
+                    "projectRevision"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "404": {
+            "$ref": "#/components/responses/Error404"
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "503": {
+            "$ref": "#/components/responses/Error503"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": [
+          {
+            "name": "pageId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string",
+              "format": "uuid"
+            }
+          }
+        ]
+      }
     }
   },
   "components": {
@@ -2821,6 +2982,12 @@
               "$ref": "#/components/schemas/Appearance"
             }
           },
+          "memberships": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/Appearance"
+            }
+          },
           "dependencies": {
             "type": "array",
             "items": {
@@ -2880,12 +3047,13 @@
           "page",
           "quests",
           "appearances",
+          "memberships",
           "dependencies",
           "externalLinks",
           "pins"
         ],
         "additionalProperties": false,
-        "description": "Quests/appearances belong to this page; dependencies have both endpoints here. External links cover edges with exactly one endpoint here. Pins include all project pins. Histories are excluded."
+        "description": "Quests/appearances belong to this page; memberships include all appearances of those quests. Dependencies have both endpoints here. External links cover edges with exactly one endpoint here. Pins include all project pins. Histories are excluded."
       },
       "QuestDetails": {
         "type": "object",
@@ -3697,6 +3865,58 @@
             }
           }
         ]
+      },
+      "DraftOperation": {
+        "type": "object",
+        "properties": {
+          "operation": {
+            "type": "string",
+            "enum": [
+              "create_quest",
+              "update_quest",
+              "delete_quest",
+              "add_quest_to_page",
+              "update_quest_appearance",
+              "remove_quest_from_page",
+              "update_page_positions",
+              "add_dependency",
+              "remove_dependency"
+            ]
+          },
+          "arguments": {
+            "type": "object",
+            "description": "Camel-case fields for the corresponding operation, including its path identifiers. Values in identifier fields may reference an earlier clientId."
+          },
+          "clientId": {
+            "type": "string",
+            "description": "Required unique temporary identifier for create_quest; omitted for other operations."
+          }
+        },
+        "required": [
+          "operation",
+          "arguments"
+        ],
+        "additionalProperties": false
+      },
+      "TreeDraftRequest": {
+        "type": "object",
+        "properties": {
+          "expectedRevision": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "operations": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/DraftOperation"
+            }
+          }
+        },
+        "required": [
+          "expectedRevision",
+          "operations"
+        ],
+        "additionalProperties": false
       }
     },
     "responses": {
