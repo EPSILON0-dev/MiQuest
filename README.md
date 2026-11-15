@@ -56,7 +56,7 @@ Browser tests automatically start the preview and capture five screenshots: [des
 
 ## Backend
 
-The Python backend provides a FastAPI REST API backed by SQLite, with Alembic migrations and verification history. There is no authentication, so keep the service on loopback or behind a trusted private network boundary. MCP and deployment are not included yet.
+The Python backend provides a FastAPI REST API backed by SQLite, with Alembic migrations and verification history. There is no authentication, so keep the service on loopback or behind a trusted private network boundary. Deployment is not included yet.
 
 Install Python 3.12+ and [uv](https://docs.astral.sh/uv/). From the repository root, install dependencies, initialize the database, and start the API:
 
@@ -85,6 +85,6 @@ The root stylesheet `frontend/src/index.css` holds semantic theme settings. Icon
 
 [DESIGN.md](DESIGN.md) is authoritative. See [ROADMAP.md](ROADMAP.md), [PROGRESS.md](PROGRESS.md), and [AGENTS.md](AGENTS.md).
 
-The frontend uses the backend REST API; see [backend setup and tests](backend/README.md) and the [API specification](docs/backend/openapi.json). MCP and deployment are not implemented.
+The frontend uses the backend REST API; see [backend setup and tests](backend/README.md) and the [API specification](docs/backend/openapi.json). Deployment is not implemented.
 
 Known tooling notes: the graph/UI production bundle triggers Vite's 500 kB advisory; the dependency audit reports seven moderate findings in the development-only TypeScript ESLint/minimatch chain. No forced dependency downgrade was applied.

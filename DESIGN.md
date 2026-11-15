@@ -1,6 +1,6 @@
 # MiQuest: Web Application Design and Agent Implementation Specification
 
-**Status:** Redesign requirements agreed on 2026-11-13; the user explicitly approved the UI prototype and frontend integration on 2026-11-14. MCP remains deferred; see [ROADMAP.md](ROADMAP.md) and [PROGRESS.md](PROGRESS.md) for current status.
+**Status:** Redesign requirements agreed on 2026-11-13; the user explicitly approved the UI prototype and frontend integration on 2026-11-14. See [ROADMAP.md](ROADMAP.md) and [PROGRESS.md](PROGRESS.md) for current status.
 **Primary goal:** A beautiful, self-hosted, single-user quest graph that helps resume and advance long-running projects.  
 **Non-goal:** A general-purpose project-management suite.
 
@@ -10,10 +10,10 @@
 
 ## 1. Product principles
 
-1. **UI first.** Build a static, interactive frontend with realistic fixture data. The user explicitly approved the UI prototype and frontend integration. MCP is deferred for now.
+1. **UI first.** Build a static, interactive frontend with realistic fixture data. The user explicitly approved the UI prototype and frontend integration.
 2. **Graph is the product.** The default view is a large, readable dependency graph, not a table of tasks.
 3. **Keep it small.** One frontend, one Python backend, one SQLite database. No Redis, queues, Kubernetes, hosted LLM API, or multi-user features.
-4. **External agents provide intelligence.** MiQuest exposes controlled data and mutations; it does not run its own LLM. REST supports agent verdicts now; MCP is deferred for now.
+4. **External agents provide intelligence.** MiQuest exposes controlled data and mutations; it does not run its own LLM. REST supports agent verdicts.
 5. **Evidence before completion.** Normal completion is performed by an external agent submitting a reasoned verdict with evidence. Manual overrides are conspicuous and audited.
 6. **Unattended after approval.** Backend work is test-driven and should require minimal user involvement.
 
@@ -28,20 +28,19 @@
 - UI editing: create, edit, delete quests; create/remove dependency edges; edit quest descriptions and acceptance criteria.
 - Dependency validation, including no self-dependency, no cross-project edge, and no cycles.
 - Quest details modal showing description, prerequisites, next quests, acceptance criteria, verification history, and evidence.
-- Manual editing of projects, pages, quests, dependencies, icons, positions, home trees, and pins alongside agent/MCP editing.
+- Manual and REST editing of projects, pages, quests, dependencies, icons, positions, home trees, and pins.
 - SQLite persistence and database migrations.
-- MCP tools to inspect and modify projects/quests/dependencies and submit verification decisions.
 - Verification states and immutable verification records.
 - Manual completion override with a typed reason and visual distinction from agent-verified completion.
 - Containerized self-hosted deployment with persistent data, health check, and documented backup procedure.
-- Automated tests for backend, MCP, and critical frontend flows.
+- Automated tests for backend and critical frontend flows.
 
 ### Explicitly excluded from v1
 
 - Accounts, teams, roles, notifications, calendar, time tracking, gamification points, GitHub integration, automatic repository scanning, embedded AI chat, model hosting, autonomous background verification, OR dependencies, cross-project edges, and mobile-native apps.
 - Elaborate workflow engines, microservices, task queues, complex authorization frameworks, specialized automatic winding/radial layout algorithms, pixel styling, and automatic next-task ranking.
 - Uploads are excluded entirely, including quest icons and artwork. Use one bundled icon library.
-- Embedded agent chat and harness integration are deferred beyond v1; use an external agent client through MCP.
+- Embedded agent chat and harness integration are deferred beyond v1.
 
 ## 3. Stack
 
@@ -53,13 +52,10 @@
 | Layout | Dagre or ELK.js | Automatic layout on demand, not on every render; preserve manual positions |
 | Backend | Python 3.12+ + FastAPI | REST API and shared domain services |
 | Database | SQLite + SQLAlchemy 2.x + Alembic | WAL mode, foreign keys, busy timeout, persistent local volume |
-| MCP | Official Python MCP SDK | Start with stdio transport for local agents |
 | Backend tests | pytest | SQLite temporary database per test |
 | Frontend tests | Vitest + React Testing Library | State, components, interactions |
 | E2E tests | Playwright | Browser interactions, screenshots, smoke tests |
 | Deployment | Docker Compose | Single app service preferred; frontend can be served by same deployment |
-
-A separate remote HTTP MCP transport is **not required for v1**. Do not expose an unauthenticated MCP endpoint on the network.
 
 ## 4. Authentication and deployment boundary
 
@@ -67,8 +63,6 @@ MiQuest is intended for one owner on a private tailnet.
 
 - **v1:** No built-in user accounts. Bind the app to loopback on the host and publish browser access through **Tailscale Serve**, restricted by tailnet access controls. The application must not be directly internet-facing.
 - Browser access is controlled at the network/reverse-proxy boundary. Document that this is *network-level access control*, not app-level identity or per-user authorization.
-- Run the MCP server over **stdio** on the trusted machine where the agent executes. It has full read/write access to the database; document that the invoking agent is trusted.
-- If remote MCP access is later required, design a separately authenticated endpoint (token/OAuth as appropriate), with HTTPS and explicit permissions. Never silently enable remote MCP.
 - No arbitrary shell command execution, user-supplied file execution, or fetching arbitrary URLs from evidence references in v1.
 - Container runs as non-root; mount only the database/data directory as writable; no privileged container or Docker socket access.
 - Keep SQLite on local storage, not NFS/SMB; back it up with the SQLite backup API or a consistent snapshot.
@@ -116,7 +110,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 
 - Click, Enter, or one touch on a quest opens its modal; Back or Escape closes it. Keep focus within the modal while open and return focus to the originating control when closed. Hover/focus exposes the tooltip.
 - Global Edit mode exposes creation, rename/deletion, override, layout, dependency handles, and node drag. The initial page is the quest's home tree; it can be changed to another page containing that quest. Normal mode still supports pin/unpin and drag/keyboard pin reorder.
-- Agent/MCP operations are the primary editing route, but the UI must cover the same core editing workflow. Completion remains governed by verification/override rules.
+- The UI supports the core editing workflow. Completion remains governed by verification/override rules.
 - Separate “Remove from this page” from “Delete quest everywhere.” Global deletion requires confirmation and removes dependency links.
 - Every quest must appear on at least one page. Removing its last appearance requires moving it to another page or explicitly deleting it. Page deletion preserves quests by moving those with no other appearances, or explicitly deleting them with confirmation. Reassign a home tree when its appearance is removed.
 - Create a quest from top-bar action or canvas context menu.
@@ -157,9 +151,9 @@ Keep current state derivable from the latest relevant verification event, or upd
 
 **Availability:** A quest is unlocked when every prerequisite has completion state `verified` or `overridden`. If not unlocked, it is shown as locked regardless of work state. Reopening a prerequisite should relock dependent quests; do not automatically erase their prior verification history. Retain the verification badge/history while also showing unsatisfied prerequisites. Clearly distinguish *currently blocked by prerequisites* from *historically verified*. A new verification pass still requires satisfied prerequisites.
 
-## 7. API and MCP
+## 7. API
 
-Implement core business logic once in Python services. REST and MCP are adapters around the same operations and validation.
+Implement core business logic in Python services, with REST as the API adapter.
 
 ### REST operations
 
@@ -170,21 +164,7 @@ Implement core business logic once in Python services. REST and MCP are adapters
 - Read page/tree views and cross-tree references as well as the full project graph.
 - Read project graph with nodes, edges, and derived availability.
 - Read verification history and create manual override.
-- Submit agent verification through the controlled REST endpoint while MCP is deferred. The actor label represents the entry point, not an authenticated identity.
-
-### MCP tools
-
-- `list_projects`, `create_project`, `update_project`, `delete_project`, `get_project_graph`
-- `list_pages`, `create_page`, `update_page`, `delete_page`, `get_page_graph`
-- `add_quest_to_page`, `update_quest_appearance`, `remove_quest_from_page`
-- `list_pins`, `pin_quest`, `unpin_quest`, `reorder_pins`
-- `get_quest`, `create_quest`, `update_quest`, `delete_quest`
-- `add_dependency`, `remove_dependency`
-- `submit_verification`, `get_verification_history`
-
-Quest creation includes its initial page; quest updates support icon and home-page changes. Page removal/deletion inputs must explicitly provide any required quest moves or deletions; reject operations that would orphan quests.
-
-Tools should have clear descriptions and typed input schemas. Return structured errors for unknown IDs, cycles, invalid state transitions, and missing evidence. Avoid a generic `execute_sql` or arbitrary code execution tool.
+- Submit agent verification through the controlled REST endpoint. The actor label represents the entry point, not an authenticated identity.
 
 ### Verification rules
 
@@ -208,16 +188,15 @@ Tools should have clear descriptions and typed input schemas. Return structured 
 
 ### Phase B: Backend (unattended, TDD)
 
-The backend was separately authorized, and the UI prototype and integration were explicitly approved. MCP is deferred at the user's request.
+The backend was separately authorized, and the UI prototype and integration were explicitly approved.
 
 1. Add pytest fixtures and failing tests for database constraints and domain behavior.
 2. Implement SQLAlchemy models, Alembic migration, and services until tests pass.
 3. Add failing REST integration tests, implement endpoints, then connect the approved UI.
-4. When the user requests MCP, add protocol integration tests (real initialization, tool discovery, tool calls, invalid inputs), then implement the adapter.
-5. Add failing verification-state tests, then implement verification and override flows.
-6. Add Playwright E2E tests for project creation, quest editing, dependency validation, and verification display.
-7. Add Docker deployment, health check, persistence, and backup documentation.
-8. Run clean build/test/lint and report results with remaining limitations.
+4. Add failing verification-state tests, then implement verification and override flows.
+5. Add Playwright E2E tests for project creation, quest editing, dependency validation, and verification display.
+6. Add Docker deployment, health check, persistence, and backup documentation.
+7. Run clean build/test/lint and report results with remaining limitations.
 
 **Red -> green -> refactor** is mandatory for backend domain behavior. Tests must fail for the intended reason before implementing each feature. Do not delete, skip, or weaken tests merely to achieve green status.
 
@@ -226,7 +205,7 @@ The backend was separately authorized, and the UI prototype and integration were
 - Agent may choose routine implementation details and fix test failures without asking.
 - Agent may run builds, tests, linters, local containers, and make milestone commits.
 - Agent must not modify the approved UI design substantially without asking.
-- Backend implementation was explicitly authorized; do not connect the UI or begin deployment before explicit UI approval. MCP is deferred until requested.
+- Backend implementation was explicitly authorized; do not connect the UI or begin deployment before explicit UI approval.
 - Maintain `PROGRESS.md` with completed work, test commands, current blocker, and next steps so a fresh agent session can resume.
 - Do not claim completion until all required tests pass; report blocked tasks honestly.
 
@@ -250,8 +229,8 @@ The backend was separately authorized, and the UI prototype and integration were
 
 ### Tests and CI
 
-- pytest for domain/database/API/MCP; Vitest for frontend logic; Playwright for E2E and screenshots.
-- Tests for persistence after restart, cycle detection across pages, cross-project edge rejection, dependency unlock/relock with historical verification retained, evidence requirements, override audit, and MCP invalid inputs.
+- pytest for domain/database/API; Vitest for frontend logic; Playwright for E2E and screenshots.
+- Tests for persistence after restart, cycle detection across pages, cross-project edge rejection, dependency unlock/relock with historical verification retained, evidence requirements, and override audit.
 - Cover shared quest state with separate page positions, home-tree navigation/highlighting, page membership/deletion safeguards, pins, modal close/focus behavior, and localStorage view restoration.
 - Run checks on every milestone and in CI. Maintain deterministic fixtures and avoid external network dependencies in tests.
 - No fabricated test results or unverified claims that the app works.
@@ -271,10 +250,9 @@ The backend was separately authorized, and the UI prototype and integration were
 ### Final v1
 
 - UI connects to persisted projects, pages, shared quests, appearances, pins, and dependency graphs; state survives app/container restart.
-- Manual and MCP editing preserve shared quest identity, home-tree validity, and at least one page appearance per quest.
+- Manual and REST editing preserve shared quest identity, home-tree validity, and at least one page appearance per quest.
 - Cyclic, self-referential, and cross-project dependencies are rejected.
 - Unlocking follows prerequisites; verification history is visible.
-- MCP client can initialize, list tools, create/edit quests, create dependencies, and submit a verification.
 - Agent `pass` requires evidence/reasoning and is recorded with provenance.
 - Manual override is visibly distinct and audited.
 - Docker Compose starts the app with persistent SQLite storage; Tailscale-only deployment instructions are documented.
@@ -294,8 +272,7 @@ miquest/
 │   ├── miquest/
 │   │   ├── api/
 │   │   ├── core/
-│   │   ├── db/
-│   │   └── mcp_server/
+│   │   └── db/
 │   ├── migrations/
 │   └── tests/
 ├── e2e/
@@ -305,4 +282,4 @@ miquest/
 
 ## 12. Instruction to the coding agent
 
-> Implement MiQuest according to this document and the current roadmap. The fixture UI still requires explicit approval before backend integration or deployment. Backend implementation was separately authorized; MCP is deferred for now. Use strict TDD, automated tests, and minimal interruptions. Keep the architecture small, report actual test results, and do not add features outside this specification.
+> Implement MiQuest according to this document and the current roadmap. The UI prototype and integration were explicitly approved, and backend implementation was separately authorized. Use strict TDD, automated tests, and minimal interruptions. Keep the architecture small, report actual test results, and do not add features outside this specification.

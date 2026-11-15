@@ -1,6 +1,6 @@
 # MiQuest v1 roadmap
 
-[DESIGN.md](DESIGN.md) defines the product scope. The user approved the UI prototype and frontend integration, and asked to defer MCP. [PROGRESS.md](PROGRESS.md) records actual validation and open PRs.
+[DESIGN.md](DESIGN.md) defines the product scope. The user approved the UI prototype and frontend integration. [PROGRESS.md](PROGRESS.md) records actual validation and open PRs.
 
 ## Foundation
 - [x] Initialize Git and consolidate design.
@@ -22,7 +22,6 @@
 - [x] Open backend [PR #2](https://github.com/EPSILON0-dev/MiQuest/pull/2); merged.
 - [x] Connect the approved frontend to the API, preserving editing and view behavior.
 - [x] Add persisted end-to-end tests for frontend graph editing, membership, and verification.
-- [ ] MCP adapter and protocol tests are deferred at the user's request; revisit only when requested.
 
 ## Delivery
 - [ ] Non-root container, persistent SQLite, backup procedure, and private Tailscale Serve instructions. Backend liveness/readiness endpoints are implemented.
@@ -33,5 +32,4 @@
 2. [ ] Add frontend internationalization with English and Polish.
 3. [ ] Add frontend and backend Dockerfiles and a Compose configuration.
 4. [ ] Document development and container startup, usage, and backup/restore.
-5. [ ] Implement the MCP module and protocol tests using the existing backend services.
-6. [ ] Revisit the in-app chatbox design after MCP; its design and scope are deferred.
+5. [ ] Revisit the in-app chatbox design; its design and scope are deferred.
