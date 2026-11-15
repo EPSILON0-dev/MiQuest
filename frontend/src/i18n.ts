@@ -15,6 +15,7 @@ const en = {
   discardChanges: "Discard changes",
   unsavedChanges: "Unsaved changes",
   unsavedPrompt: "Save or discard your changes before continuing.",
+  leaveDraftConfirm: "Discard unsaved changes and continue?",
   draftSaveError:
     "Could not save changes. Your draft is still here; try again.",
   refreshNeeded: "This project changed elsewhere. Reload to continue.",
@@ -165,6 +166,7 @@ const packs = {
     discardChanges: "Odrzuć zmiany",
     unsavedChanges: "Niezapisane zmiany",
     unsavedPrompt: "Zapisz lub odrzuć zmiany przed kontynuowaniem.",
+    leaveDraftConfirm: "Odrzucić niezapisane zmiany i kontynuować?",
     draftSaveError:
       "Nie udało się zapisać zmian. Szkic jest zachowany; spróbuj ponownie.",
     refreshNeeded:

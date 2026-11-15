@@ -1,5 +1,12 @@
 # Progress
 
+## Browser history and breadcrumb — 2026-11-15
+
+- Added hash URLs for projects, trees, and quest details, including direct links, browser Back/Forward, modal Back, missing-target fallback, and restoration of empty projects. Cross-tree quest links retain their tree-and-highlight behavior.
+- Tree changes and leaving Edit mode confirm before discarding an unsaved draft; same-tree quest navigation preserves it. Reload and leaving the app retain the browser's native unsaved-changes warning. Navigation waits for in-flight saves, and temporary IDs in earlier history entries resolve after saving.
+- Disabled text selection for the project/tree breadcrumb. Frontend lint, production build, and 29 unit tests passed. Playwright passed 35 Chromium tests in the full run plus one separately run direct-link cancellation regression; local servers required execution outside the sandbox. Desktop and narrow screenshots were inspected. Vite retains its chunk-size advisory.
+- A first browser run found duplicate modal-close events that could navigate Back twice; the fix and edit-mode draft protection passed subsequent tests. Browser-history coverage includes direct links, invalid targets, reload, cancelled Back and Forward, save in flight, temporary IDs, and empty projects.
+
 ## Tree drafts and on-demand loading — 2026-11-15
 
 - Tree edits are staged in one in-memory draft with Save/Discard and navigation protection. Saves use a single revision-checked backend transaction; failures preserve the draft, while conflicts require discard and reload. Pins, verification, and workspace management remain immediate after resolving a draft.
