@@ -669,6 +669,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
       });
   }
   const page = model.pages.find((p) => p.id === pageId);
+  useEffect(() => {
+    document.title = page ? `${page.name} -- MiQuest` : "MiQuest";
+  }, [page?.name]);
   const project =
     model.projects.find((p) => p.id === (page?.projectId ?? emptyProject)) ??
     model.projects[0];
