@@ -480,3 +480,30 @@ test("cancelling navigation from a direct quest keeps its modal back inside the 
     page.getByRole("button", { name: "Save changes" }),
   ).toBeVisible();
 });
+
+test("works when randomUUID is unavailable", async ({ page, request, ids }) => {
+  const project = await atlasId(request);
+  await page.addInitScript(() => {
+    Object.defineProperty(crypto, "randomUUID", { value: undefined });
+  });
+  await page.goto(treeUrl(project, ids.foundations));
+  await expect(
+    page.locator(`[data-id="${ids.architecture}"] .quest-node`),
+  ).toBeVisible();
+  await page.getByRole("switch", { name: "Edit mode" }).click();
+  await page.getByRole("button", { name: "Add quest", exact: true }).click();
+  await page
+    .getByLabel("Title", { exact: true })
+    .fill("Works without randomUUID");
+  await page.getByRole("button", { name: "Save quest" }).click();
+  await page.getByRole("button", { name: "Save changes" }).click();
+  await expect(page.getByRole("button", { name: "Save changes" })).toHaveCount(
+    0,
+  );
+  const quests = (
+    await (await request.get(`/api/v1/projects/${project}/quests`)).json()
+  ).data as { title: string }[];
+  expect(
+    quests.some((quest) => quest.title === "Works without randomUUID"),
+  ).toBe(true);
+});

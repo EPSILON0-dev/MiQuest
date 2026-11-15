@@ -110,7 +110,9 @@ function QuestCard({ data }: NodeProps<QuestNode>) {
 }
 const nodeTypes = { quest: QuestCard };
 function uid() {
-  return crypto.randomUUID();
+  return Array.from(crypto.getRandomValues(new Uint8Array(16)), (byte) =>
+    byte.toString(16).padStart(2, "0"),
+  ).join("");
 }
 function markReturnFocus() {
   document
@@ -223,7 +225,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const [historySession] = useState(() =>
     typeof window.history.state?.miquest?.session === "string"
       ? window.history.state.miquest.session
-      : crypto.randomUUID(),
+      : uid(),
   );
   const historyIndex = useRef(
     typeof window.history.state?.miquest?.index === "number"
