@@ -1,6 +1,6 @@
 # Backend development
 
-The Python API uses a local SQLite file and the routes in [the API contract](../docs/backend/README.md). It has no built-in accounts; run it on a trusted private network boundary only. MCP is not included.
+The Python API uses a local SQLite file and the routes in [the API contract](../docs/backend/README.md). It has no built-in accounts; run it on a trusted private network boundary only.
 
 Install Python 3.12 or later and [uv](https://docs.astral.sh/uv/), then from the repository root:
 

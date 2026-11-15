@@ -3,7 +3,7 @@
   "info": {
     "title": "MiQuest REST API",
     "version": "0.1.0",
-    "description": "MiQuest REST API for the private single-owner network boundary, without application accounts or authentication. Browser mutations require same-origin JSON; no wildcard CORS. Agent verdict submission is available through the trusted REST boundary. MCP is outside the implemented scope.\n\nAll existing-project mutations require expectedRevision and commit atomically before success. Real changes increment project revision once; no-ops leave it unchanged. Stale writes return 409 stale_revision with currentRevision. Unknown request fields are rejected, including actor, completion, ownership and timestamps. DELETE uses JSON bodies and destructive confirmations; permanent deletion loses history.\n\nStable ordering: projects/pages/quests by (createdAt,id), pins by sortOrder, histories by sequence ascending, dependencies by both IDs, appearances by (pageId,questId). Descriptions/evidence are plain text, never executed or fetched."
+    "description": "MiQuest REST API for the private single-owner network boundary, without application accounts or authentication. Browser mutations require same-origin JSON; no wildcard CORS. Agent verdict submission is available through the trusted REST boundary.\n\nAll existing-project mutations require expectedRevision and commit atomically before success. Real changes increment project revision once; no-ops leave it unchanged. Stale writes return 409 stale_revision with currentRevision. Unknown request fields are rejected, including actor, completion, ownership and timestamps. DELETE uses JSON bodies and destructive confirmations; permanent deletion loses history.\n\nStable ordering: projects/pages/quests by (createdAt,id), pins by sortOrder, histories by sequence ascending, dependencies by both IDs, appearances by (pageId,questId). Descriptions/evidence are plain text, never executed or fetched."
   },
   "servers": [
     {
@@ -42,7 +42,7 @@
     },
     {
       "name": "Verification",
-      "description": "Human actions and immutable history; agent submissions use MCP"
+      "description": "Human actions and immutable history; agent submissions use the REST API"
     },
     {
       "name": "Metadata",
