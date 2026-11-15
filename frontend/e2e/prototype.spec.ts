@@ -46,7 +46,9 @@ test("journal, focus, shared content, pins and viewport restoration", async ({
   await page.locator(`[data-id="${ids.story}"] .quest-node`).click();
   await page.reload();
   await expect(page.locator(".breadcrumbs strong")).toHaveText("Launch path");
-  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(
+    page.getByRole("dialog", { name: "Write the story" }),
+  ).toBeVisible();
   const saved = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("miquest-view")!),
   );
