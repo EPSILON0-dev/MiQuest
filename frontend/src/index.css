@@ -1123,6 +1123,17 @@ p {
   border-bottom: 1px solid var(--border-subtle);
   font-size: 12px;
 }
+.manage-project-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+}
+.manage-trees {
+  padding-left: 28px;
+}
 .manage-row > strong,
 .manage-row > span {
   flex: 1;

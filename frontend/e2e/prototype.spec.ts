@@ -323,7 +323,7 @@ test("narrow navigation and journal keep keyboard focus inside", async ({
   const quest = page.locator(`[data-id="${ids.architecture}"] .quest-node`);
   await quest.click();
   await expect(
-    page.getByRole("button", { name: "Back", exact: true }),
+    page.getByRole("button", { name: "Close", exact: true }),
   ).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(page.getByRole("dialog").locator(":focus")).toBeVisible();
