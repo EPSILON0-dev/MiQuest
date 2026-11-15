@@ -1,0 +1,307 @@
+import { useSyncExternalStore } from "react";
+
+export type Locale = "en" | "pl";
+
+const en = {
+  loading: "Loading MiQuest…",
+  loadError: "Could not load MiQuest. Check that the backend is running.",
+  saveError:
+    "Could not save. The latest data was reloaded; earlier steps may have been saved.",
+  saveReloadError:
+    "Could not save or reload. Your changes may not have been saved; reload when the backend is available.",
+  retry: "Retry",
+  saving: "Saving…",
+  language: "Language",
+  edit: "Edit mode",
+  pins: "Pins",
+  emptyPins: "Pin a quest from its journal.",
+  autoLayout: "Auto layout",
+  addQuest: "Add quest",
+  none: "None",
+  criteria: "Acceptance criteria",
+  noHistory: "No verification records yet.",
+  open: "Open",
+  readMore: "Click to read more",
+  noDescription: "No description yet.",
+  title: "Title",
+  description: "Description",
+  workState: "Work state",
+  milestone: "Milestone",
+  searchIcons: "Search icons",
+  icon: "Icon",
+  trees: "Trees",
+  homeTree: "Home tree",
+  chooseTree: "Choose a tree",
+  prerequisites: "Prerequisites",
+  saveQuest: "Save quest",
+  cancel: "Cancel",
+  back: "Back",
+  progressions: "Progressions",
+  newTree: "New tree",
+  settings: "Workspace settings",
+  manageProgressions: "Manage progressions",
+  navigation: "Workspace navigation",
+  closeNavigation: "Close navigation",
+  openNavigation: "Open navigation",
+  treeActions: "Tree actions",
+  pinnedQuests: "Pinned quests",
+  editQuest: "Edit",
+  whatsNext: "What's next",
+  noCriteria: "No criteria yet.",
+  evidenceHistory: "Evidence & history",
+  records: "records",
+  humanOverride: "Human override",
+  agentVerification: "Agent verification",
+  overrideReopen: "Human override / reopen",
+  createQuest: "Create a quest",
+  workspaceSettings: "Workspace settings",
+  connectQuests: "Connect quests",
+  connect: "Connect",
+  workspace: "Workspace",
+  noTree: "No tree yet",
+  movePinUp: (title: string) => `Move ${title} up`,
+  movePinDown: (title: string) => `Move ${title} down`,
+  dismissError: "Dismiss error",
+  removeDependency: "Remove this dependency?",
+  emptyTreeTitle: "A little space for your next idea",
+  emptyWorkspaceTitle: "Your next chapter starts here",
+  emptyTreeText: "Add your first quest, then connect the steps ahead.",
+  emptyWorkspaceText: "Create a progression and a tree in workspace settings.",
+  enterEdit: "Enter edit mode",
+  addFirstQuest: "Add first quest",
+  openSettings: "Open workspace settings",
+  fromOtherTrees: "From other trees",
+  pinQuest: "Pin quest",
+  unpinQuest: "Unpin quest",
+  previously: "Previously",
+  removeFromTree: "Remove from this tree",
+  deleteQuest: "Delete quest everywhere",
+  deleteQuestConfirm: (title: string) =>
+    `Delete “${title}” everywhere, including dependencies and history?`,
+  overrideConfirm: "Record this as an explicit human override?",
+  overrideEvidence: "Explicit human override.",
+  overrideHelp: "This records a human decision, with its reason.",
+  reason: "Reason",
+  reopenConfirm: "Reopen this quest and retain its history?",
+  reopenEvidence: "Reopened by a human.",
+  reopenQuest: "Reopen quest",
+  confirmOverride: "Confirm human override",
+  settingsIntro:
+    "Shape your progressions and trees. Changes are saved to MiQuest.",
+  renameProgression: (name: string) => `Rename ${name}`,
+  progressionName: "Progression name",
+  deleteProgression: (name: string) => `Delete ${name}`,
+  deleteProgressionConfirm: (name: string) =>
+    `Delete progression “${name}” and all its trees and quests?`,
+  newProgressionDescription: "A new path, one quest at a time.",
+  newProgressionName: "New progression name",
+  create: "Create",
+  renameTree: (name: string) => `Rename ${name}`,
+  treeName: "Tree name",
+  deleteTree: (name: string) => `Delete ${name}`,
+  lastTreeError:
+    "Create another tree and move these quests before deleting their last tree.",
+  moveOrphans: (choices: string) =>
+    `Move quests that only appear here to a tree. Enter its number: ${choices}`,
+  invalidTree: "Choose a valid destination tree",
+  deleteTreeConfirm: (name: string) =>
+    `Delete tree “${name}”? Quests will be preserved.`,
+  treeProgression: "Tree progression",
+  newTreeName: "New tree name",
+  connectHelp:
+    "Draw between handles on the tree, or choose a prerequisite and its dependent here. Click an edge to remove it.",
+  prerequisiteQuest: "Prerequisite quest",
+  dependentQuest: "Dependent quest",
+  dependent: "Dependent…",
+  savedView:
+    "Your changes are saved. Your last tree and canvas view are remembered.",
+  enterQuestTitle: "Enter a quest title.",
+  chooseOneTree: "Choose at least one tree.",
+  chooseHomeTree: "Choose a home tree containing this quest.",
+  validPosition: "Enter a valid position for each tree.",
+  dependencySaveError: "Unable to save dependencies.",
+  position: "position",
+  x: "X",
+  y: "Y",
+  previouslyLocked:
+    "Prerequisites are currently unsatisfied; the earlier record is preserved.",
+  status: {
+    not_started: "Not started",
+    in_progress: "In progress",
+    blocked: "Blocked",
+    locked: "Locked",
+    available: "Ready to begin",
+    verified: "Verified",
+    completed: "Completed",
+    overridden: "Human override",
+  },
+};
+
+const packs = {
+  en,
+  pl: {
+    loading: "Ładowanie MiQuest…",
+    loadError:
+      "Nie można załadować MiQuest. Sprawdź, czy backend jest uruchomiony.",
+    saveError:
+      "Nie można zapisać zmiany. Najnowsze dane zostały ponownie załadowane; wcześniejsze kroki mogły zostać zapisane.",
+    saveReloadError:
+      "Nie można zapisać ani ponownie załadować danych. Zmiany mogły nie zostać zapisane; odśwież stronę, gdy backend będzie dostępny.",
+    retry: "Ponów",
+    saving: "Zapisywanie…",
+    language: "Język",
+    edit: "Tryb edycji",
+    pins: "Przypięte",
+    emptyPins: "Przypnij zadanie z jego dziennika.",
+    autoLayout: "Automatyczny układ",
+    addQuest: "Dodaj zadanie",
+    none: "Brak",
+    criteria: "Kryteria akceptacji",
+    noHistory: "Brak historii weryfikacji.",
+    open: "Otwórz",
+    readMore: "Kliknij, aby przeczytać więcej",
+    noDescription: "Brak opisu.",
+    title: "Tytuł",
+    description: "Opis",
+    workState: "Stan pracy",
+    milestone: "Kamień milowy",
+    searchIcons: "Szukaj ikon",
+    icon: "Ikona",
+    trees: "Drzewa",
+    homeTree: "Drzewo główne",
+    chooseTree: "Wybierz drzewo",
+    prerequisites: "Wymagania wstępne",
+    saveQuest: "Zapisz zadanie",
+    cancel: "Anuluj",
+    back: "Wstecz",
+    progressions: "Postępy",
+    newTree: "Nowe drzewo",
+    settings: "Ustawienia przestrzeni",
+    manageProgressions: "Zarządzaj postępami",
+    navigation: "Nawigacja przestrzeni",
+    closeNavigation: "Zamknij nawigację",
+    openNavigation: "Otwórz nawigację",
+    treeActions: "Opcje drzewa",
+    pinnedQuests: "Przypięte zadania",
+    editQuest: "Edytuj",
+    whatsNext: "Co dalej",
+    noCriteria: "Brak kryteriów.",
+    evidenceHistory: "Dowody i historia",
+    records: "wpisów",
+    humanOverride: "Ręczne zatwierdzenie",
+    agentVerification: "Weryfikacja agenta",
+    overrideReopen: "Ręczne zatwierdzenie / ponowne otwarcie",
+    createQuest: "Utwórz zadanie",
+    workspaceSettings: "Ustawienia przestrzeni",
+    connectQuests: "Połącz zadania",
+    connect: "Połącz",
+    workspace: "Przestrzeń robocza",
+    noTree: "Brak drzewa",
+    movePinUp: (title) => `Przenieś ${title} w górę`,
+    movePinDown: (title) => `Przenieś ${title} w dół`,
+    dismissError: "Odrzuć błąd",
+    removeDependency: "Usunąć tę zależność?",
+    emptyTreeTitle: "Miejsce na Twój kolejny pomysł",
+    emptyWorkspaceTitle: "Twój następny rozdział zaczyna się tutaj",
+    emptyTreeText: "Dodaj pierwsze zadanie, a następnie połącz kolejne kroki.",
+    emptyWorkspaceText: "Utwórz postęp i drzewo w ustawieniach przestrzeni.",
+    enterEdit: "Włącz tryb edycji",
+    addFirstQuest: "Dodaj pierwsze zadanie",
+    openSettings: "Otwórz ustawienia przestrzeni",
+    fromOtherTrees: "Z innych drzew",
+    pinQuest: "Przypnij zadanie",
+    unpinQuest: "Odepnij zadanie",
+    previously: "Wcześniej",
+    removeFromTree: "Usuń z tego drzewa",
+    deleteQuest: "Usuń zadanie wszędzie",
+    deleteQuestConfirm: (title) =>
+      `Usunąć „${title}” wszędzie, wraz z zależnościami i historią?`,
+    overrideConfirm: "Zapisać to jako wyraźne ręczne zatwierdzenie?",
+    overrideEvidence: "Wyraźne ręczne zatwierdzenie.",
+    overrideHelp: "Zapisuje to decyzję człowieka wraz z jej uzasadnieniem.",
+    reason: "Uzasadnienie",
+    reopenConfirm: "Otworzyć ponownie to zadanie i zachować jego historię?",
+    reopenEvidence: "Ponownie otwarte przez człowieka.",
+    reopenQuest: "Otwórz zadanie ponownie",
+    confirmOverride: "Potwierdź ręczne zatwierdzenie",
+    settingsIntro:
+      "Zarządzaj postępami i drzewami. Zmiany są zapisywane w MiQuest.",
+    renameProgression: (name) => `Zmień nazwę: ${name}`,
+    progressionName: "Nazwa postępu",
+    deleteProgression: (name) => `Usuń ${name}`,
+    deleteProgressionConfirm: (name) =>
+      `Usunąć postęp „${name}” wraz ze wszystkimi drzewami i zadaniami?`,
+    newProgressionDescription: "Nowa ścieżka, jedno zadanie na raz.",
+    newProgressionName: "Nazwa nowego postępu",
+    create: "Utwórz",
+    renameTree: (name) => `Zmień nazwę: ${name}`,
+    treeName: "Nazwa drzewa",
+    deleteTree: (name) => `Usuń ${name}`,
+    lastTreeError:
+      "Utwórz inne drzewo i przenieś zadania przed usunięciem ich ostatniego drzewa.",
+    moveOrphans: (choices) =>
+      `Przenieś zadania występujące tylko tutaj do drzewa. Podaj jego numer: ${choices}`,
+    invalidTree: "Wybierz prawidłowe drzewo docelowe",
+    deleteTreeConfirm: (name) =>
+      `Usunąć drzewo „${name}”? Zadania zostaną zachowane.`,
+    treeProgression: "Postęp drzewa",
+    newTreeName: "Nazwa nowego drzewa",
+    connectHelp:
+      "Przeciągnij między uchwytami na drzewie albo wybierz tutaj wymaganie wstępne i zależne zadanie. Kliknij krawędź, aby ją usunąć.",
+    prerequisiteQuest: "Zadanie wstępne",
+    dependentQuest: "Zależne zadanie",
+    dependent: "Zależne…",
+    savedView:
+      "Zmiany są zapisane. Ostatnie drzewo i widok planszy zostają zapamiętane.",
+    enterQuestTitle: "Wpisz tytuł zadania.",
+    chooseOneTree: "Wybierz co najmniej jedno drzewo.",
+    chooseHomeTree: "Wybierz drzewo główne zawierające to zadanie.",
+    validPosition: "Wpisz prawidłową pozycję dla każdego drzewa.",
+    dependencySaveError: "Nie można zapisać zależności.",
+    position: "pozycja",
+    x: "X",
+    y: "Y",
+    previouslyLocked:
+      "Wymagania wstępne nie są obecnie spełnione; wcześniejszy zapis został zachowany.",
+    status: {
+      not_started: "Nierozpoczęte",
+      in_progress: "W toku",
+      blocked: "Zablokowane",
+      locked: "Zablokowane",
+      available: "Gotowe do rozpoczęcia",
+      verified: "Zweryfikowane",
+      completed: "Ukończone",
+      overridden: "Ręczne zatwierdzenie",
+    },
+  },
+} satisfies Record<Locale, typeof en>;
+
+const storageKey = "miquest-locale";
+const savedLocale =
+  typeof localStorage === "undefined" ? null : localStorage.getItem(storageKey);
+let locale: Locale = savedLocale === "pl" ? "pl" : "en";
+const listeners = new Set<() => void>();
+
+export function getLocale() {
+  return locale;
+}
+export function getMessages() {
+  return packs[locale];
+}
+export function setLocale(next: Locale) {
+  locale = next;
+  localStorage.setItem(storageKey, next);
+  document.documentElement.lang = next;
+  listeners.forEach((listener) => listener());
+}
+export function useI18n() {
+  useSyncExternalStore(
+    (listener) => {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    getLocale,
+    getLocale,
+  );
+  return getMessages();
+}

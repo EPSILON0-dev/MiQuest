@@ -267,6 +267,25 @@ p {
 .settings-button > svg:last-child {
   margin-left: auto;
 }
+.locale-picker {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 10px 8px 4px;
+  border-top: 1px solid var(--border-subtle);
+  color: var(--muted);
+  font-size: 11px;
+}
+.locale-picker select {
+  margin-left: auto;
+  padding: 4px 6px;
+  font-size: 11px;
+}
+.locale-picker + .settings-button {
+  margin-top: 0;
+  border-top: 0;
+}
 .main {
   flex: 1;
   min-width: 0;

@@ -2,7 +2,6 @@ import { useEffect, useState, useRef } from "react";
 import { ApiError, loadModel, persistModel, type LoadedModel } from "./api";
 import { Tooltip } from "radix-ui";
 import QuestButton from "./QuestButton";
-import { statusNames } from "./questStatus";
 import {
   ReactFlow,
   Background,
@@ -51,6 +50,13 @@ import { QuestIcon } from "./icons";
 import Modal from "./Modal";
 import QuestEditor from "./QuestEditor";
 import { readView, restoreViewport, type SavedViewport } from "./view";
+import {
+  getLocale,
+  getMessages,
+  setLocale,
+  useI18n,
+  type Locale,
+} from "./i18n";
 
 type QuestNodeData = {
   quest: Quest;
@@ -103,6 +109,7 @@ function markReturnFocus() {
 }
 
 export default function App() {
+  const t = useI18n();
   const [loaded, setLoaded] = useState<LoadedModel | null>(null);
   const [loadError, setLoadError] = useState("");
   const [attemptNumber, setAttemptNumber] = useState(0);
@@ -113,10 +120,7 @@ export default function App() {
         if (active) setLoaded(result);
       })
       .catch(() => {
-        if (active)
-          setLoadError(
-            "Could not load MiQuest. Check that the backend is running.",
-          );
+        if (active) setLoadError(getMessages().loadError);
       });
     return () => {
       active = false;
@@ -135,11 +139,11 @@ export default function App() {
                 setAttemptNumber((n) => n + 1);
               }}
             >
-              Retry
+              {t.retry}
             </button>
           </>
         ) : (
-          <p>Loading MiQuest…</p>
+          <p>{t.loading}</p>
         )}
       </main>
     );
@@ -147,6 +151,7 @@ export default function App() {
 }
 
 function Workspace({ initial }: { initial: LoadedModel }) {
+  const t = useI18n();
   const [initialView] = useState(() => readView(initial.model));
   const [model, setLocalModel] = useState<Model>(initial.model);
   const saved = useRef(initial);
@@ -196,12 +201,24 @@ function Workspace({ initial }: { initial: LoadedModel }) {
       .then((result) => {
         saved.current = result;
         setLocalModel(result.model);
-        setViewports((views) => Object.fromEntries(Object.entries(views).map(([id, view]) => [result.ids[id] ?? id, view])));
+        setViewports((views) =>
+          Object.fromEntries(
+            Object.entries(views).map(([id, view]) => [
+              result.ids[id] ?? id,
+              view,
+            ]),
+          ),
+        );
         try {
           const view = JSON.parse(localStorage.getItem("miquest-view") ?? "{}");
           if (result.ids[view.pageId]) {
             view.pageId = result.ids[view.pageId];
-            view.viewports = Object.fromEntries(Object.entries(view.viewports ?? {}).map(([id, viewport]) => [result.ids[id] ?? id, viewport]));
+            view.viewports = Object.fromEntries(
+              Object.entries(view.viewports ?? {}).map(([id, viewport]) => [
+                result.ids[id] ?? id,
+                viewport,
+              ]),
+            );
             localStorage.setItem("miquest-view", JSON.stringify(view));
           }
         } catch {
@@ -227,12 +244,10 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               ? "This change was not saved because the project changed elsewhere. The latest data was reloaded; earlier steps may have been saved."
               : cause instanceof Error
                 ? `${cause.message} The latest data was reloaded. Some changes may have been saved before the error; please review them.`
-                : "Could not save. The latest data was reloaded; earlier steps may have been saved.",
+                : t.saveError,
           );
         } catch {
-          setError(
-            "Could not save or reload. Your changes may not have been saved; reload when the backend is available.",
-          );
+          setError(t.saveReloadError);
           setNeedsReload(true);
         }
       })
@@ -483,7 +498,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
           className="button button-primary"
           onClick={() => window.location.reload()}
         >
-          Retry
+          {t.retry}
         </button>
       </main>
     );
@@ -491,7 +506,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     <Tooltip.Provider delayDuration={180} skipDelayDuration={100}>
       {saving && (
         <div className="save-status" role="status">
-          Saving…
+          {t.saving}
         </div>
       )}
       <div
@@ -501,13 +516,13 @@ function Workspace({ initial }: { initial: LoadedModel }) {
         {drawer && (
           <button
             className="drawer-scrim"
-            aria-label="Close navigation"
+            aria-label={t.closeNavigation}
             onClick={() => setDrawer(false)}
           />
         )}
         <aside
           id="navigation"
-          aria-label="Workspace navigation"
+          aria-label={t.navigation}
           className={`sidebar ${drawer ? "is-open" : ""}`}
           onKeyDown={(event) => {
             if (!drawer) return;
@@ -540,11 +555,11 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             miquest<span className="brand-dot">.</span>
           </a>
           <div className="nav-heading">
-            PROGRESSIONS
+            {t.progressions.toUpperCase()}
             {editMode && (
               <button
                 className="icon-button"
-                aria-label="Manage progressions"
+                aria-label={t.manageProgressions}
                 onClick={() => {
                   markReturnFocus();
                   setManagement(true);
@@ -554,7 +569,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               </button>
             )}
           </div>
-          <nav aria-label="Progressions">
+          <nav aria-label={t.progressions}>
             {model.projects.map((p) => (
               <div className="nav-project" key={p.id}>
                 <button
@@ -605,7 +620,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                           setManagement(true);
                         }}
                       >
-                        <Plus size={13} /> New tree
+                        <Plus size={13} /> {t.newTree}
                       </button>
                     )}
                   </div>
@@ -613,6 +628,17 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               </div>
             ))}
           </nav>
+          <label className="locale-picker">
+            {t.language}
+            <select
+              aria-label={t.language}
+              value={getLocale()}
+              onChange={(event) => setLocale(event.target.value as Locale)}
+            >
+              <option value="en">English</option>
+              <option value="pl">Polski</option>
+            </select>
+          </label>
           {editMode && (
             <button
               className="settings-button"
@@ -621,7 +647,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 setManagement(true);
               }}
             >
-              <Settings size={17} /> Workspace settings
+              <Settings size={17} /> {t.settings}
               <MoreHorizontal size={17} />
             </button>
           )}
@@ -630,7 +656,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
           <header className="topbar">
             <button
               className="icon-button mobile-menu"
-              aria-label="Open navigation"
+              aria-label={t.openNavigation}
               aria-expanded={drawer}
               aria-controls="navigation"
               onClick={() => {
@@ -646,9 +672,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             </button>
             <div className="breadcrumbs">
               <Layers size={16} />
-              <span>{project?.name ?? "Workspace"}</span>
+              <span>{project?.name ?? t.workspace}</span>
               <ChevronRight size={13} />
-              <strong>{page?.name ?? "No tree yet"}</strong>
+              <strong>{page?.name ?? t.noTree}</strong>
             </div>
             <div className="top-actions">
               {editMode && (
@@ -659,7 +685,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     disabled={!nodes.length}
                   >
                     <LayoutGrid size={15} />
-                    <span>Auto layout</span>
+                    <span>{t.autoLayout}</span>
                   </button>
                   <button
                     className="button button-secondary"
@@ -667,11 +693,11 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     disabled={!page}
                   >
                     <Plus size={15} />
-                    <span>Add quest</span>
+                    <span>{t.addQuest}</span>
                   </button>
                   <button
                     className="icon-button"
-                    aria-label="Tree actions"
+                    aria-label={t.treeActions}
                     onClick={() => {
                       markReturnFocus();
                       setManagement(true);
@@ -684,7 +710,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               <button
                 type="button"
                 role="switch"
-                aria-label="Edit mode"
+                aria-label={t.edit}
                 aria-checked={editMode}
                 className="edit-switch"
                 onClick={() => {
@@ -697,7 +723,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 }}
               >
                 <Pencil size={13} />
-                <span>Edit mode</span>
+                <span>{t.edit}</span>
                 <span className="switch-track">
                   <span />
                 </span>
@@ -708,12 +734,12 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             <div className={`pins-panel ${pinsOpen ? "expanded" : ""}`}>
               <button
                 className="pins-heading"
-                aria-label="Pinned quests"
+                aria-label={t.pinnedQuests}
                 onClick={() => setPinsOpen(!pinsOpen)}
                 aria-expanded={pinsOpen}
               >
                 <Pin size={13} />
-                <span className="pins-label">Pins</span>
+                <span className="pins-label">{t.pins}</span>
                 <span className="pins-count">{currentPins.length}</span>
                 <ChevronDown size={13} />
               </button>
@@ -770,14 +796,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                           </button>
                           <div className="pin-order">
                             <button
-                              aria-label={`Move ${q.title} up`}
+                              aria-label={t.movePinUp(q.title)}
                               disabled={index === 0}
                               onClick={() => movePin(q.id, -1)}
                             >
                               <ArrowUp size={12} />
                             </button>
                             <button
-                              aria-label={`Move ${q.title} down`}
+                              aria-label={t.movePinDown(q.title)}
                               disabled={index === currentPins.length - 1}
                               onClick={() => movePin(q.id, 1)}
                             >
@@ -789,7 +815,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     );
                   })}
                   {!currentPins.length && (
-                    <p className="muted">Pin a quest from its journal.</p>
+                    <p className="muted">{t.emptyPins}</p>
                   )}
                 </div>
               )}
@@ -800,7 +826,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 <button
                   className="icon-button"
                   onClick={() => setError("")}
-                  aria-label="Dismiss error"
+                  aria-label={t.dismissError}
                 >
                   <X size={14} />
                 </button>
@@ -899,7 +925,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   )
                 }
                 onEdgeClick={(_, edge) => {
-                  if (editMode && window.confirm("Remove this dependency?"))
+                  if (editMode && window.confirm(t.removeDependency))
                     setModel({
                       ...model,
                       dependencies: model.dependencies.filter(
@@ -929,16 +955,8 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 <span className="empty-icon">
                   <GitBranch size={36} />
                 </span>
-                <h2>
-                  {page
-                    ? "A little space for your next idea"
-                    : "Your next chapter starts here"}
-                </h2>
-                <p>
-                  {page
-                    ? "Add your first quest, then connect the steps ahead."
-                    : "Create a progression and a tree in workspace settings."}
-                </p>
+                <h2>{page ? t.emptyTreeTitle : t.emptyWorkspaceTitle}</h2>
+                <p>{page ? t.emptyTreeText : t.emptyWorkspaceText}</p>
                 <button
                   className="button button-primary"
                   onClick={
@@ -954,16 +972,16 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 >
                   <Plus size={16} />
                   {!editMode
-                    ? "Enter edit mode"
+                    ? t.enterEdit
                     : page
-                      ? "Add first quest"
-                      : "Open workspace settings"}
+                      ? t.addFirstQuest
+                      : t.openSettings}
                 </button>
               </div>
             )}
             {external.length > 0 && (
               <div className="cross-tree">
-                <span>FROM OTHER TREES</span>
+                <span>{t.fromOtherTrees}</span>
                 {[...new Map(external.map((q) => [q.id, q])).values()].map(
                   (q) => (
                     <button key={q.id} onClick={() => goHome(q)}>
@@ -987,8 +1005,8 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 className={`icon-button ${model.pins.some((p) => p.questId === selected.id) ? "is-pinned" : ""}`}
                 aria-label={
                   model.pins.some((p) => p.questId === selected.id)
-                    ? "Unpin quest"
-                    : "Pin quest"
+                    ? t.unpinQuest
+                    : t.pinQuest
                 }
                 onClick={() => togglePin(selected)}
               >
@@ -1029,8 +1047,8 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       <section className="relation-section" key={direction}>
                         <h2>
                           {direction === "prerequisites"
-                            ? "Prerequisites"
-                            : "What's next"}
+                            ? t.prerequisites
+                            : t.whatsNext}
                         </h2>
                         <div className="relation-icons">
                           {related.length ? (
@@ -1050,7 +1068,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                               />
                             ))
                           ) : (
-                            <span className="relation-empty">None</span>
+                            <span className="relation-empty">{t.none}</span>
                           )}
                         </div>
                       </section>
@@ -1061,7 +1079,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   <span
                     className={`status-label ${statusForQuest(model, selected.id)}`}
                   >
-                    {statusNames[statusForQuest(model, selected.id)]}
+                    {
+                      t.status[
+                        statusForQuest(
+                          model,
+                          selected.id,
+                        ) as keyof typeof t.status
+                      ]
+                    }
                   </span>
                   <span className="muted">
                     {
@@ -1075,7 +1100,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       onClick={() => setEditing(true)}
                     >
                       <Pencil size={13} />
-                      Edit
+                      {t.editQuest}
                     </button>
                   )}
                 </div>
@@ -1084,30 +1109,35 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     <div className="notice">
                       <ShieldCheck size={18} />
                       <span>
-                        Previously {selected.completionState}. Prerequisites are
-                        currently unsatisfied; the earlier record is preserved.
+                        {t.previously}{" "}
+                        {
+                          t.status[
+                            selected.completionState as keyof typeof t.status
+                          ]
+                        }
+                        . {t.previouslyLocked}
                       </span>
                     </div>
                   )}
                 <section className="quest-description">
                   <p className="description">
-                    {selected.description || "No description yet."}
+                    {selected.description || t.noDescription}
                   </p>
                 </section>
                 <section className="criteria-box">
-                  <div className="eyebrow">Acceptance criteria</div>
-                  <p>{selected.acceptanceCriteria || "No criteria yet."}</p>
+                  <div className="eyebrow">{t.criteria}</div>
+                  <p>{selected.acceptanceCriteria || t.noCriteria}</p>
                 </section>
                 <details className="history">
                   <summary>
-                    <ShieldCheck size={17} /> Evidence & history
+                    <ShieldCheck size={17} /> {t.evidenceHistory}
                     <span>
                       {
                         model.verifications.filter(
                           (v) => v.questId === selected.id,
                         ).length
                       }{" "}
-                      records
+                      {t.records}
                     </span>
                     <ChevronDown size={16} />
                   </summary>
@@ -1120,9 +1150,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                           <div>
                             <strong>
                               {v.verdict === "override"
-                                ? "Human override"
+                                ? t.humanOverride
                                 : v.verdict === "pass"
-                                  ? "Agent verification"
+                                  ? t.agentVerification
                                   : v.verdict}
                             </strong>
                             <time>{v.createdAt}</time>
@@ -1132,7 +1162,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         </article>
                       ))
                   ) : (
-                    <p className="muted">No verification records yet.</p>
+                    <p className="muted">{t.noHistory}</p>
                   )}
                 </details>
                 {editMode && (
@@ -1142,7 +1172,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       onClick={() => setShowOverride(!showOverride)}
                     >
                       <ShieldCheck size={14} />
-                      Human override / reopen
+                      {t.overrideReopen}
                     </button>
                     <button
                       className="button button-quiet"
@@ -1155,16 +1185,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         })
                       }
                     >
-                      Remove from this tree
+                      {t.removeFromTree}
                     </button>
                     <button
                       className="icon-button danger"
-                      aria-label="Delete quest everywhere"
+                      aria-label={t.deleteQuest}
                       onClick={() => {
                         if (
-                          window.confirm(
-                            `Delete “${selected.title}” everywhere, including dependencies and history?`,
-                          )
+                          window.confirm(t.deleteQuestConfirm(selected.title))
                         ) {
                           setModel(deleteQuest(model, selected.id));
                           closeQuest();
@@ -1181,12 +1209,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     onSubmit={(event) => {
                       event.preventDefault();
                       if (!overrideReason.trim()) return;
-                      if (
-                        !window.confirm(
-                          "Record this as an explicit human override?",
-                        )
-                      )
-                        return;
+                      if (!window.confirm(t.overrideConfirm)) return;
                       setModel({
                         ...model,
                         quests: model.quests.map((q) =>
@@ -1202,8 +1225,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                             verdict: "override",
                             actor: "human",
                             reasoning: overrideReason.trim(),
-                            evidence:
-                              "Explicit human override in local prototype.",
+                            evidence: t.overrideEvidence,
                             createdAt: new Date().toISOString(),
                           },
                         ],
@@ -1212,11 +1234,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       setOverrideReason("");
                     }}
                   >
-                    <p className="muted">
-                      This records a human decision, with its reason.
-                    </p>
+                    <p className="muted">{t.overrideHelp}</p>
                     <label className="field">
-                      Reason
+                      {t.reason}
                       <textarea
                         required
                         value={overrideReason}
@@ -1229,12 +1249,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         type="button"
                         disabled={!overrideReason.trim()}
                         onClick={() => {
-                          if (
-                            !window.confirm(
-                              "Reopen this quest and retain its history?",
-                            )
-                          )
-                            return;
+                          if (!window.confirm(t.reopenConfirm)) return;
                           setModel({
                             ...model,
                             quests: model.quests.map((q) =>
@@ -1254,7 +1269,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                                 verdict: "reopen",
                                 actor: "human",
                                 reasoning: overrideReason.trim(),
-                                evidence: "Reopened in local prototype.",
+                                evidence: t.reopenEvidence,
                                 createdAt: new Date().toISOString(),
                               },
                             ],
@@ -1262,10 +1277,10 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                           setShowOverride(false);
                         }}
                       >
-                        Reopen quest
+                        {t.reopenQuest}
                       </button>
                       <button className="button button-primary">
-                        Confirm human override
+                        {t.confirmOverride}
                       </button>
                     </div>
                   </form>
@@ -1280,7 +1295,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
           </Modal>
         )}
         {editMode && draft && (
-          <Modal title="Create a quest" onClose={() => setDraft(null)}>
+          <Modal title={t.createQuest} onClose={() => setDraft(null)}>
             <QuestEditor
               model={model}
               quest={draft}
@@ -1294,27 +1309,25 @@ function Workspace({ initial }: { initial: LoadedModel }) {
         )}
         {editMode && management && (
           <Modal
-            title="Workspace settings"
+            title={t.workspaceSettings}
             onClose={() => {
               setManagement(false);
               setError("");
             }}
           >
-            <p className="muted">
-              Shape your progressions and trees. Changes are saved to MiQuest.
-            </p>
+            <p className="muted">{t.settingsIntro}</p>
             <section className="journal-section">
-              <h2>Progressions</h2>
+              <h2>{t.progressions}</h2>
               {model.projects.map((p) => (
                 <div className="manage-row" key={p.id}>
                   <Layers size={17} />
                   <strong>{p.name}</strong>
                   <button
                     className="icon-button"
-                    aria-label={`Rename ${p.name}`}
+                    aria-label={t.renameProgression(p.name)}
                     onClick={() => {
                       const name = window
-                        .prompt("Progression name", p.name)
+                        .prompt(t.progressionName, p.name)
                         ?.trim();
                       if (name)
                         setModel({
@@ -1329,13 +1342,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   </button>
                   <button
                     className="icon-button danger"
-                    aria-label={`Delete ${p.name}`}
+                    aria-label={t.deleteProgression(p.name)}
                     onClick={() => {
-                      if (
-                        !window.confirm(
-                          `Delete progression “${p.name}” and all its trees and quests?`,
-                        )
-                      )
+                      if (!window.confirm(t.deleteProgressionConfirm(p.name)))
                         return;
                       let next = model;
                       model.quests
@@ -1378,7 +1387,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                       {
                         id,
                         name,
-                        description: "A new path, one quest at a time.",
+                        description: t.newProgressionDescription,
                       },
                     ],
                   });
@@ -1389,18 +1398,18 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               >
                 <input
                   name="name"
-                  aria-label="New progression name"
-                  placeholder="New progression name"
+                  aria-label={t.newProgressionName}
+                  placeholder={t.newProgressionName}
                   required
                 />
                 <button className="button button-secondary">
                   <Plus size={14} />
-                  Create
+                  {t.create}
                 </button>
               </form>
             </section>
             <section className="journal-section">
-              <h2>Trees</h2>
+              <h2>{t.trees}</h2>
               {model.pages.map((p) => (
                 <div className="manage-row" key={p.id}>
                   <GitBranch size={17} />
@@ -1416,9 +1425,9 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   </span>
                   <button
                     className="icon-button"
-                    aria-label={`Rename ${p.name}`}
+                    aria-label={t.renameTree(p.name)}
                     onClick={() => {
-                      const name = window.prompt("Tree name", p.name)?.trim();
+                      const name = window.prompt(t.treeName, p.name)?.trim();
                       if (name)
                         setModel({
                           ...model,
@@ -1432,7 +1441,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   </button>
                   <button
                     className="icon-button danger"
-                    aria-label={`Delete ${p.name}`}
+                    aria-label={t.deleteTree(p.name)}
                     onClick={() =>
                       attempt(() => {
                         const destinations = model.pages.filter(
@@ -1450,23 +1459,22 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         );
                         if (orphans) {
                           if (!destinations.length)
-                            throw new Error(
-                              "Create another tree and move these quests before deleting their last tree.",
-                            );
+                            throw new Error(t.lastTreeError);
                           const choice = window.prompt(
-                            `Move quests that only appear here to a tree. Enter its number: ${destinations.map((item, index) => `${index + 1}: ${item.name}`).join(", ")}`,
+                            t.moveOrphans(
+                              destinations
+                                .map(
+                                  (item, index) => `${index + 1}: ${item.name}`,
+                                )
+                                .join(", "),
+                            ),
                             "1",
                           );
                           if (choice === null) return;
                           destination = destinations[Number(choice) - 1]?.id;
-                          if (!destination)
-                            throw new Error("Choose a valid destination tree");
+                          if (!destination) throw new Error(t.invalidTree);
                         }
-                        if (
-                          !window.confirm(
-                            `Delete tree “${p.name}”? Quests will be preserved.`,
-                          )
-                        )
+                        if (!window.confirm(t.deleteTreeConfirm(p.name)))
                           return;
                         const next = deletePage(model, p.id, destination);
                         setModel(next);
@@ -1504,7 +1512,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               >
                 <select
                   name="project"
-                  aria-label="Tree progression"
+                  aria-label={t.treeProgression}
                   key={emptyProject || project?.id}
                   defaultValue={emptyProject || project?.id}
                 >
@@ -1516,8 +1524,8 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 </select>
                 <input
                   name="name"
-                  aria-label="New tree name"
-                  placeholder="New tree name"
+                  aria-label={t.newTreeName}
+                  placeholder={t.newTreeName}
                   required
                 />
                 <button
@@ -1525,16 +1533,13 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   disabled={!model.projects.length}
                 >
                   <Plus size={14} />
-                  Create
+                  {t.create}
                 </button>
               </form>
             </section>
             <section className="journal-section">
-              <h2>Connect quests</h2>
-              <p className="muted">
-                Draw between handles on the tree, or choose a prerequisite and
-                its dependent here. Click an edge to remove it.
-              </p>
+              <h2>{t.connectQuests}</h2>
+              <p className="muted">{t.connectHelp}</p>
               <form
                 className="inline-form"
                 onSubmit={(e) => {
@@ -1552,12 +1557,12 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                 }}
               >
                 <select
-                  aria-label="Prerequisite quest"
+                  aria-label={t.prerequisiteQuest}
                   value={dependencySource}
                   onChange={(e) => setDependencySource(e.target.value)}
                   required
                 >
-                  <option value="">Prerequisite…</option>
+                  <option value="">{t.prerequisites}…</option>
                   {projectQuests.map((q) => (
                     <option key={q.id} value={q.id}>
                       {q.title}
@@ -1565,15 +1570,15 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   ))}
                 </select>
                 <ArrowRight size={16} />
-                <select aria-label="Dependent quest" name="dependent" required>
-                  <option value="">Dependent…</option>
+                <select aria-label={t.dependentQuest} name="dependent" required>
+                  <option value="">{t.dependent}</option>
                   {projectQuests.map((q) => (
                     <option key={q.id} value={q.id}>
                       {q.title}
                     </option>
                   ))}
                 </select>
-                <button className="button button-secondary">Connect</button>
+                <button className="button button-secondary">{t.connect}</button>
               </form>
             </section>
             {error && (
@@ -1583,10 +1588,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             )}
             <div className="notice">
               <Settings size={17} />
-              <span>
-                Your changes are saved. Your last tree and canvas view are
-                remembered.
-              </span>
+              <span>{t.savedView}</span>
             </div>
           </Modal>
         )}
