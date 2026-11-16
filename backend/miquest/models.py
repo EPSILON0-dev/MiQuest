@@ -7,6 +7,7 @@ from sqlalchemy import (
     Integer,
     Text,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
@@ -114,3 +115,40 @@ class Verification(Base):
     reasoning: Mapped[str] = mapped_column(Text)
     snapshot_json: Mapped[str] = mapped_column(Text)
     created_at: Mapped[str] = mapped_column(Text)
+
+
+class ReviewRun(Base):
+    __tablename__ = 'review_runs'
+    __table_args__ = (
+        CheckConstraint("status IN ('waiting', 'reviewing', 'saving', 'completed', 'error', 'interrupted')"),
+        Index('ix_review_runs_quest', 'quest_id'),
+        Index('uq_review_runs_active_quest', 'quest_id', unique=True,
+              sqlite_where=text("status IN ('waiting', 'reviewing', 'saving')")),
+    )
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    quest_id: Mapped[str] = mapped_column(Text, ForeignKey('quests.id', ondelete='CASCADE'))
+    status: Mapped[str] = mapped_column(Text)
+    message: Mapped[str] = mapped_column(Text)
+    model: Mapped[str] = mapped_column(Text)
+    effort: Mapped[str] = mapped_column(Text)
+    snapshot_json: Mapped[str] = mapped_column(Text)
+    verdict: Mapped[str | None] = mapped_column(Text, nullable=True)
+    reasoning: Mapped[str | None] = mapped_column(Text, nullable=True)
+    unmet_json: Mapped[str] = mapped_column(Text)
+    completion_applied: Mapped[int] = mapped_column(Integer)
+    error: Mapped[str | None] = mapped_column(Text, nullable=True)
+    verification_id: Mapped[str | None] = mapped_column(Text, ForeignKey('verifications.id', ondelete='SET NULL'), nullable=True)
+    usage_json: Mapped[str] = mapped_column(Text)
+    created_at: Mapped[str] = mapped_column(Text)
+    updated_at: Mapped[str] = mapped_column(Text)
+
+
+class ReviewAttachment(Base):
+    __tablename__ = 'review_attachments'
+    id: Mapped[str] = mapped_column(Text, primary_key=True)
+    run_id: Mapped[str] = mapped_column(Text, ForeignKey('review_runs.id', ondelete='CASCADE'), index=True)
+    name: Mapped[str] = mapped_column(Text)
+    media_type: Mapped[str] = mapped_column(Text)
+    size: Mapped[int] = mapped_column(Integer)
+    original_path: Mapped[str | None] = mapped_column(Text, nullable=True)
+    retained_path: Mapped[str] = mapped_column(Text)

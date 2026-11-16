@@ -63,6 +63,7 @@ import { QuestIcon } from "./icons";
 import Modal from "./Modal";
 import ImportProject from "./ImportProject";
 import QuestEditor from "./QuestEditor";
+import { QuestVerification, VerificationSettings } from "./Verification";
 import { readView, restoreViewport, type SavedViewport } from "./view";
 import {
   getLocale,
@@ -268,6 +269,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     initialRoute?.questId ?? null,
   );
   const [editing, setEditing] = useState(false);
+  const [reviewActive, setReviewActive] = useState(false);
   const [editMode, setEditMode] = useState(false);
   const [draggedPin, setDraggedPin] = useState<string | null>(null);
   const [draft, setDraft] = useState<Quest | null>(null);
@@ -516,6 +518,20 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     setLocalModel(saved.current.model);
     setError("");
     return true;
+  }
+  function refreshAfterReview() {
+    if (dirty) {
+      setConflicted(true);
+      return;
+    }
+    graphRequests.current.delete(pageId);
+    historyRequests.current.delete(selectedId ?? "");
+    setLoadedPages(
+      (pages) => new Set([...pages].filter((id) => id !== pageId)),
+    );
+    setHistories(
+      (items) => new Set([...items].filter((id) => id !== selectedId)),
+    );
   }
   function setModel(next: Model) {
     if (!savingRef.current) setLocalModel(next);
@@ -1868,7 +1884,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         ?.name
                     }
                   </span>
-                  {editMode && (
+                  {editMode && !reviewActive && (
                     <button
                       className="button button-secondary"
                       onClick={() => {
@@ -1906,6 +1922,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   <div className="eyebrow">{t.criteria}</div>
                   <p>{selected.acceptanceCriteria || t.noCriteria}</p>
                 </section>
+                <QuestVerification
+                  key={selected.id}
+                  questId={selected.id}
+                  disabled={dirty}
+                  staleCompletion={selected.completionState === "none"}
+                  onActiveChange={setReviewActive}
+                  onComplete={refreshAfterReview}
+                />
                 <details className="history">
                   <summary>
                     <ShieldCheck size={17} /> {t.evidenceHistory}
@@ -1959,7 +1983,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     <p className="muted">{t.noHistory}</p>
                   )}
                 </details>
-                {editMode && (
+                {editMode && !reviewActive && (
                   <div className="journal-actions">
                     <button
                       className="button button-quiet"
@@ -2000,7 +2024,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     </button>
                   </div>
                 )}{" "}
-                {editMode && showOverride && (
+                {editMode && !reviewActive && showOverride && (
                   <form
                     className="override-form"
                     onSubmit={(event) => {
@@ -2121,6 +2145,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             }}
           >
             <p className="muted">{t.settingsIntro}</p>
+            <VerificationSettings />
             <section className="journal-section">
               <h2>{t.progressions}</h2>
               {model.projects.map((p) => (

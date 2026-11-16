@@ -334,3 +334,25 @@ def test_tree_draft_is_atomic_and_rejects_cross_project_changes(tmp_path: Path) 
             assert stale.status_code == 409
             assert stale.json()['error']['code'] == 'stale_revision'
     asyncio.run(run())
+
+
+def test_verification_settings_api(tmp_path: Path) -> None:
+    path = tmp_path / 'verification-settings.json'
+    app = create_app(Session, allowed_hosts=('testserver',), settings_path=path)
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
+            url = '/api/v1/verification-settings'
+            assert (await client.get(url)).json()['data']['configured'] is False
+            response = await client.put(url, json={'key': 'sk-test-123456789', 'model': 'example/model', 'effort': 'medium'})
+            assert response.status_code == 200
+            assert response.json()['data'] == {'configured': True, 'keyMask': 'key-****23456789', 'model': 'example/model', 'effort': 'medium'}
+            assert 'sk-test-123456789' not in response.text
+            response = await client.put(url, json={'model': 'example/other', 'effort': ''})
+            assert response.json()['data']['configured'] is True
+            response = await client.put(url, json={'key': '\nsecret', 'model': '', 'effort': ''})
+            assert response.status_code == 422
+            assert (await client.get(url)).json()['data']['model'] == 'example/other'
+            response = await client.put(url, json={'key': '', 'model': '', 'effort': ''})
+            assert response.json()['data']['configured'] is False
+    asyncio.run(run())

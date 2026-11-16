@@ -1,8 +1,10 @@
 import json
+import logging
 import math
 from collections.abc import Callable, Mapping, Sequence
 from datetime import UTC, datetime
 from functools import wraps
+from pathlib import Path
 from sqlite3 import Connection as SQLiteConnection
 from typing import Concatenate, NoReturn, TypedDict, cast
 from uuid import uuid4
@@ -20,8 +22,12 @@ from .models import (
     Project,
     Quest,
     QuestAppearance,
+    ReviewAttachment,
+    ReviewRun,
     Verification,
 )
+
+logger = logging.getLogger(__name__)
 
 
 class QuestView(TypedDict):
@@ -114,13 +120,20 @@ def mutation[**P, T](fn: Callable[Concatenate[Session, P], T]) -> Callable[Conca
             if callback is not None:
                 callback(result)
             db.commit()
+            for path in cast(list[str], db.info.pop('delete_evidence', [])):
+                try:
+                    Path(path).unlink(missing_ok=True)
+                except OSError:
+                    logger.error('Unable to remove deleted evidence; startup cleanup will retry.')
             return result
         except OperationalError as exc:
+            db.info.pop('delete_evidence', None)
             db.rollback()
             if 'locked' in str(exc).lower() or 'busy' in str(exc).lower():
                 fail('database_busy')
             raise
         except Exception:
+            db.info.pop('delete_evidence', None)
             db.rollback()
             raise
     return run
@@ -201,6 +214,11 @@ def update_project(db: Session, project_id: str, expected_revision: int | None=N
 def delete_project(db: Session, project_id: str, confirm_delete: bool=False, expected_revision: int | None=None) -> str:
     p = project(db, project_id, expected_revision)
     if confirm_delete is not True: fail('confirmation_required')
+    from .review_runs import require_unlocked
+    for quest_id in db.scalars(select(Quest.id).where(Quest.project_id == p.id)):
+        require_unlocked(db, quest_id)
+    for quest_id in db.scalars(select(Quest.id).where(Quest.project_id == p.id)):
+        queue_evidence_deletion(db, quest_id)
     db.execute(delete(Quest).where(Quest.project_id == p.id))
     db.execute(delete(Page).where(Page.project_id == p.id))
     db.delete(p)
@@ -263,6 +281,9 @@ def create_quest(db: Session, project_id: str, title: str, page_id: str, x: floa
 @mutation
 def update_quest(db: Session, quest_id: str, expected_revision: int | None=None, **fields: object) -> Quest:
     q = get(db, Quest, quest_id, 'quest_not_found'); p = project(db, q.project_id, expected_revision)
+    if set(fields) & {'title', 'description', 'acceptance_criteria'}:
+        from .review_runs import require_unlocked
+        require_unlocked(db, q.id)
     if not fields: fail('invalid_input')
     validate_quest_fields(fields)
     if 'home_page_id' in fields and not db.get(QuestAppearance, (fields['home_page_id'], q.id)): fail('invalid_home_page')
@@ -279,7 +300,22 @@ def compact_pins(db: Session, project_id: str) -> None:
     db.add_all([Pin(project_id=project_id, quest_id=qid, sort_order=i) for i, qid in enumerate(ids)])
 
 
+def queue_evidence_deletion(db: Session, quest_id: str) -> None:
+    from .review_runs import evidence_path
+    attachments = db.scalars(select(ReviewAttachment).join(ReviewRun, ReviewAttachment.run_id == ReviewRun.id).where(ReviewRun.quest_id == quest_id))
+    paths = cast(list[str], db.info.setdefault('delete_evidence', []))
+    for attachment in attachments:
+        paths.append(str(evidence_path(db, attachment.retained_path)))
+        if attachment.original_path:
+            paths.append(str(evidence_path(db, attachment.original_path)))
+
+
 def delete_quest_inner(db: Session, q: Quest) -> None:
+    from .review_runs import require_unlocked
+    require_unlocked(db, q.id)
+    for dependent_id in db.scalars(select(Dependency.quest_id).where(Dependency.depends_on_quest_id == q.id)):
+        require_unlocked(db, dependent_id)
+    queue_evidence_deletion(db, q.id)
     pid = q.project_id
     db.delete(q); db.flush(); compact_pins(db, pid)
 
@@ -348,6 +384,8 @@ def update_page_positions(db: Session, page_id: str, positions: Sequence[Mapping
 @mutation
 def add_dependency(db: Session, quest_id: str, depends_on_quest_id: str, expected_revision: int | None=None) -> Dependency:
     q = get(db, Quest, quest_id, 'quest_not_found'); dep = get(db, Quest, depends_on_quest_id, 'quest_not_found'); same_project(q, dep)
+    from .review_runs import require_unlocked
+    require_unlocked(db, q.id)
     p = project(db, q.project_id, expected_revision)
     if quest_id == depends_on_quest_id: fail('self_dependency')
     if db.get(Dependency, (quest_id, depends_on_quest_id)): fail('dependency_exists')
@@ -366,6 +404,8 @@ def add_dependency(db: Session, quest_id: str, depends_on_quest_id: str, expecte
 @mutation
 def remove_dependency(db: Session, quest_id: str, depends_on_quest_id: str, expected_revision: int | None=None) -> dict[str, str]:
     q = get(db, Quest, quest_id, 'quest_not_found'); dep = get(db, Quest, depends_on_quest_id, 'quest_not_found'); same_project(q, dep)
+    from .review_runs import require_unlocked
+    require_unlocked(db, q.id)
     p = project(db, q.project_id, expected_revision); edge = db.get(Dependency, (quest_id, depends_on_quest_id))
     if edge: db.delete(edge); changed(p)
     return {'questId': quest_id, 'dependsOnQuestId': depends_on_quest_id}
@@ -548,6 +588,8 @@ def verification(db: Session, q: Quest, verdict: str, actor: str, reasoning: obj
 @mutation
 def submit_verification(db: Session, quest_id: str, verdict: str, reasoning: str, evidence: str='', expected_revision: int | None=None) -> tuple[Quest, Verification]:
     q = get(db, Quest, quest_id, 'quest_not_found'); p = project(db, q.project_id, expected_revision)
+    from .review_runs import require_unlocked
+    require_unlocked(db, q.id)
     if verdict not in ('pass', 'fail', 'inconclusive'): fail('invalid_input')
     event = verification(db, q, verdict, 'agent', reasoning, evidence); changed(p)
     return q, event
@@ -556,6 +598,8 @@ def submit_verification(db: Session, quest_id: str, verdict: str, reasoning: str
 @mutation
 def override_quest(db: Session, quest_id: str, reason: str, confirm_override: bool=False, expected_revision: int | None=None) -> tuple[Quest, Verification]:
     q = get(db, Quest, quest_id, 'quest_not_found'); p = project(db, q.project_id, expected_revision)
+    from .review_runs import require_unlocked
+    require_unlocked(db, q.id)
     if confirm_override is not True: fail('confirmation_required')
     event = verification(db, q, 'override', 'human', reason); changed(p)
     return q, event
@@ -564,6 +608,8 @@ def override_quest(db: Session, quest_id: str, reason: str, confirm_override: bo
 @mutation
 def reopen_quest(db: Session, quest_id: str, reason: str, actor: str='human', expected_revision: int | None=None) -> tuple[Quest, Verification]:
     q = get(db, Quest, quest_id, 'quest_not_found'); p = project(db, q.project_id, expected_revision)
+    from .review_runs import require_unlocked
+    require_unlocked(db, q.id)
     if actor not in ('human', 'agent') or q.completion_state == 'none': fail('invalid_input')
     event = verification(db, q, 'reopen', actor, reason); changed(p)
     return q, event

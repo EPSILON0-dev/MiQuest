@@ -93,3 +93,48 @@ def test_prefill_requires_empty_migrated_database_and_is_atomic(tmp_path: Path, 
         assert prior == {'questId': site.id, 'completionState': 'verified', 'latestCompletionEventId': history[0].id}
     with pytest.raises(RuntimeError, match='empty'):
         prefill.prefill_database(path)
+
+
+def test_startup_recovers_runs_and_orphan_files(tmp_path: Path) -> None:
+    import asyncio
+
+    from miquest import services as s
+    from miquest.review_runs import start_run
+
+    path = tmp_path / 'db.sqlite3'
+    migrate_database(path)
+    with make_session_factory(create_engine_for_path(path))() as db:
+        p = s.create_project(db, 'project')
+        page = s.create_page(db, p.id, 'page')
+        q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0)
+        run = start_run(db, q.id, 'evidence', 'mock/reviewer', 'none')
+        run_id = run.id
+    directory = tmp_path / 'evidence'
+    directory.mkdir()
+    orphan = directory / 'evidence-orphan'
+    orphan.write_bytes(b'leftover')
+    app = build_app(path)
+    async def check() -> None:
+        from miquest.models import ReviewRun
+        async with app.router.lifespan_context(app):
+            assert not orphan.exists()
+            with make_session_factory(create_engine_for_path(path))() as db:
+                recovered = db.get(ReviewRun, run_id)
+                assert recovered is not None and recovered.status == 'interrupted'
+    asyncio.run(check())
+
+
+def test_only_one_server_owns_data_directory(tmp_path: Path) -> None:
+    import asyncio
+
+    path = tmp_path / 'db.sqlite3'
+    migrate_database(path)
+    first = build_app(path)
+    second = build_app(path)
+
+    async def check() -> None:
+        async with first.router.lifespan_context(first):
+            with pytest.raises(RuntimeError, match='Another MiQuest server'):
+                async with second.router.lifespan_context(second):
+                    pass
+    asyncio.run(check())

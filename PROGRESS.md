@@ -1,5 +1,11 @@
 # Progress
 
+## Verification pipeline — 2026-11-16
+
+- Added offline mock verification, private settings, streamed and validated evidence, durable runs, review locks, startup recovery, status events, and localized submission/history controls. The mock constructs a schema-constrained request and returns an inconclusive placeholder; no evidence or key is sent to OpenRouter, and there is no real evaluation or actual provider accounting.
+- Validation: 83 backend tests, Ruff, and strict Pyright passed. The review browser flow passed after a narrow-screen reload; desktop and narrow screenshots were inspected. Frontend build and 32 unit tests passed; the existing chunk-size advisory and hook dependency warning remain.
+- A real provider adapter, capability discovery, actual provider accounting, and real evaluation remain absent under the mock-only instruction. The mock always returns inconclusive; it cannot independently complete a quest.
+
 ## Sidebar footer — 2026-11-15
 
 - Grouped language, import, and workspace controls at the bottom of the sidebar and allowed the project list to scroll. Included the pending HTML title change to `MiQuest`.

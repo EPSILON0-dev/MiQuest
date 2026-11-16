@@ -29,3 +29,11 @@ backend/.venv/bin/python -m miquest.runtime prefill --database ./data/miquest.sq
 ```
 
 Prefill requires an existing, migrated, empty database. It inserts the sample projects, trees, quests, graph, pins, and verification history in one transaction and refuses to run on a populated database. It is never run automatically.
+
+## Verification and storage
+
+The current reviewer is an **offline mock**. It makes no OpenRouter requests and always returns an inconclusive result; it does not evaluate evidence or incur provider charges. A saved key is required to exercise the configuration flow, but is never sent. Deleting the local key does not revoke it at OpenRouter.
+
+The database directory also contains `verification-settings.json` (mode 0600) and an `evidence` directory. Keep the entire directory private and back up the database using SQLite's backup API together with the evidence and settings files while the server is stopped for a consistent snapshot. Backups include the key and submitted evidence. Do not expose this directory through a web server.
+
+Submissions accept up to five UTF-8 text files or static PNG, JPEG, GIF, WebP, BMP, and TIFF images. Limits are 10 MiB (10,485,760 bytes) per file and 25 MiB (26,214,400 bytes) total. Images are decoded with a 25-million-pixel limit; originals exist temporarily during a run, while history retains a quality-85 JPEG with orientation applied and transparency flattened on white. This copy may lose small details. Text is retained unchanged. Deleting a quest also deletes its evidence. On startup the server marks unfinished reviews interrupted and removes abandoned evidence; it takes an exclusive lock on the data directory, so run only one backend process per directory. Restarting never retries a review.
