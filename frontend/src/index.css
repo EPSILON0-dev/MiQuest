@@ -135,6 +135,10 @@ p {
   background: var(--sidebar);
   border-right: 1px solid var(--border-subtle);
 }
+.sidebar > nav {
+  min-height: 0;
+  overflow-y: auto;
+}
 .brand {
   height: 44px;
   flex-shrink: 0;
@@ -257,10 +261,9 @@ p {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-top: auto;
+  flex-shrink: 0;
   padding: 10px 8px 4px;
   background: transparent;
-  border-top: 1px solid var(--border-subtle);
   color: var(--muted);
   font-size: 11px;
 }
@@ -270,6 +273,7 @@ p {
 .locale-picker {
   display: flex;
   align-items: center;
+  flex-shrink: 0;
   gap: 8px;
   margin-top: auto;
   padding: 10px 8px 4px;
@@ -281,10 +285,6 @@ p {
   margin-left: auto;
   padding: 4px 6px;
   font-size: 11px;
-}
-.locale-picker + .settings-button {
-  margin-top: 0;
-  border-top: 0;
 }
 .main {
   flex: 1;
