@@ -57,7 +57,7 @@ const words = {
     message: "Evidence message",
     files: "Attachments",
     fileHelp:
-      "Up to five text or static image files; 10 MiB each, 25 MiB total. PDFs and animated images are not supported.",
+      "Attachments are optional; a message alone is enough. Up to five text or static image files; 10 MiB each, 25 MiB total. PDFs and animated images are not supported.",
     consent:
       "Submitting sends this quest's context and your message and attachments to OpenRouter and the selected model provider for review.",
     upload: "Uploading…",
@@ -113,7 +113,7 @@ const words = {
     message: "Wiadomość z dowodami",
     files: "Załączniki",
     fileHelp:
-      "Do pięciu plików tekstowych lub statycznych obrazów; 10 MiB każdy, 25 MiB łącznie. Pliki PDF i animacje nie są obsługiwane.",
+      "Załączniki są opcjonalne; wystarczy sama wiadomość. Do pięciu plików tekstowych lub statycznych obrazów; 10 MiB każdy, 25 MiB łącznie. Pliki PDF i animacje nie są obsługiwane.",
     consent:
       "Przesłanie wysyła kontekst zadania, wiadomość i załączniki do OpenRouter oraz dostawcy wybranego modelu w celu weryfikacji.",
     upload: "Przesyłanie…",

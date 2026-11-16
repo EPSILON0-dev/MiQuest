@@ -47,6 +47,11 @@ test("review accepts a message without attachments", async ({
   expect(settings.ok()).toBeTruthy();
   await page.goto("/");
   await page.locator(`[data-id="${ids.architecture}"] .quest-node`).click();
+  await expect(
+    page.getByText("Attachments are optional; a message alone is enough", {
+      exact: false,
+    }),
+  ).toBeVisible();
   await page.getByLabel("Evidence message").fill("Message-only evidence.");
   await page.getByRole("button", { name: "Request verification" }).click();
   await expect.poll(() => submissions.length).toBe(1);

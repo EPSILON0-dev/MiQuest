@@ -1,5 +1,10 @@
 # Progress
 
+## Message-only verification — 2026-11-16
+
+- Made it explicit in English and Polish that attachments are optional. The API and UI already accepted a nonempty message without files; strengthened the backend regression test to confirm that message reaches the mocked reviewer prompt.
+- Validation: message-only backend test passed, frontend unit suite passed (36), and the message-only browser flow passed. Provider calls remained mocked.
+
 ## Verification pipeline — 2026-11-16
 
 - Added user-triggered OpenRouter verification, private settings, streamed and validated evidence, durable runs, review locks, startup recovery, status events, and localized submission/history controls. The user clarified that the finished app should use the real adapter while all tests mock OpenRouter; no live provider calls have been made.

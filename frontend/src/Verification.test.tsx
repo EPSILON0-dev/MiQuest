@@ -200,6 +200,7 @@ it("rejects empty evidence and submits a message as multipart", async () => {
   expect(
     screen.getByText(/to OpenRouter and the selected model provider/),
   ).toBeTruthy();
+  expect(screen.getByText(/Attachments are optional; a message alone is enough/)).toBeTruthy();
   await waitFor(() => expect(button).not.toHaveProperty("disabled", true));
   fireEvent.click(button);
   expect(screen.getByRole("alert").textContent).toContain("Add a message");

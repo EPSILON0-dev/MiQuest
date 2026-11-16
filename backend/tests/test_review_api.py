@@ -1,7 +1,10 @@
 import asyncio
+import json
 from pathlib import Path
+from typing import Any
 
 import httpx
+from pytest import MonkeyPatch
 from sqlalchemy.orm import Session
 
 from miquest.api import create_app
@@ -288,8 +291,8 @@ def test_real_adapter_end_to_end_with_fake_http_transport(tmp_path: Path, monkey
     assert payload['response_format']['type'] == 'json_schema'
 
 
-def test_message_only_submission(tmp_path: Path) -> None:
-    from miquest import services
+def test_message_only_submission(tmp_path: Path, monkeypatch: MonkeyPatch) -> None:
+    from miquest import openrouter, services
     from miquest.db import create_engine_for_path, make_session_factory
     from miquest.models import Base
 
@@ -301,6 +304,13 @@ def test_message_only_submission(tmp_path: Path) -> None:
         page = services.create_page(db, project.id, 'Page')
         quest, _ = services.create_quest(db, project.id, 'Quest', page.id, 0, 0)
         quest_id = quest.id
+    sent: list[dict[str, Any]] = []
+    def mock_complete(body: dict[str, Any], key: str) -> dict[str, Any]:
+        del key
+        sent.append(body)
+        return {'choices': [{'finish_reason': 'stop', 'message': {'content':
+            '{"verdict":"inconclusive","reasoning":"More evidence is needed.","unmetCriteria":[]}'}}]}
+    monkeypatch.setattr(openrouter, 'complete', mock_complete)
     app = create_app(factory, allowed_hosts=('testserver',), settings_path=tmp_path / 'settings.json')
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
@@ -316,3 +326,7 @@ def test_message_only_submission(tmp_path: Path) -> None:
                 await asyncio.sleep(.02)
             assert result['status'] == 'completed'
     asyncio.run(run())
+    assert len(sent) == 1
+    content = sent[0]['messages'][1]['content']
+    assert len(content) == 1
+    assert json.loads(content[0]['text'])['message'] == 'My evidence'
