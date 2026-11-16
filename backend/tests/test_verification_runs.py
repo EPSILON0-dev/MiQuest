@@ -194,3 +194,158 @@ def test_evidence_remains_accessible_after_data_directory_move(tmp_path: Path) -
         assert attachment_id is not None
         path, _, _ = attachment_path(db, attachment_id, new / 'evidence')
         assert path.read_bytes() == b'proof'
+
+
+def test_mock_provider_error_preserves_usage_and_generation_id(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    from typing import Any
+
+    from miquest import openrouter
+    from miquest.review_runs import execute_run
+
+    p = s.create_project(db, 'project')
+    page = s.create_page(db, p.id, 'page')
+    q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0)
+    run = start_run(db, q.id, 'proof', 'mock/reviewer', 'none')
+    def incomplete(_request: dict[str, Any], _key: str) -> dict[str, Any]:
+        return {'id': 'gen-test', 'usage': {'prompt_tokens': 123, 'completion_tokens': 45, 'cost': 0.012},
+                'choices': [{'finish_reason': 'length', 'message': {'content': ''}}]}
+    monkeypatch.setattr(openrouter, 'complete', incomplete)
+    execute_run(make_session_factory(db.get_bind().engine), run.id, 'test-only-key')
+    db.expire_all()
+    assert run.status == 'error' and run.verdict is None
+    assert run.error is not None and 'output token limit' in run.error
+    assert json.loads(run.usage_json) == {'generationId': 'gen-test', 'inputTokens': 123, 'outputTokens': 45, 'totalCost': 0.012}
+    assert q.completion_state == 'none'
+
+
+def test_mock_pass_uses_snapshot_without_holding_db_connection(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    from typing import Any
+
+    from sqlalchemy import event
+    from sqlalchemy.engine import Engine
+
+    from miquest import openrouter
+    from miquest.review_runs import execute_run
+
+    p = s.create_project(db, 'project')
+    page = s.create_page(db, p.id, 'page')
+    q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0, acceptance_criteria='criterion')
+    run = start_run(db, q.id, 'proof', 'mock/reviewer', 'none')
+    engine: Engine = db.get_bind().engine
+    checked_out = 0
+    def on_checkout(_connection: object, _record: object, _proxy: object) -> None:
+        nonlocal checked_out
+        checked_out += 1
+    def on_checkin(_connection: object, _record: object) -> None:
+        nonlocal checked_out
+        checked_out -= 1
+    event.listen(engine, 'checkout', on_checkout)
+    event.listen(engine, 'checkin', on_checkin)
+    def reviewer(request: dict[str, Any], _key: str) -> dict[str, Any]:
+        assert checked_out == 0
+        assert 'criterion' in request['messages'][1]['content'][0]['text']
+        return {'id': 'gen-mock', 'usage': {'prompt_tokens': 10, 'completion_tokens': 3, 'cost': 0.001},
+                'choices': [{'finish_reason': 'stop', 'message': {'content': '{"verdict":"pass","reasoning":"met","unmetCriteria":[]}'}}]}
+    try:
+        monkeypatch.setattr(openrouter, 'complete', reviewer)
+        execute_run(make_session_factory(engine), run.id, 'test-only-key')
+    finally:
+        event.remove(engine, 'checkout', on_checkout)
+        event.remove(engine, 'checkin', on_checkin)
+    db.expire_all()
+    assert q.completion_state == 'verified'
+    assert run.status == 'completed' and run.completion_applied == 1
+    assert json.loads(run.usage_json)['generationId'] == 'gen-mock'
+
+
+def test_concurrent_submissions_allow_only_one_active_run(db: Session) -> None:
+    from concurrent.futures import ThreadPoolExecutor
+    from threading import Barrier
+
+    p = s.create_project(db, 'project')
+    page = s.create_page(db, p.id, 'page')
+    q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0)
+    quest_id = q.id
+    factory = make_session_factory(db.get_bind().engine)
+    barrier = Barrier(2)
+    def submit() -> str:
+        with factory() as session:
+            barrier.wait(timeout=5)
+            try:
+                start_run(session, quest_id, 'proof', 'mock/reviewer', 'none')
+                return 'started'
+            except DomainError as exc:
+                return exc.code
+    with ThreadPoolExecutor(max_workers=2) as pool:
+        futures = [pool.submit(submit) for _ in range(2)]
+        outcomes = [future.result() for future in futures]
+    assert sorted(outcomes) == ['review_in_progress', 'started']
+
+
+def test_run_checks_selected_model_context_window(db: Session) -> None:
+    p = s.create_project(db, 'project')
+    page = s.create_page(db, p.id, 'page')
+    q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0, description='x' * 10000)
+    with pytest.raises(DomainError, match='context_overflow'):
+        start_run(db, q.id, 'proof', 'mock/reviewer', 'none', context_length=25000)
+    run = start_run(db, q.id, 'proof', 'mock/reviewer', 'none', context_length=50000)
+    assert run.model == 'mock/reviewer'
+
+
+def test_provider_failure_is_run_error_and_preserves_accounting(db: Session, monkeypatch: pytest.MonkeyPatch) -> None:
+    from typing import Any
+
+    from miquest import openrouter
+    from miquest.review_runs import execute_run
+
+    p = s.create_project(db, 'project')
+    page = s.create_page(db, p.id, 'page')
+    q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0)
+    run = start_run(db, q.id, 'proof', 'mock/reviewer', 'none')
+    def fail(_request: dict[str, Any], _key: str) -> dict[str, Any]:
+        raise openrouter.ProviderError('OpenRouter reports insufficient credit.', {'generationId': 'gen-failed', 'inputTokens': 6})
+    monkeypatch.setattr(openrouter, 'complete', fail)
+    execute_run(make_session_factory(db.get_bind().engine), run.id, 'test-only-key')
+    db.expire_all()
+    assert run.status == 'error' and run.verdict is None
+    assert run.error == 'OpenRouter reports insufficient credit.'
+    assert json.loads(run.usage_json) == {'generationId': 'gen-failed', 'inputTokens': 6}
+    assert q.completion_state == 'none'
+
+
+def test_deletion_rolls_back_when_evidence_cannot_be_staged(db: Session, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from miquest.evidence import prepare_evidence
+    from miquest.review_runs import fail_run
+
+    p = s.create_project(db, 'project')
+    page = s.create_page(db, p.id, 'page')
+    q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0)
+    evidence = prepare_evidence(tmp_path / 'evidence', [('proof.txt', [b'proof'])])
+    run = start_run(db, q.id, '', 'mock/model', '', evidence)
+    fail_run(db, run.id, 'failed')
+    def fail_rename(self: Path, target: object) -> Path:
+        raise OSError('disk error')
+    monkeypatch.setattr(Path, 'rename', fail_rename)
+    with pytest.raises(OSError, match='disk error'):
+        s.delete_quest(db, q.id, True)
+    assert evidence[0].retained_path.read_bytes() == b'proof'
+    assert s.get_quest(db, q.id)['quest']['id'] == q.id
+
+
+def test_deletion_restores_staged_evidence_when_commit_fails(db: Session, tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    from miquest.evidence import prepare_evidence
+    from miquest.review_runs import fail_run
+
+    p = s.create_project(db, 'project')
+    page = s.create_page(db, p.id, 'page')
+    q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0)
+    evidence = prepare_evidence(tmp_path / 'evidence', [('proof.txt', [b'proof'])])
+    run = start_run(db, q.id, '', 'mock/model', '', evidence)
+    fail_run(db, run.id, 'failed')
+    def fail_commit() -> None:
+        raise RuntimeError('commit failed')
+    monkeypatch.setattr(db, 'commit', fail_commit)
+    with pytest.raises(RuntimeError, match='commit failed'):
+        s.delete_quest(db, q.id, True)
+    assert evidence[0].retained_path.read_bytes() == b'proof'
+    assert s.get_quest(db, q.id)['quest']['id'] == q.id

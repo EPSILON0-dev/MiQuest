@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from starlette.datastructures import UploadFile
 from starlette.formparsers import MultiPartException, MultiPartParser
 
-from miquest import review_runs, services
+from miquest import openrouter, review_runs, services
 from miquest.errors import DomainError
 from miquest.evidence import MAX_FILE_BYTES, MAX_TOTAL_BYTES, prepare_evidence
 from miquest.models import ReviewRun
@@ -21,10 +21,6 @@ from miquest.verification_settings import load_settings
 
 router = APIRouter()
 REVIEW_TIMEOUT_SECONDS = 600
-MODELS = [{'id': 'mock/reviewer', 'name': 'Mock reviewer (no OpenRouter request)', 'contextLength': 131072,
-           'efforts': ['none', 'low', 'medium', 'high']}]
-
-
 class LimitedMultipartParser(MultiPartParser):
     def on_part_begin(self) -> None:
         super().on_part_begin()
@@ -40,7 +36,7 @@ class LimitedMultipartParser(MultiPartParser):
 
 @router.get('/verification-models')
 def models() -> dict[str, object]:
-    return {'data': MODELS}
+    return {'data': openrouter.list_models()}
 
 
 async def execute_review(factory: Callable[[], Session], run_id: str, key: str) -> None:
@@ -49,9 +45,10 @@ async def execute_review(factory: Callable[[], Session], run_id: str, key: str) 
     except TimeoutError:
         with factory() as db:
             review_runs.fail_run(db, run_id, 'Review timed out after ten minutes.')
+        review_runs.cleanup_originals(factory, run_id)
     except Exception:  # noqa: BLE001
         with factory() as db:
-            review_runs.fail_run(db, run_id, 'The mock reviewer could not finish the review.')
+            review_runs.fail_run(db, run_id, 'The reviewer could not finish the review.')
 
 
 @router.post('/quests/{questId}/review-runs', status_code=201)
@@ -79,8 +76,13 @@ async def create_review(request: Request, questId: str) -> dict[str, object]:
         if not isinstance(message, str) or any(not isinstance(item, UploadFile) for item in uploads):
             raise DomainError('invalid_input')
         settings = load_settings(request.app.state.settings_path)
-        if not settings['key'] or settings['model'] != MODELS[0]['id'] or settings['effort'] not in ('none', 'low', 'medium', 'high'):
-            raise DomainError('invalid_input', 'Configure a compatible model, effort and key before review.')
+        if not settings['key'] or not settings['model']:
+            raise DomainError('invalid_input', 'Configure a compatible model and key before review.')
+        catalog = await asyncio.to_thread(openrouter.list_models)
+        selected = next((model for model in catalog if model['id'] == settings['model']), None)
+        if selected is None or settings['effort'] not in cast(list[str], selected['efforts']):
+            raise DomainError('invalid_input', 'The selected model or reasoning effort is no longer supported. Update verification settings.')
+        context_length = cast(int, selected['contextLength'])
         files = cast(list[UploadFile], uploads)
         try:
             preparation = asyncio.create_task(asyncio.to_thread(
@@ -97,17 +99,25 @@ async def create_review(request: Request, questId: str) -> dict[str, object]:
         except ValueError as exc:
             raise DomainError('invalid_input', str(exc)) from None
         factory = cast(Callable[[], Session], request.app.state.session_factory)
-        try:
-            with factory() as db:
-                run = review_runs.start_run(db, questId, message, settings['model'], settings['effort'], attachments=prepared)
-                result = review_runs.serialize_run(db, run)
-        except BaseException:
-            for item in prepared:
-                item.original_path.unlink(missing_ok=True)
-                item.retained_path.unlink(missing_ok=True)
-            raise
-        asyncio.create_task(execute_review(factory, run.id, settings['key']))
-        return {'data': result}
+        with factory() as db:
+            try:
+                results: list[dict[str, object]] = []
+                def snapshot(run: ReviewRun) -> None:
+                    results.append(review_runs.serialize_run(db, run))
+                db.info['mutation_snapshot'] = snapshot
+                run = review_runs.start_run(db, questId, message, settings['model'], settings['effort'], attachments=prepared, context_length=context_length)
+            except BaseException:
+                for item in prepared:
+                    item.original_path.unlink(missing_ok=True)
+                    item.retained_path.unlink(missing_ok=True)
+                raise
+            empty_tasks: set[asyncio.Task[None]] = set()
+            tasks = cast(set[asyncio.Task[None]], getattr(request.app.state, 'review_tasks', empty_tasks))
+            request.app.state.review_tasks = tasks
+            task = asyncio.create_task(execute_review(factory, run.id, settings['key']))
+            tasks.add(task)
+            task.add_done_callback(tasks.discard)
+        return {'data': results[0]}
     finally:
         await form.close()
 

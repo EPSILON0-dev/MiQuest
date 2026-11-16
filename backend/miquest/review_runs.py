@@ -3,6 +3,7 @@
 import json
 from collections.abc import Callable, Sequence
 from pathlib import Path
+from typing import Any, cast
 from uuid import uuid4
 
 from PIL import Image
@@ -36,7 +37,7 @@ def require_unlocked(db: Session, quest_id: str) -> None:
 
 
 @s.mutation
-def start_run(db: Session, quest_id: str, message: str, model: str, effort: str, attachments: Sequence[EvidenceFile] = ()) -> ReviewRun:
+def start_run(db: Session, quest_id: str, message: str, model: str, effort: str, attachments: Sequence[EvidenceFile] = (), *, context_length: int = 131072) -> ReviewRun:
     q = s.get(db, Quest, quest_id, 'quest_not_found')
     require_unlocked(db, q.id)
     if (not message.strip() and not attachments) or len(message) > 100000 or not model:
@@ -69,7 +70,7 @@ def start_run(db: Session, quest_id: str, message: str, model: str, effort: str,
                 context += (image.width * image.height + 31) // 32 + 1024
         else:
             context += attachment.size
-    if context > 131072:
+    if context > context_length:
         raise DomainError('context_overflow', 'Evidence and quest context exceed the model window; remove evidence or shorten the quest.')
     timestamp = s.now()
     run = ReviewRun(id=str(uuid4()), quest_id=q.id, status='waiting', message=message, model=model, effort=effort,
@@ -130,32 +131,62 @@ def set_stage(db: Session, run_id: str, stage: str) -> None:
     run.status, run.updated_at = stage, s.now()
 
 
-def execute_run(session_factory: Callable[[], Session], run_id: str, key: str) -> None:
-    """Use the offline mock reviewer; no provider network access is made."""
-    from .mock_reviewer import build_request, mock_response, parse_result
+@s.mutation
+def record_usage(db: Session, run_id: str, usage: dict[str, object]) -> None:
+    run = s.get(db, ReviewRun, run_id, 'review_run_not_found')
+    if usage:
+        run.usage_json = json.dumps(usage)
 
-    del key
+
+def cleanup_originals(session_factory: Callable[[], Session], run_id: str) -> None:
+    with session_factory() as db:
+        attachments = list(db.scalars(select(ReviewAttachment).where(ReviewAttachment.run_id == run_id)))
+        for attachment in attachments:
+            if attachment.original_path:
+                evidence_path(db, attachment.original_path).unlink(missing_ok=True)
+                attachment.original_path = None
+        db.commit()
+
+
+def execute_run(session_factory: Callable[[], Session], run_id: str, key: str) -> None:
+    """Run one review request outside a database transaction."""
+    from . import openrouter
+    from .reviewer import (
+        build_request,
+        parse_result,
+        response_accounting,
+    )
+
     try:
         with session_factory() as db:
             set_stage(db, run_id, 'reviewing')
             run = s.get(db, ReviewRun, run_id, 'review_run_not_found')
             attachments = list(db.scalars(select(ReviewAttachment).where(ReviewAttachment.run_id == run_id)))
             files = [(item.name, item.media_type, evidence_path(db, item.original_path or item.retained_path).read_bytes()) for item in attachments]
-            request = build_request(json.loads(run.snapshot_json), run.message, files, run.effort)
-            decision = parse_result(mock_response(request))
+            request = build_request(json.loads(run.snapshot_json), run.message, files, run.effort, model=run.model)
+        response = openrouter.complete(request, key)
+        with session_factory() as db:
+            record_usage(db, run_id, response_accounting(response))
+            choices = response['choices']
+            if not isinstance(choices, list) or len(cast(list[object], choices)) != 1:
+                raise ValueError('Reviewer did not finish')
+            choice = cast(dict[str, Any], choices[0])
+            if choice.get('finish_reason') == 'length':
+                raise openrouter.ProviderError('The reviewer reached the output token limit. Try a different model or reasoning effort.')
+            if choice.get('finish_reason') != 'stop':
+                raise ValueError('Reviewer did not finish')
+            decision = parse_result(cast(str, choice['message']['content']))
             set_stage(db, run_id, 'saving')
             finish_run(db, run_id, decision.verdict, decision.reasoning, decision.unmetCriteria)
+    except openrouter.ProviderError as exc:
+        with session_factory() as db:
+            record_usage(db, run_id, exc.usage)
+            fail_run(db, run_id, str(exc))
     except Exception:  # noqa: BLE001
         with session_factory() as db:
-            fail_run(db, run_id, 'The mock reviewer could not finish the review.')
+            fail_run(db, run_id, 'The reviewer returned an invalid response or could not finish the review.')
     finally:
-        with session_factory() as db:
-            attachments = list(db.scalars(select(ReviewAttachment).where(ReviewAttachment.run_id == run_id)))
-            for attachment in attachments:
-                if attachment.original_path:
-                    evidence_path(db, attachment.original_path).unlink(missing_ok=True)
-                    attachment.original_path = None
-            db.commit()
+        cleanup_originals(session_factory, run_id)
 
 
 def serialize_run(db: Session, run: ReviewRun) -> dict[str, object]:
@@ -172,4 +203,6 @@ def attachment_path(db: Session, attachment_id: str, data_dir: Path) -> tuple[Pa
     path = evidence_path(db, attachment.retained_path).resolve()
     if not path.is_relative_to(data_dir.resolve()):
         s.fail('attachment_not_found')
-    return path, attachment.name, 'image/jpeg' if attachment.media_type.startswith('image/') else 'text/plain; charset=utf-8'
+    if attachment.media_type.startswith('image/'):
+        return path, f'{Path(attachment.name).stem}.jpg', 'image/jpeg'
+    return path, attachment.name, 'text/plain; charset=utf-8'

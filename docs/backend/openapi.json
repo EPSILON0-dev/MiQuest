@@ -2680,11 +2680,17 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {}
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewModel"
+                      }
+                    }
                   },
                   "required": [
                     "data"
-                  ]
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2694,6 +2700,16 @@
           },
           "500": {
             "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "description": "OpenRouter model catalog unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         }
       }
@@ -2723,11 +2739,17 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {}
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewRun"
+                      }
+                    }
                   },
                   "required": [
                     "data"
-                  ]
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2770,17 +2792,30 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {}
+                    "data": {
+                      "$ref": "#/components/schemas/ReviewRun"
+                    }
                   },
                   "required": [
                     "data"
-                  ]
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
           },
           "413": {
             "description": "Request too large"
+          },
+          "503": {
+            "description": "OpenRouter model catalog unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
           }
         },
         "requestBody": {
@@ -2798,9 +2833,11 @@
                     "items": {
                       "type": "string",
                       "format": "binary"
-                    }
+                    },
+                    "maxItems": 5
                   }
-                }
+                },
+                "description": "Submit a message and/or UTF-8 text or static images; maximum five files, 10 MiB each and 25 MiB total."
               }
             }
           }
@@ -2832,11 +2869,14 @@
                 "schema": {
                   "type": "object",
                   "properties": {
-                    "data": {}
+                    "data": {
+                      "$ref": "#/components/schemas/ReviewRun"
+                    }
                   },
                   "required": [
                     "data"
-                  ]
+                  ],
+                  "additionalProperties": false
                 }
               }
             }
@@ -2869,7 +2909,7 @@
         ],
         "responses": {
           "200": {
-            "description": "Server-sent status events",
+            "description": "Server-sent events; each data event contains a JSON ReviewRun, with occasional keepalive comments.",
             "content": {
               "text/event-stream": {
                 "schema": {
@@ -2908,7 +2948,13 @@
           "200": {
             "description": "Retained evidence",
             "content": {
-              "application/octet-stream": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/plain": {
                 "schema": {
                   "type": "string",
                   "format": "binary"
@@ -4255,7 +4301,12 @@
                   "confirmation_required",
                   "invalid_icon",
                   "database_busy",
-                  "internal_error"
+                  "internal_error",
+                  "review_in_progress",
+                  "review_run_not_found",
+                  "attachment_not_found",
+                  "provider_unavailable",
+                  "context_overflow"
                 ]
               },
               "message": {
@@ -4594,6 +4645,202 @@
         ],
         "title": "ImportDocument",
         "type": "object"
+      },
+      "ReviewModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "contextLength": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxOutputTokens": {
+            "type": "integer",
+            "minimum": 16384
+          },
+          "efforts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Supported reasoning efforts; default leaves provider reasoning settings unchanged."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contextLength",
+          "maxOutputTokens",
+          "efforts"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewAttachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "Relative download URL for retained evidence."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewUsage": {
+        "type": "object",
+        "properties": {
+          "generationId": {
+            "type": "string"
+          },
+          "inputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalCost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Provider-reported total cost in USD."
+          },
+          "upstreamInputCost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Provider-reported upstream input cost in USD."
+          },
+          "upstreamOutputCost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Provider-reported upstream output cost in USD."
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider reported by OpenRouter."
+          },
+          "servedModel": {
+            "type": "string",
+            "description": "Model reported by OpenRouter."
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "description": "Only reported values are included; missing values are unknown."
+      },
+      "ReviewRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "questId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "reviewing",
+              "saving",
+              "completed",
+              "error",
+              "interrupted"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "effort": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "pass",
+              "fail",
+              "inconclusive",
+              null
+            ]
+          },
+          "reasoning": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unmetCriteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "completionApplied": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ReviewUsage"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewAttachment"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "questId",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "message",
+          "model",
+          "effort",
+          "verdict",
+          "reasoning",
+          "unmetCriteria",
+          "completionApplied",
+          "error",
+          "usage",
+          "attachments"
+        ],
+        "additionalProperties": false
       }
     },
     "responses": {

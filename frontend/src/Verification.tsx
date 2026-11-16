@@ -29,11 +29,14 @@ type Run = {
   error: string | null;
   attachments: Attachment[];
   usage: {
+    generationId?: string | null;
     totalCost?: number | null;
     inputTokens?: number | null;
     outputTokens?: number | null;
     inputCost?: number | null;
     outputCost?: number | null;
+    upstreamInputCost?: number | null;
+    upstreamOutputCost?: number | null;
   } | null;
 };
 const words = {
@@ -56,7 +59,7 @@ const words = {
     fileHelp:
       "Up to five text or static image files; 10 MiB each, 25 MiB total. PDFs and animated images are not supported.",
     consent:
-      "The mock reviewer runs offline. No data is sent to OpenRouter, and the result is not a real evaluation.",
+      "Submitting sends this quest's context and your message and attachments to OpenRouter and the selected model provider for review.",
     upload: "Uploading…",
     active: "Review in progress",
     elapsed: "Elapsed",
@@ -67,12 +70,19 @@ const words = {
     unavailable:
       "Save an API key and choose a model in workspace settings before requesting verification.",
     failed: "Could not load verification. Try again.",
+    modelsFailed:
+      "Could not load reviewer models. Saved key settings are still available.",
+    disconnected:
+      "Could not refresh review status. Retrying automatically; you can also retry now.",
     unmet: "Unmet criteria",
     cost: "Cost (USD)",
     input: "Input tokens",
     output: "Output tokens",
     inputCost: "Input cost (USD)",
     outputCost: "Output cost (USD)",
+    generationId: "Generation ID",
+    upstreamInputCost: "Upstream provider input cost (USD)",
+    upstreamOutputCost: "Upstream provider output cost (USD)",
     unknown: "Unknown",
     notApplied: "The review passed, but completion was not applied.",
     history: "Review attempts",
@@ -105,22 +115,30 @@ const words = {
     fileHelp:
       "Do pięciu plików tekstowych lub statycznych obrazów; 10 MiB każdy, 25 MiB łącznie. Pliki PDF i animacje nie są obsługiwane.",
     consent:
-      "Weryfikator testowy działa offline. Dane nie są wysyłane do OpenRouter, a wynik nie jest rzeczywistą oceną.",
+      "Przesłanie wysyła kontekst zadania, wiadomość i załączniki do OpenRouter oraz dostawcy wybranego modelu w celu weryfikacji.",
     upload: "Przesyłanie…",
     active: "Trwa weryfikacja",
     elapsed: "Czas",
     retry: "Spróbuj ponownie",
     empty: "Dodaj wiadomość lub załącznik.",
-    limits: "Wybierz najwyżej pięć plików, każdy do 10 MiB i łącznie do 25 MiB.",
+    limits:
+      "Wybierz najwyżej pięć plików, każdy do 10 MiB i łącznie do 25 MiB.",
     unavailable:
       "Zapisz klucz API i wybierz model w ustawieniach przestrzeni przed weryfikacją.",
     failed: "Nie udało się wczytać weryfikacji. Spróbuj ponownie.",
+    modelsFailed:
+      "Nie udało się wczytać modeli. Ustawienia zapisanego klucza są nadal dostępne.",
+    disconnected:
+      "Nie udało się odświeżyć stanu weryfikacji. Ponowimy próbę automatycznie; możesz też spróbować teraz.",
     unmet: "Niespełnione kryteria",
     cost: "Koszt (USD)",
     input: "Tokeny wejściowe",
     output: "Tokeny wyjściowe",
     inputCost: "Koszt wejścia (USD)",
     outputCost: "Koszt wyjścia (USD)",
+    generationId: "Identyfikator generowania",
+    upstreamInputCost: "Koszt wejścia dostawcy (USD)",
+    upstreamOutputCost: "Koszt wyjścia dostawcy (USD)",
     unknown: "Nieznany",
     notApplied:
       "Weryfikacja zakończyła się pozytywnie, ale zadanie nie zostało ukończone.",
@@ -162,21 +180,26 @@ export function VerificationSettings() {
   const [models, setModels] = useState<Reviewer[]>([]);
   const [key, setKey] = useState("");
   const [error, setError] = useState("");
+  const [modelsError, setModelsError] = useState(false);
   const [busy, setBusy] = useState(false);
   useEffect(() => {
     let active = true;
-    Promise.all([
-      api<Settings>("/verification-settings"),
-      api<Reviewer[]>("/verification-models"),
-    ])
-      .then(([s, m]) => {
-        if (active) {
-          setSettings(s);
-          setModels(m);
-        }
+    api<Settings>("/verification-settings")
+      .then((s) => {
+        if (active) setSettings(s);
       })
       .catch((e: unknown) => {
         if (active) setError(errorMessage(e, t.failed));
+      });
+    api<Reviewer[]>("/verification-models")
+      .then((m) => {
+        if (active) {
+          setModels(m);
+          setModelsError(false);
+        }
+      })
+      .catch(() => {
+        if (active) setModelsError(true);
       });
     return () => {
       active = false;
@@ -229,6 +252,7 @@ export function VerificationSettings() {
             {t.model}
             <select
               value={settings.model ?? ""}
+              disabled={modelsError}
               onChange={(e) => {
                 const model = models.find((m) => m.id === e.target.value);
                 setSettings({
@@ -239,6 +263,9 @@ export function VerificationSettings() {
               }}
             >
               <option value="">{t.choose}</option>
+              {modelsError && settings.model && (
+                <option value={settings.model}>{settings.model}</option>
+              )}
               {models.map((m) => (
                 <option key={m.id} value={m.id}>
                   {m.name}
@@ -286,6 +313,11 @@ export function VerificationSettings() {
           {error}
         </p>
       )}
+      {modelsError && (
+        <p role="alert" className="error">
+          {t.modelsFailed}
+        </p>
+      )}
     </section>
   );
 }
@@ -312,6 +344,8 @@ export function QuestVerification({
   const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
   const [now, setNow] = useState(() => Date.now());
+  const [disconnected, setDisconnected] = useState(false);
+  const [retry, setRetry] = useState(0);
   const active = runs.find((r) => activeStatuses.includes(r.status));
   const activeId = active?.id;
   const completeRef = useRef(onComplete);
@@ -341,12 +375,14 @@ export function QuestVerification({
   }, [questId, t.failed, disabled, staleCompletion]);
   useEffect(() => {
     onActiveChange(Boolean(active) || uploading);
+    return () => onActiveChange(false);
   }, [active, uploading, onActiveChange]);
   useEffect(() => {
     if (!activeId) return;
     let mounted = true;
     const update = (run: Run) => {
       if (!mounted) return;
+      setDisconnected(false);
       setRuns((previous) =>
         previous.map((item) => (item.id === run.id ? run : item)),
       );
@@ -360,18 +396,22 @@ export function QuestVerification({
         /* Polling recovers missed events. */
       }
     };
-    const timer = window.setInterval(() => {
+    const poll = () => {
       setNow(Date.now());
       void api<Run>(`/review-runs/${activeId}`)
         .then(update)
-        .catch(() => {});
-    }, 3000);
+        .catch(() => {
+          if (mounted) setDisconnected(true);
+        });
+    };
+    if (retry) poll();
+    const timer = window.setInterval(poll, 3000);
     return () => {
       mounted = false;
       events.close();
       window.clearInterval(timer);
     };
-  }, [activeId]);
+  }, [activeId, retry]);
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setError("");
@@ -421,6 +461,18 @@ export function QuestVerification({
             )}
             s
           </span>
+          {disconnected && (
+            <span>
+              {t.disconnected}{" "}
+              <button
+                type="button"
+                className="button button-secondary"
+                onClick={() => setRetry((value) => value + 1)}
+              >
+                {t.retry}
+              </button>
+            </span>
+          )}
         </div>
       ) : (
         <form className="editor-form" onSubmit={(e) => void submit(e)}>
@@ -500,6 +552,12 @@ export function QuestVerification({
               ))}
               <small>
                 {run.model} · {run.effort}
+                {run.usage?.generationId && (
+                  <>
+                    <br />
+                    {t.generationId}: {run.usage.generationId}
+                  </>
+                )}
                 <br />
                 {t.cost}: {run.usage?.totalCost ?? t.unknown} · {t.input}:{" "}
                 {run.usage?.inputTokens ?? t.unknown} · {t.output}:{" "}
@@ -507,6 +565,16 @@ export function QuestVerification({
                 <br />
                 {t.inputCost}: {run.usage?.inputCost ?? t.unknown} ·{" "}
                 {t.outputCost}: {run.usage?.outputCost ?? t.unknown}
+                {(run.usage?.upstreamInputCost != null ||
+                  run.usage?.upstreamOutputCost != null) && (
+                  <>
+                    <br />
+                    {t.upstreamInputCost}:{" "}
+                    {run.usage?.upstreamInputCost ?? t.unknown} ·{" "}
+                    {t.upstreamOutputCost}:{" "}
+                    {run.usage?.upstreamOutputCost ?? t.unknown}
+                  </>
+                )}
               </small>
             </article>
           ))}

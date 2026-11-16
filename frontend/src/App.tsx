@@ -1922,14 +1922,16 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   <div className="eyebrow">{t.criteria}</div>
                   <p>{selected.acceptanceCriteria || t.noCriteria}</p>
                 </section>
-                <QuestVerification
-                  key={selected.id}
-                  questId={selected.id}
-                  disabled={dirty}
-                  staleCompletion={selected.completionState === "none"}
-                  onActiveChange={setReviewActive}
-                  onComplete={refreshAfterReview}
-                />
+                {baseline.quests.some((q) => q.id === selected.id) && (
+                  <QuestVerification
+                    key={selected.id}
+                    questId={selected.id}
+                    disabled={dirty}
+                    staleCompletion={selected.completionState === "none"}
+                    onActiveChange={setReviewActive}
+                    onComplete={refreshAfterReview}
+                  />
+                )}
                 <details className="history">
                   <summary>
                     <ShieldCheck size={17} /> {t.evidenceHistory}

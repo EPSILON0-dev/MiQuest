@@ -138,3 +138,33 @@ def test_only_one_server_owns_data_directory(tmp_path: Path) -> None:
                 async with second.router.lifespan_context(second):
                     pass
     asyncio.run(check())
+
+
+def test_startup_recovers_interrupted_evidence_deletion(tmp_path: Path) -> None:
+    import asyncio
+
+    from miquest import services as s
+    from miquest.evidence import prepare_evidence
+    from miquest.review_runs import fail_run, start_run
+
+    path = tmp_path / 'db.sqlite3'
+    migrate_database(path)
+    with make_session_factory(create_engine_for_path(path))() as db:
+        p = s.create_project(db, 'project')
+        page = s.create_page(db, p.id, 'page')
+        q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0)
+        evidence = prepare_evidence(tmp_path / 'evidence', [('proof.txt', [b'proof'])])
+        run = start_run(db, q.id, '', 'mock/model', '', evidence)
+        fail_run(db, run.id, 'failed')
+    original = evidence[0].retained_path
+    staged = original.with_name('.miquest-delete-' + original.name)
+    original.rename(staged)
+    deleted = original.with_name('.miquest-delete-evidence-deleted')
+    deleted.write_bytes(b'deleted')
+    app = build_app(path)
+    async def check() -> None:
+        async with app.router.lifespan_context(app):
+            assert original.read_bytes() == b'proof'
+            assert not staged.exists()
+            assert not deleted.exists()
+    asyncio.run(check())

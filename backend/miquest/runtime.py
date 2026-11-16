@@ -59,6 +59,12 @@ def build_app(path: Path, allowed_hosts: tuple[str, ...] = ('localhost', '127.0.
                 session.commit()
             evidence = path.parent / 'evidence'
             if evidence.exists():
+                for item in evidence.glob('.miquest-delete-evidence-*'):
+                    original = item.with_name(item.name.removeprefix('.miquest-delete-'))
+                    if original.resolve() in retained:
+                        item.rename(original)
+                    else:
+                        item.unlink(missing_ok=True)
                 for item in evidence.glob('evidence-*'):
                     if item.resolve() not in retained and item.is_file():
                         item.unlink(missing_ok=True)

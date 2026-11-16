@@ -109,6 +109,7 @@ def mutation[**P, T](fn: Callable[Concatenate[Session, P], T]) -> Callable[Conca
     def run(db: Session, *args: P.args, **kwargs: P.kwargs) -> T:
         if db.new or db.dirty or db.deleted:
             raise RuntimeError('Session has pending changes')
+        staged: list[tuple[Path, Path]] = []
         try:
             if db.in_transaction():
                 db.rollback()
@@ -119,23 +120,35 @@ def mutation[**P, T](fn: Callable[Concatenate[Session, P], T]) -> Callable[Conca
             callback = db.info.get('mutation_snapshot')
             if callback is not None:
                 callback(result)
-            db.commit()
-            for path in cast(list[str], db.info.pop('delete_evidence', [])):
+            for path in set(cast(list[str], db.info.pop('delete_evidence', []))):
+                original = Path(path)
+                tombstone = original.with_name('.miquest-delete-' + original.name)
                 try:
-                    Path(path).unlink(missing_ok=True)
-                except OSError:
-                    logger.error('Unable to remove deleted evidence; startup cleanup will retry.')
-            return result
+                    original.rename(tombstone)
+                except FileNotFoundError:
+                    continue
+                staged.append((original, tombstone))
+            db.commit()
         except OperationalError as exc:
             db.info.pop('delete_evidence', None)
             db.rollback()
+            for original, tombstone in reversed(staged):
+                tombstone.rename(original)
             if 'locked' in str(exc).lower() or 'busy' in str(exc).lower():
                 fail('database_busy')
             raise
         except Exception:
             db.info.pop('delete_evidence', None)
             db.rollback()
+            for original, tombstone in reversed(staged):
+                tombstone.rename(original)
             raise
+        for _, tombstone in staged:
+            try:
+                tombstone.unlink(missing_ok=True)
+            except OSError:
+                logger.error('Unable to remove deleted evidence; startup cleanup will retry.')
+        return result
     return run
 
 

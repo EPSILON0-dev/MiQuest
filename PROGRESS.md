@@ -2,10 +2,10 @@
 
 ## Verification pipeline — 2026-11-16
 
-- Added offline mock verification, private settings, streamed and validated evidence, durable runs, review locks, startup recovery, status events, and localized submission/history controls. The mock constructs a schema-constrained request and returns an inconclusive placeholder; no evidence or key is sent to OpenRouter, and there is no real evaluation or actual provider accounting.
-- Validation: 83 backend tests, Ruff, and strict Pyright passed. The review browser flow passed after a narrow-screen reload; desktop and narrow screenshots were inspected. Frontend build and 32 unit tests passed; the existing chunk-size advisory and hook dependency warning remain.
-- A real provider adapter, capability discovery, actual provider accounting, and real evaluation remain absent under the mock-only instruction. The mock always returns inconclusive; it cannot independently complete a quest.
-- Draft PR: [#12](https://github.com/EPSILON0-dev/MiQuest/pull/12), unmerged. `handoff_verification.md` remains uncommitted.
+- Added user-triggered OpenRouter verification, private settings, streamed and validated evidence, durable runs, review locks, startup recovery, status events, and localized submission/history controls. The user clarified that the finished app should use the real adapter while all tests mock OpenRouter; no live provider calls have been made.
+- Validation: 101 backend tests passed; Ruff and strict Pyright passed. Frontend build and 36 unit tests passed; lint reports the existing hook dependency warning and the build reports its existing chunk-size advisory. The full browser run passed 42/43; the remaining assertion matched both the review-run list and immutable verification history. After scoping it to the review-run list, all three verification browser tests passed; the other 40 browser tests passed in the full run. Desktop and narrow screenshots were inspected.
+- The real adapter and model capability discovery are exercised only through fake HTTP responses, including usage, a successful decision, and errors. Both pytest and Playwright fail on unmocked provider calls. No live OpenRouter calls were made; live provider compatibility remains unverified by request.
+- Draft PR: [#12](https://github.com/EPSILON0-dev/MiQuest/pull/12), unmerged.
 
 ## Sidebar footer — 2026-11-15
 

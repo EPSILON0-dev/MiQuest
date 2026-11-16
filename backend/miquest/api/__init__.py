@@ -58,6 +58,11 @@ def create_app(session_factory: Callable[[], Session], allowed_hosts: tuple[str,
         return await call_next(request)
 
     from miquest.errors import DomainError
+    from miquest.openrouter import ProviderError
+
+    @app.exception_handler(ProviderError)
+    async def provider_error(_request: Request, exc: ProviderError) -> JSONResponse:
+        return error('provider_unavailable', str(exc), 503)
 
     @app.exception_handler(DomainError)
     async def domain_error(request: Request, exc: DomainError) -> JSONResponse:

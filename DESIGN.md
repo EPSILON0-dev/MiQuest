@@ -78,7 +78,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 
 - Use shadcn/ui controls and centralized semantic CSS custom properties in the root stylesheet as the theme switchboard for colors, borders, radii, and shared visual settings.
 - Use a provisional charcoal/neutral palette through centralized semantic CSS variables. Do not add pixel styling.
-- Use one bundled icon library, with stable icon names for agents, a default icon, and a searchable manual picker. No uploads.
+- Use one bundled icon library, with stable icon names for agents, a default icon, and a searchable manual picker. Icons cannot be uploaded.
 - Quest nodes are dense and icon-only: 52px circles for ordinary quests, 72px diamonds only for explicit `quest.milestone` quests. Never add permanent node labels.
 - Linear quest chains can wind manually; radial arrangements may place a central milestone with prerequisite goals outward. Provide a basic automatic layout for editing only; specialized automatic composition is not required.
 
@@ -171,7 +171,7 @@ Implement core business logic in Python services, with REST as the API adapter.
 ### Verification rules
 
 - A user-triggered OpenRouter review evaluates the quest, acceptance criteria, prerequisites, current evidence, and immediately preceding result. External agents can also submit verdicts through REST.
-- The current implementation uses an offline mock only: it sends no data to OpenRouter and returns an inconclusive placeholder, not an evaluation. Real provider integration remains outstanding.
+- Tests replace OpenRouter with a mock and never make live provider calls. In the running application, submitted quest context and evidence are sent to OpenRouter and the selected provider.
 - A `pass` requires nonempty evidence and reasoning, and all prerequisites satisfied. A `fail` or `inconclusive` records its reasoning without marking completion.
 - The application does not claim to independently validate the LLM's judgment. Record provenance and show it in the UI.
 - Manual override requires a human-entered reason and a confirmation step; mark as `overridden`, never `verified`.

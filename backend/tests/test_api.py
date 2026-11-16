@@ -86,6 +86,21 @@ def test_openapi_declares_path_parameters_and_delete_bodies() -> None:
     assert operation['requestBody']['required'] is True
 
 
+def test_review_contract_describes_response_and_provider_failure() -> None:
+    spec = create_app(Session, allowed_hosts=('testserver',)).openapi()
+    schemas = spec['components']['schemas']
+    run = schemas['ReviewRun']
+    assert set(run['required']) == {
+        'id', 'questId', 'status', 'createdAt', 'updatedAt', 'message', 'model', 'effort',
+        'verdict', 'reasoning', 'unmetCriteria', 'completionApplied', 'error', 'usage', 'attachments',
+    }
+    assert set(run['properties']['status']['enum']) == {'waiting', 'reviewing', 'saving', 'completed', 'error', 'interrupted'}
+    assert schemas['ReviewUsage']['required'] == []
+    assert {'generationId', 'inputTokens', 'outputTokens', 'totalCost'} <= schemas['ReviewUsage']['properties'].keys()
+    for path, method in (('/verification-models', 'get'), ('/quests/{questId}/review-runs', 'post')):
+        assert '503' in spec['paths'][path][method]['responses']
+
+
 def test_all_rest_operations(tmp_path: Path) -> None:
     engine = create_engine_for_path(tmp_path / 'all.sqlite')
     config = Config(str(Path(__file__).resolve().parents[1] / 'alembic.ini'))
