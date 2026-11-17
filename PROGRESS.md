@@ -1,3 +1,9 @@
+## Single-container deployment — 2026-11-17
+
+Added frontend and backend Dockerfiles and a one-service Compose configuration. The backend image builds static frontend assets and runs nginx and the API as UID 10001, migrates the persistent data volume at startup, and publishes nginx on loopback. The README documents private access and backups.
+
+Validation: frontend production build passed (existing bundle-size advisory); shell syntax and Git whitespace checks passed. Container build, execution, screenshots, and cleanup could not be tested: no Docker daemon is running, an isolated daemon failed because the devices cgroup is not mounted, and Compose is not installed. No test container was created. Deployment remains unverified until tested on a Docker-capable host.
+
 # Progress
 
 ## Message-only verification — 2026-11-16
