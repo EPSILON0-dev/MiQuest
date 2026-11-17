@@ -2,7 +2,7 @@
 
 Added frontend and backend Dockerfiles and a one-service Compose configuration. The backend image builds static frontend assets and runs nginx and the API as UID 10001, migrates the persistent data volume at startup, and publishes nginx on loopback. The README documents private access and backups.
 
-Validation: frontend production build passed (existing bundle-size advisory); shell syntax and Git whitespace checks passed. Container build, execution, screenshots, and cleanup could not be tested: no Docker daemon is running, an isolated daemon failed because the devices cgroup is not mounted, and Compose is not installed. No test container was created. Deployment remains unverified until tested on a Docker-capable host.
+Validation: Docker image build passed, including the frontend production build (existing bundle-size advisory). The first container failed because nginx temp paths were not writable; configured all nginx temp paths under /tmp and rebuilt. The replacement ran as UID 10001, reached healthy status, served the frontend and readiness endpoint, accepted a same-origin API write, and retained the project across restart. The test container was removed. Docker Compose and desktop/narrow screenshots were not tested; the Compose plugin is not installed.
 
 # Progress
 
