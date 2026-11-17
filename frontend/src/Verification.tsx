@@ -53,6 +53,9 @@ const words = {
     configured: "Saved key",
     missing: "No key saved",
     choose: "Choose a model",
+    searchModels: "Search models",
+    completed:
+      "Reopen this completed quest in edit mode before requesting another review.",
     submit: "Request verification",
     message: "Evidence message",
     files: "Attachments",
@@ -68,7 +71,7 @@ const words = {
     limits:
       "Choose at most five files, each no larger than 10 MiB and 25 MiB total.",
     unavailable:
-      "Save an API key and choose a model in workspace settings before requesting verification.",
+      "Save an API key and choose a model in settings before requesting verification.",
     failed: "Could not load verification. Try again.",
     modelsFailed:
       "Could not load reviewer models. Saved key settings are still available.",
@@ -109,6 +112,9 @@ const words = {
     configured: "Zapisany klucz",
     missing: "Brak zapisanego klucza",
     choose: "Wybierz model",
+    searchModels: "Szukaj modeli",
+    completed:
+      "Otwórz ponownie ukończone zadanie w trybie edycji przed kolejną weryfikacją.",
     submit: "Rozpocznij weryfikację",
     message: "Wiadomość z dowodami",
     files: "Załączniki",
@@ -124,7 +130,7 @@ const words = {
     limits:
       "Wybierz najwyżej pięć plików, każdy do 10 MiB i łącznie do 25 MiB.",
     unavailable:
-      "Zapisz klucz API i wybierz model w ustawieniach przestrzeni przed weryfikacją.",
+      "Zapisz klucz API i wybierz model w ustawieniach przed weryfikacją.",
     failed: "Nie udało się wczytać weryfikacji. Spróbuj ponownie.",
     modelsFailed:
       "Nie udało się wczytać modeli. Ustawienia zapisanego klucza są nadal dostępne.",
@@ -178,6 +184,7 @@ export function VerificationSettings() {
   const t = useWords();
   const [settings, setSettings] = useState<Settings | null>(null);
   const [models, setModels] = useState<Reviewer[]>([]);
+  const [search, setSearch] = useState("");
   const [key, setKey] = useState("");
   const [error, setError] = useState("");
   const [modelsError, setModelsError] = useState(false);
@@ -249,6 +256,14 @@ export function VerificationSettings() {
           </label>
           <p className="muted">{t.keyHelp}</p>
           <label className="field">
+            {t.searchModels}
+            <input
+              type="search"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+            />
+          </label>
+          <label className="field">
             {t.model}
             <select
               value={settings.model ?? ""}
@@ -266,11 +281,19 @@ export function VerificationSettings() {
               {modelsError && settings.model && (
                 <option value={settings.model}>{settings.model}</option>
               )}
-              {models.map((m) => (
-                <option key={m.id} value={m.id}>
-                  {m.name}
-                </option>
-              ))}
+              {models
+                .filter(
+                  (m) =>
+                    m.id === settings.model ||
+                    `${m.name} ${m.id}`
+                      .toLowerCase()
+                      .includes(search.toLowerCase()),
+                )
+                .map((m) => (
+                  <option key={m.id} value={m.id}>
+                    {m.name} ({m.id})
+                  </option>
+                ))}
             </select>
           </label>
           {selected && (
@@ -326,13 +349,13 @@ const activeStatuses = ["waiting", "reviewing", "saving"];
 export function QuestVerification({
   questId,
   disabled,
-  staleCompletion,
+  completed,
   onActiveChange,
   onComplete,
 }: {
   questId: string;
   disabled: boolean;
-  staleCompletion: boolean;
+  completed: boolean;
   onActiveChange: (active: boolean) => void;
   onComplete: () => void;
 }) {
@@ -362,7 +385,7 @@ export function QuestVerification({
         if (mounted) {
           setSettings(s);
           setRuns(r);
-          if (!disabled && staleCompletion && r[0]?.completionApplied)
+          if (!disabled && !completed && r[0]?.completionApplied)
             completeRef.current();
         }
       })
@@ -372,7 +395,7 @@ export function QuestVerification({
     return () => {
       mounted = false;
     };
-  }, [questId, t.failed, disabled, staleCompletion]);
+  }, [questId, t.failed, disabled, completed]);
   useEffect(() => {
     onActiveChange(Boolean(active) || uploading);
     return () => onActiveChange(false);
@@ -474,6 +497,8 @@ export function QuestVerification({
             </span>
           )}
         </div>
+      ) : completed ? (
+        <p className="muted">{t.completed}</p>
       ) : (
         <form className="editor-form" onSubmit={(e) => void submit(e)}>
           {!ready && <p className="muted">{t.unavailable}</p>}

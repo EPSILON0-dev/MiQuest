@@ -6,6 +6,13 @@ Validation: Docker image build passed, including the frontend production build (
 
 # Progress
 
+## Review retry and settings — 2026-11-17
+
+- Kept unsuccessful review attempts immediately retryable in the open quest dialog; verified and overridden quests must be reopened before another OpenRouter review. The backend enforces this while retaining review and verification history.
+- Moved language, API key, model, and thinking effort to an always-available Settings dialog. Workspace management remains in Edit mode. The model selector filters the catalog by name or ID.
+- Validation: 102 backend tests passed, including a red-to-green domain test for the reopen rule; Ruff and strict Pyright passed. Frontend build and 38 unit tests passed. ESLint reported its existing `page` effect dependency warning. All 44 browser tests passed. Desktop (1440×900) and narrow (390×844) settings screenshots were inspected.
+- The production build retains Vite's existing large-chunk advisory. Browser tests use mocked OpenRouter responses; a live provider was not contacted.
+
 ## Message-only verification — 2026-11-16
 
 - Made it explicit in English and Polish that attachments are optional. The API and UI already accepted a nonempty message without files; strengthened the backend regression test to confirm that message reaches the mocked reviewer prompt.

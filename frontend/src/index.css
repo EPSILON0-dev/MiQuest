@@ -270,21 +270,12 @@ p {
 .settings-button > svg:last-child {
   margin-left: auto;
 }
-.locale-picker {
-  display: flex;
-  align-items: center;
-  flex-shrink: 0;
-  gap: 8px;
+.app-settings-button {
   margin-top: auto;
-  padding: 10px 8px 4px;
   border-top: 1px solid var(--border-subtle);
-  color: var(--muted);
-  font-size: 11px;
 }
-.locale-picker select {
-  margin-left: auto;
-  padding: 4px 6px;
-  font-size: 11px;
+.app-settings-button > svg:last-child {
+  margin-left: 0;
 }
 .main {
   flex: 1;

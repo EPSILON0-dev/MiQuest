@@ -15,6 +15,59 @@ afterEach(() => {
   vi.useRealTimers();
   vi.unstubAllGlobals();
 });
+it("filters models by name and ID while keeping the selected model", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string) =>
+      response(
+        url.endsWith("verification-models")
+          ? [
+              { id: "mock/reviewer", name: "Current", efforts: ["none"] },
+              { id: "other/model", name: "Other model", efforts: ["none"] },
+            ]
+          : settings,
+      ),
+    ),
+  );
+  render(<VerificationSettings />);
+  await screen.findByRole("option", { name: "Other model (other/model)" });
+  fireEvent.change(screen.getByLabelText("Search models"), {
+    target: { value: "other/" },
+  });
+  expect(
+    screen.getByRole("option", { name: "Other model (other/model)" }),
+  ).toBeTruthy();
+  expect(
+    screen.getByRole("option", { name: "Current (mock/reviewer)" }),
+  ).toBeTruthy();
+  fireEvent.change(screen.getByLabelText("Search models"), {
+    target: { value: "missing" },
+  });
+  expect(
+    screen.queryByRole("option", { name: "Other model (other/model)" }),
+  ).toBeNull();
+});
+it("requires reopening a completed quest before requesting another review", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn((url: string) =>
+      response(url.endsWith("verification-settings") ? settings : []),
+    ),
+  );
+  render(
+    <QuestVerification
+      questId="quest"
+      disabled={false}
+      completed
+      onActiveChange={() => {}}
+      onComplete={() => {}}
+    />,
+  );
+  expect(await screen.findByText(/Reopen this completed quest/)).toBeTruthy();
+  expect(
+    screen.queryByRole("button", { name: "Request verification" }),
+  ).toBeNull();
+});
 it("allows deleting the key when model discovery fails", async () => {
   const fetch = vi.fn((...args: [string, RequestInit?]) =>
     args[0].endsWith("verification-models")
@@ -59,7 +112,7 @@ it("reports a disconnected review and recovers on retry", async () => {
     <QuestVerification
       questId="quest"
       disabled={false}
-      staleCompletion={false}
+      completed={false}
       onActiveChange={() => {}}
       onComplete={() => {}}
     />,
@@ -105,7 +158,7 @@ it("clears the active review state when the quest panel closes", async () => {
     <QuestVerification
       questId="quest"
       disabled={false}
-      staleCompletion={false}
+      completed={false}
       onActiveChange={onActiveChange}
       onComplete={() => {}}
     />,
@@ -140,7 +193,7 @@ it("shows a provider generation ID when available", async () => {
     <QuestVerification
       questId="quest"
       disabled={false}
-      staleCompletion={false}
+      completed={false}
       onActiveChange={() => {}}
       onComplete={() => {}}
     />,
@@ -189,7 +242,7 @@ it("rejects empty evidence and submits a message as multipart", async () => {
     <QuestVerification
       questId="quest"
       disabled={false}
-      staleCompletion={false}
+      completed={false}
       onActiveChange={() => {}}
       onComplete={() => {}}
     />,
@@ -200,7 +253,9 @@ it("rejects empty evidence and submits a message as multipart", async () => {
   expect(
     screen.getByText(/to OpenRouter and the selected model provider/),
   ).toBeTruthy();
-  expect(screen.getByText(/Attachments are optional; a message alone is enough/)).toBeTruthy();
+  expect(
+    screen.getByText(/Attachments are optional; a message alone is enough/),
+  ).toBeTruthy();
   await waitFor(() => expect(button).not.toHaveProperty("disabled", true));
   fireEvent.click(button);
   expect(screen.getByRole("alert").textContent).toContain("Add a message");
@@ -231,7 +286,7 @@ it("refreshes a stale completed quest only when there is no unsaved draft", asyn
   const refresh = vi.fn();
   const props = {
     questId: "quest",
-    staleCompletion: true,
+    completed: false,
     onActiveChange: () => {},
     onComplete: refresh,
   };

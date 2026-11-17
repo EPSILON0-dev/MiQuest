@@ -58,6 +58,18 @@ def test_invalid_verdict_does_not_complete_quest(db: Session) -> None:
     assert q.completion_state == 'none'
 
 
+def test_completed_quest_requires_reopen_before_review(db: Session) -> None:
+    p = s.create_project(db, 'project')
+    page = s.create_page(db, p.id, 'page')
+    q, _ = s.create_quest(db, p.id, 'quest', page.id, 0, 0)
+    run = start_run(db, q.id, 'proof', 'mock/model', '')
+    finish_run(db, run.id, 'pass', 'done', [])
+    with pytest.raises(DomainError, match='invalid_input'):
+        start_run(db, q.id, 'again', 'mock/model', '')
+    s.reopen_quest(db, q.id, 'review again')
+    assert start_run(db, q.id, 'again', 'mock/model', '').status == 'waiting'
+
+
 def test_failed_and_interrupted_runs_release_lock(db: Session) -> None:
     from miquest.review_runs import fail_run, interrupt_runs
 

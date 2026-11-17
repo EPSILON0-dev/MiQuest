@@ -66,6 +66,34 @@ test("review accepts a message without attachments", async ({
       .locator(".journal-section .history article")
       .filter({ hasText: "More evidence is needed." }),
   ).toBeVisible();
+  await page.getByLabel("Evidence message").fill("More proof.");
+  await page.getByRole("button", { name: "Request verification" }).click();
+  await expect.poll(() => submissions.length).toBe(2);
+  await expect(
+    page
+      .locator(".journal-section .history article")
+      .filter({ hasText: "More proof." }),
+  ).toBeVisible();
+});
+
+test("settings are available without edit mode and models can be searched", async ({
+  page,
+}, testInfo) => {
+  await page.goto("/");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  const dialog = page.getByRole("dialog", { name: "Settings" });
+  await expect(dialog.getByLabel("Language")).toBeVisible();
+  await dialog.getByLabel("Search models").fill("mock/reviewer");
+  await expect(
+    dialog.getByRole("option", { name: /mock\/reviewer/ }),
+  ).toHaveCount(1);
+  await page.screenshot({ path: testInfo.outputPath("settings-desktop.png") });
+  await dialog.getByRole("button", { name: "Close" }).click();
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
+  await expect(dialog.getByLabel("Language")).toBeVisible();
+  await page.screenshot({ path: testInfo.outputPath("settings-narrow.png") });
 });
 
 test("review submits evidence and restores history on narrow screens", async ({
