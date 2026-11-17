@@ -2,6 +2,10 @@
 
 [DESIGN.md](DESIGN.md) defines the product scope. The user approved the UI prototype and frontend integration. [PROGRESS.md](PROGRESS.md) records actual validation and open PRs.
 
+## Verification pipeline
+- [x] Add durable user-triggered verification, evidence storage, settings, progress, and history with the safeguards specified in the verification handoff.
+- [x] Validate with a mocked OpenRouter provider; do not make real OpenRouter calls.
+
 ## Foundation
 - [x] Initialize Git and consolidate design.
 - [x] Add repository instructions, roadmap, README, and progress log.

@@ -2503,6 +2503,473 @@
           }
         }
       }
+    },
+    "/verification-settings": {
+      "get": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Read verification settings without the credential",
+        "operationId": "getVerificationSettings",
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "configured": {
+                          "type": "boolean"
+                        },
+                        "keyMask": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "effort": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "configured",
+                        "keyMask",
+                        "model",
+                        "effort"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": []
+      },
+      "put": {
+        "tags": [
+          "Metadata"
+        ],
+        "summary": "Update verification settings",
+        "operationId": "putVerificationSettings",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "key": {
+                    "anyOf": [
+                      {
+                        "type": "string",
+                        "maxLength": 500,
+                        "pattern": "^[^\\u0000-\\u001f]*$"
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "description": "Omit or null to preserve; empty string clears the saved key."
+                  },
+                  "model": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "pattern": "^[^\\u0000-\\u001f]*$"
+                  },
+                  "effort": {
+                    "type": "string",
+                    "maxLength": 500,
+                    "pattern": "^[^\\u0000-\\u001f]*$"
+                  }
+                },
+                "required": [
+                  "model",
+                  "effort"
+                ],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "configured": {
+                          "type": "boolean"
+                        },
+                        "keyMask": {
+                          "type": [
+                            "string",
+                            "null"
+                          ]
+                        },
+                        "model": {
+                          "type": "string"
+                        },
+                        "effort": {
+                          "type": "string"
+                        }
+                      },
+                      "required": [
+                        "configured",
+                        "keyMask",
+                        "model",
+                        "effort"
+                      ],
+                      "additionalProperties": false
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        },
+        "parameters": []
+      }
+    },
+    "/verification-models": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "List available reviewer models",
+        "operationId": "listVerificationModels",
+        "parameters": [],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewModel"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "503": {
+            "description": "OpenRouter model catalog unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/quests/{questId}/review-runs": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "List review runs",
+        "operationId": "listReviewRuns",
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": {
+                        "$ref": "#/components/schemas/ReviewRun"
+                      }
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      },
+      "post": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Start review",
+        "operationId": "startReviewRun",
+        "parameters": [
+          {
+            "name": "questId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          },
+          "201": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ReviewRun"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "413": {
+            "description": "Request too large"
+          },
+          "503": {
+            "description": "OpenRouter model catalog unavailable",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/Error"
+                }
+              }
+            }
+          }
+        },
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "message": {
+                    "type": "string"
+                  },
+                  "files": {
+                    "type": "array",
+                    "items": {
+                      "type": "string",
+                      "format": "binary"
+                    },
+                    "maxItems": 5
+                  }
+                },
+                "description": "Submit a message and/or UTF-8 text or static images; maximum five files, 10 MiB each and 25 MiB total."
+              }
+            }
+          }
+        }
+      }
+    },
+    "/review-runs/{runId}": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Get review run",
+        "operationId": "getReviewRun",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Success",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "$ref": "#/components/schemas/ReviewRun"
+                    }
+                  },
+                  "required": [
+                    "data"
+                  ],
+                  "additionalProperties": false
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/review-runs/{runId}/events": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Stream review status",
+        "operationId": "reviewRunEvents",
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Server-sent events; each data event contains a JSON ReviewRun, with occasional keepalive comments.",
+            "content": {
+              "text/event-stream": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
+    },
+    "/review-attachments/{attachmentId}": {
+      "get": {
+        "tags": [
+          "Verification"
+        ],
+        "summary": "Download retained evidence",
+        "operationId": "getReviewAttachment",
+        "parameters": [
+          {
+            "name": "attachmentId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Retained evidence",
+            "content": {
+              "image/jpeg": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              },
+              "text/plain": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "422": {
+            "$ref": "#/components/responses/Error422"
+          },
+          "500": {
+            "$ref": "#/components/responses/Error500"
+          }
+        }
+      }
     }
   },
   "components": {
@@ -3834,7 +4301,12 @@
                   "confirmation_required",
                   "invalid_icon",
                   "database_busy",
-                  "internal_error"
+                  "internal_error",
+                  "review_in_progress",
+                  "review_run_not_found",
+                  "attachment_not_found",
+                  "provider_unavailable",
+                  "context_overflow"
                 ]
               },
               "message": {
@@ -4173,6 +4645,202 @@
         ],
         "title": "ImportDocument",
         "type": "object"
+      },
+      "ReviewModel": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "contextLength": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "maxOutputTokens": {
+            "type": "integer",
+            "minimum": 16384
+          },
+          "efforts": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            },
+            "description": "Supported reasoning efforts; default leaves provider reasoning settings unchanged."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "contextLength",
+          "maxOutputTokens",
+          "efforts"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewAttachment": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "url": {
+            "type": "string",
+            "description": "Relative download URL for retained evidence."
+          }
+        },
+        "required": [
+          "id",
+          "name",
+          "url"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewUsage": {
+        "type": "object",
+        "properties": {
+          "generationId": {
+            "type": "string"
+          },
+          "inputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "outputTokens": {
+            "type": "integer",
+            "minimum": 0
+          },
+          "totalCost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Provider-reported total cost in USD."
+          },
+          "upstreamInputCost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Provider-reported upstream input cost in USD."
+          },
+          "upstreamOutputCost": {
+            "type": "number",
+            "minimum": 0,
+            "description": "Provider-reported upstream output cost in USD."
+          },
+          "provider": {
+            "type": "string",
+            "description": "Provider reported by OpenRouter."
+          },
+          "servedModel": {
+            "type": "string",
+            "description": "Model reported by OpenRouter."
+          }
+        },
+        "required": [],
+        "additionalProperties": false,
+        "description": "Only reported values are included; missing values are unknown."
+      },
+      "ReviewRun": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "questId": {
+            "type": "string"
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "waiting",
+              "reviewing",
+              "saving",
+              "completed",
+              "error",
+              "interrupted"
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "message": {
+            "type": "string"
+          },
+          "model": {
+            "type": "string"
+          },
+          "effort": {
+            "type": "string"
+          },
+          "verdict": {
+            "type": [
+              "string",
+              "null"
+            ],
+            "enum": [
+              "pass",
+              "fail",
+              "inconclusive",
+              null
+            ]
+          },
+          "reasoning": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "unmetCriteria": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "completionApplied": {
+            "type": "boolean"
+          },
+          "error": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "usage": {
+            "$ref": "#/components/schemas/ReviewUsage"
+          },
+          "attachments": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewAttachment"
+            }
+          }
+        },
+        "required": [
+          "id",
+          "questId",
+          "status",
+          "createdAt",
+          "updatedAt",
+          "message",
+          "model",
+          "effort",
+          "verdict",
+          "reasoning",
+          "unmetCriteria",
+          "completionApplied",
+          "error",
+          "usage",
+          "attachments"
+        ],
+        "additionalProperties": false
       }
     },
     "responses": {

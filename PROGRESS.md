@@ -1,4 +1,22 @@
+## Single-container deployment — 2026-11-17
+
+Added frontend and backend Dockerfiles and a one-service Compose configuration. The backend image builds static frontend assets and runs nginx and the API as UID 10001, migrates the persistent data volume at startup, and publishes nginx on loopback. The README documents private access and backups.
+
+Validation: Docker image build passed, including the frontend production build (existing bundle-size advisory). The first container failed because nginx temp paths were not writable; configured all nginx temp paths under /tmp and rebuilt. The replacement ran as UID 10001, reached healthy status, served the frontend and readiness endpoint, accepted a same-origin API write, and retained the project across restart. The test container was removed. Docker Compose and desktop/narrow screenshots were not tested; the Compose plugin is not installed.
+
 # Progress
+
+## Message-only verification — 2026-11-16
+
+- Made it explicit in English and Polish that attachments are optional. The API and UI already accepted a nonempty message without files; strengthened the backend regression test to confirm that message reaches the mocked reviewer prompt.
+- Validation: message-only backend test passed, frontend unit suite passed (36), and the message-only browser flow passed. Provider calls remained mocked.
+
+## Verification pipeline — 2026-11-16
+
+- Added user-triggered OpenRouter verification, private settings, streamed and validated evidence, durable runs, review locks, startup recovery, status events, and localized submission/history controls. The user clarified that the finished app should use the real adapter while all tests mock OpenRouter; no live provider calls have been made.
+- Validation: 101 backend tests passed; Ruff and strict Pyright passed. Frontend build and 36 unit tests passed; lint reports the existing hook dependency warning and the build reports its existing chunk-size advisory. The full browser run passed 42/43; the remaining assertion matched both the review-run list and immutable verification history. After scoping it to the review-run list, all three verification browser tests passed; the other 40 browser tests passed in the full run. Desktop and narrow screenshots were inspected.
+- The real adapter and model capability discovery are exercised only through fake HTTP responses, including usage, a successful decision, and errors. Both pytest and Playwright fail on unmocked provider calls. No live OpenRouter calls were made; live provider compatibility remains unverified by request.
+- Draft PR: [#12](https://github.com/EPSILON0-dev/MiQuest/pull/12), unmerged.
 
 ## Sidebar footer — 2026-11-15
 

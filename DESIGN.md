@@ -12,9 +12,9 @@
 
 1. **UI first.** Build a static, interactive frontend with realistic fixture data. The user explicitly approved the UI prototype and frontend integration.
 2. **Graph is the product.** The default view is a large, readable dependency graph, not a table of tasks.
-3. **Keep it small.** One frontend, one Python backend, one SQLite database. No Redis, queues, Kubernetes, hosted LLM API, or multi-user features.
-4. **External agents provide intelligence.** MiQuest exposes controlled data and mutations; it does not run its own LLM. REST supports agent verdicts.
-5. **Evidence before completion.** Normal completion is performed by an external agent submitting a reasoned verdict with evidence. Manual overrides are conspicuous and audited.
+3. **Keep it small.** One frontend, one Python backend, one SQLite database, and local evidence storage. No Redis, queues, Kubernetes, or multi-user features.
+4. **Explicit verification.** Users can request an OpenRouter review of quest evidence; REST also supports external agent verdicts. There is no autonomous agent loop.
+5. **Evidence before completion.** Normal completion requires a reasoned verdict with evidence. Manual overrides are conspicuous and audited.
 6. **Unattended after approval.** Backend work is test-driven and should require minimal user involvement.
 
 ## 2. Scope
@@ -40,7 +40,7 @@
 
 - Accounts, teams, roles, notifications, calendar, time tracking, gamification points, GitHub integration, automatic repository scanning, embedded AI chat, model hosting, autonomous background verification, OR dependencies, cross-project edges, and mobile-native apps.
 - Elaborate workflow engines, microservices, task queues, complex authorization frameworks, specialized automatic winding/radial layout algorithms, pixel styling, and automatic next-task ranking.
-- Uploads are excluded except for project JSON imports; quest icons and artwork cannot be uploaded. Use one bundled icon library.
+- Quest evidence can include supported text and static images; quest icons and artwork cannot be uploaded. Use one bundled icon library.
 - Embedded agent chat and harness integration are deferred beyond v1.
 
 ## 3. Stack
@@ -78,7 +78,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 
 - Use shadcn/ui controls and centralized semantic CSS custom properties in the root stylesheet as the theme switchboard for colors, borders, radii, and shared visual settings.
 - Use a provisional charcoal/neutral palette through centralized semantic CSS variables. Do not add pixel styling.
-- Use one bundled icon library, with stable icon names for agents, a default icon, and a searchable manual picker. No uploads.
+- Use one bundled icon library, with stable icon names for agents, a default icon, and a searchable manual picker. Icons cannot be uploaded.
 - Quest nodes are dense and icon-only: 52px circles for ordinary quests, 72px diamonds only for explicit `quest.milestone` quests. Never add permanent node labels.
 - Linear quest chains can wind manually; radial arrangements may place a central milestone with prerequisite goals outward. Provide a basic automatic layout for editing only; specialized automatic composition is not required.
 
@@ -170,7 +170,8 @@ Implement core business logic in Python services, with REST as the API adapter.
 
 ### Verification rules
 
-- The external agent reads acceptance criteria and evaluates evidence **outside** MiQuest.
+- A user-triggered OpenRouter review evaluates the quest, acceptance criteria, prerequisites, current evidence, and immediately preceding result. External agents can also submit verdicts through REST.
+- Tests replace OpenRouter with a mock and never make live provider calls. In the running application, submitted quest context and evidence are sent to OpenRouter and the selected provider.
 - A `pass` requires nonempty evidence and reasoning, and all prerequisites satisfied. A `fail` or `inconclusive` records its reasoning without marking completion.
 - The application does not claim to independently validate the LLM's judgment. Record provenance and show it in the UI.
 - Manual override requires a human-entered reason and a confirmation step; mark as `overridden`, never `verified`.

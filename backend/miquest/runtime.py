@@ -1,11 +1,15 @@
 """Explicit database initialization and application startup."""
 
 import argparse
+import fcntl
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from pathlib import Path
 
 from alembic import command
 from alembic.config import Config
 from fastapi import FastAPI
+from sqlalchemy import select
 
 from .api import create_app
 from .db import check_schema, create_engine_for_path, make_session_factory
@@ -33,7 +37,42 @@ def build_app(path: Path, allowed_hosts: tuple[str, ...] = ('localhost', '127.0.
         if not check_schema(session):
             engine.dispose()
             raise RuntimeError('Database schema is incompatible; run migrations before serving.')
-    return create_app(session_factory, allowed_hosts=allowed_hosts)
+    app = create_app(session_factory, allowed_hosts=allowed_hosts, settings_path=path.parent / 'verification-settings.json')
+
+    @asynccontextmanager
+    async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
+        from .models import ReviewAttachment
+        from .review_runs import interrupt_runs
+
+        with (path.parent / '.miquest-server.lock').open('a') as lock:
+            try:
+                fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            except BlockingIOError:
+                raise RuntimeError('Another MiQuest server is using this data directory.') from None
+            with session_factory() as session:
+                interrupt_runs(session)
+                attachments = list(session.scalars(select(ReviewAttachment)))
+                from .review_runs import evidence_path
+                retained = {evidence_path(session, item.retained_path).resolve() for item in attachments}
+                for item in attachments:
+                    item.original_path = None
+                session.commit()
+            evidence = path.parent / 'evidence'
+            if evidence.exists():
+                for item in evidence.glob('.miquest-delete-evidence-*'):
+                    original = item.with_name(item.name.removeprefix('.miquest-delete-'))
+                    if original.resolve() in retained:
+                        item.rename(original)
+                    else:
+                        item.unlink(missing_ok=True)
+                for item in evidence.glob('evidence-*'):
+                    if item.resolve() not in retained and item.is_file():
+                        item.unlink(missing_ok=True)
+            yield
+            fcntl.flock(lock, fcntl.LOCK_UN)
+
+    app.router.lifespan_context = lifespan
+    return app
 
 
 def main() -> None:

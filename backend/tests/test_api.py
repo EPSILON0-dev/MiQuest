@@ -86,6 +86,21 @@ def test_openapi_declares_path_parameters_and_delete_bodies() -> None:
     assert operation['requestBody']['required'] is True
 
 
+def test_review_contract_describes_response_and_provider_failure() -> None:
+    spec = create_app(Session, allowed_hosts=('testserver',)).openapi()
+    schemas = spec['components']['schemas']
+    run = schemas['ReviewRun']
+    assert set(run['required']) == {
+        'id', 'questId', 'status', 'createdAt', 'updatedAt', 'message', 'model', 'effort',
+        'verdict', 'reasoning', 'unmetCriteria', 'completionApplied', 'error', 'usage', 'attachments',
+    }
+    assert set(run['properties']['status']['enum']) == {'waiting', 'reviewing', 'saving', 'completed', 'error', 'interrupted'}
+    assert schemas['ReviewUsage']['required'] == []
+    assert {'generationId', 'inputTokens', 'outputTokens', 'totalCost'} <= schemas['ReviewUsage']['properties'].keys()
+    for path, method in (('/verification-models', 'get'), ('/quests/{questId}/review-runs', 'post')):
+        assert '503' in spec['paths'][path][method]['responses']
+
+
 def test_all_rest_operations(tmp_path: Path) -> None:
     engine = create_engine_for_path(tmp_path / 'all.sqlite')
     config = Config(str(Path(__file__).resolve().parents[1] / 'alembic.ini'))
@@ -333,4 +348,26 @@ def test_tree_draft_is_atomic_and_rejects_cross_project_changes(tmp_path: Path) 
             stale = await client.post(path, json={'expectedRevision': 2, 'operations': [edit]})
             assert stale.status_code == 409
             assert stale.json()['error']['code'] == 'stale_revision'
+    asyncio.run(run())
+
+
+def test_verification_settings_api(tmp_path: Path) -> None:
+    path = tmp_path / 'verification-settings.json'
+    app = create_app(Session, allowed_hosts=('testserver',), settings_path=path)
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
+            url = '/api/v1/verification-settings'
+            assert (await client.get(url)).json()['data']['configured'] is False
+            response = await client.put(url, json={'key': 'sk-test-123456789', 'model': 'example/model', 'effort': 'medium'})
+            assert response.status_code == 200
+            assert response.json()['data'] == {'configured': True, 'keyMask': 'key-****23456789', 'model': 'example/model', 'effort': 'medium'}
+            assert 'sk-test-123456789' not in response.text
+            response = await client.put(url, json={'model': 'example/other', 'effort': ''})
+            assert response.json()['data']['configured'] is True
+            response = await client.put(url, json={'key': '\nsecret', 'model': '', 'effort': ''})
+            assert response.status_code == 422
+            assert (await client.get(url)).json()['data']['model'] == 'example/other'
+            response = await client.put(url, json={'key': '', 'model': '', 'effort': ''})
+            assert response.json()['data']['configured'] is False
     asyncio.run(run())

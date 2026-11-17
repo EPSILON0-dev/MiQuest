@@ -18,6 +18,26 @@ make dev
 
 Open http://127.0.0.1:5173. The Vite development server proxies API requests to the backend on loopback. Press Ctrl+C to stop both servers. The frontend reloads as you edit; restart `make dev` after backend changes. The launcher requires a POSIX system. `make test` runs the launcher, backend, frontend, and browser tests; install Playwright Chromium first as described below. Set `DATABASE` to use a different database path, for example `make migrate DATABASE=/tmp/miquest.sqlite3` and `make dev DATABASE=/tmp/miquest.sqlite3`.
 
+## Run with Docker
+
+Docker Compose builds one image containing nginx, the static frontend, and the Python API. Start it with:
+
+```sh
+docker compose up --build -d
+```
+
+Open http://127.0.0.1:8080. The database is migrated automatically; sample data is not loaded. A named volume preserves the database, verification settings, and evidence across container replacement. To use a Tailscale hostname, set `MIQUEST_ALLOWED_HOST` to that hostname (without scheme or port) before starting Compose and use Tailscale Serve to expose the loopback port privately. The app has no accounts: tailnet access controls provide network-level access, not user authentication. Do not expose it directly to the internet. Only one container may use the data directory at a time.
+
+For a consistent backup, stop the container and copy the whole data directory to a private location:
+
+```sh
+docker compose stop
+docker compose cp miquest:/data ./miquest-backup
+docker compose start
+```
+
+To restore, stop the container and copy the contents of the backup into an empty data volume, preserving ownership for UID 10001, before starting it. Backups contain your API key and submitted evidence. Keep the volume on local storage, not NFS or SMB. If mounting a host directory at `/data` instead, make it writable by UID 10001. `docker compose down` preserves the volume; `docker compose down -v` deletes all data.
+
 ## Explore MiQuest
 
 1. Explore **Atlas → Foundations**. Pan and zoom; Fit view is at the lower-left. Turn on Edit mode to drag quests, use Auto layout, or access editing controls. The switch resets off on reload.
@@ -58,7 +78,7 @@ Browser tests automatically start the preview and capture five screenshots: [des
 
 To import a new project, enable Edit mode, select **Import project**, choose a JSON file, and review the summary before confirming. Each import creates a separate project with incomplete quests. The [generator skill](skills/miquest-project/SKILL.md) includes the format schema and an example for agents.
 
-The Python backend provides a FastAPI REST API backed by SQLite, with Alembic migrations and verification history. There is no authentication, so keep the service on loopback or behind a trusted private network boundary. Deployment is not included yet.
+The Python backend provides a FastAPI REST API backed by SQLite, with Alembic migrations and verification history. There is no authentication, so keep the service on loopback or behind a trusted private network boundary. See the Docker section above for deployment.
 
 Install Python 3.12+ and [uv](https://docs.astral.sh/uv/). From the repository root, install dependencies, initialize the database, and start the API:
 
@@ -87,6 +107,6 @@ The root stylesheet `frontend/src/index.css` holds semantic theme settings. Icon
 
 [DESIGN.md](DESIGN.md) is authoritative. See [ROADMAP.md](ROADMAP.md), [PROGRESS.md](PROGRESS.md), and [AGENTS.md](AGENTS.md).
 
-The frontend uses the backend REST API; see [backend setup and tests](backend/README.md) and the [API specification](docs/backend/openapi.json). Deployment is not implemented.
+The frontend uses the backend REST API; see [backend setup and tests](backend/README.md) and the [API specification](docs/backend/openapi.json).
 
 Known tooling notes: the graph/UI production bundle triggers Vite's 500 kB advisory; the dependency audit reports seven moderate findings in the development-only TypeScript ESLint/minimatch chain. No forced dependency downgrade was applied.

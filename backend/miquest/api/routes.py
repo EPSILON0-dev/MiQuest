@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from miquest import schemas, services
 from miquest.importer import ImportDocument, import_project
+from miquest.verification_settings import read_settings, save_settings
 
 type JSONValue = None | bool | int | float | str | list[JSONValue] | dict[str, JSONValue]
 
@@ -179,3 +180,25 @@ register('/quests/{questId}/reopen', 'POST', 'reopen_quest', schemas.ReopenReque
 def icons() -> dict[str, object]:
     from miquest.icons import ICON_NAMES
     return {'data': {'defaultIcon': 'compass', 'names': sorted(ICON_NAMES)}}
+
+
+class VerificationSettings(schemas.Input):
+    key: str | None = None
+    model: str
+    effort: str
+
+
+@router.get('/verification-settings')
+def get_verification_settings(request: Request) -> dict[str, object]:
+    return {'data': read_settings(request.app.state.settings_path)}
+
+
+@router.put('/verification-settings')
+def put_verification_settings(request: Request, body: VerificationSettings) -> dict[str, object]:
+    from miquest.errors import DomainError
+    path = request.app.state.settings_path
+    try:
+        save_settings(path, key=body.key, model=body.model, effort=body.effort)
+    except ValueError:
+        raise DomainError('invalid_input') from None
+    return {'data': read_settings(path)}

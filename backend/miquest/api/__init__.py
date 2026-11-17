@@ -1,7 +1,9 @@
 import json
 import logging
+import re
 from collections.abc import Awaitable, Callable
 from importlib.resources import files
+from pathlib import Path
 from typing import cast
 from urllib.parse import urlsplit
 from uuid import uuid4
@@ -22,9 +24,10 @@ def error(code: str, message: str, status: int, details: dict[str, object] | Non
     return JSONResponse(payload, status_code=status, headers={'Retry-After': '1'} if code == 'database_busy' else None)
 
 
-def create_app(session_factory: Callable[[], Session], allowed_hosts: tuple[str, ...] = ('localhost', '127.0.0.1')) -> FastAPI:
+def create_app(session_factory: Callable[[], Session], allowed_hosts: tuple[str, ...] = ('localhost', '127.0.0.1'), settings_path: Path = Path('./data/verification-settings.json')) -> FastAPI:
     app = FastAPI()
     app.state.session_factory = session_factory
+    app.state.settings_path = settings_path
     allowed = set(allowed_hosts)
 
     @app.middleware('http')
@@ -48,16 +51,23 @@ def create_app(session_factory: Callable[[], Session], allowed_hosts: tuple[str,
                     valid_origin = False
                 if not valid_origin:
                     return error('invalid_input', 'Origin is not allowed.', 403)
-            if request.url.path.startswith('/api/') and request.headers.get('content-type', '').split(';', 1)[0].strip().lower() != 'application/json':
+            content_type = request.headers.get('content-type', '').split(';', 1)[0].strip().lower()
+            multipart_review = request.method == 'POST' and re.fullmatch(r'/api/v1/quests/[^/]+/review-runs', request.url.path) and content_type == 'multipart/form-data'
+            if request.url.path.startswith('/api/') and content_type != 'application/json' and not multipart_review:
                 return error('invalid_input', 'Content-Type must be application/json.', 415)
         return await call_next(request)
 
     from miquest.errors import DomainError
+    from miquest.openrouter import ProviderError
+
+    @app.exception_handler(ProviderError)
+    async def provider_error(_request: Request, exc: ProviderError) -> JSONResponse:
+        return error('provider_unavailable', str(exc), 503)
 
     @app.exception_handler(DomainError)
     async def domain_error(request: Request, exc: DomainError) -> JSONResponse:
-        not_found = {'project_not_found', 'page_not_found', 'quest_not_found', 'appearance_not_found'}
-        conflict = {'dependency_exists', 'dependency_cycle', 'quest_would_be_orphaned', 'home_page_required', 'prerequisites_unsatisfied', 'stale_revision'}
+        not_found = {'project_not_found', 'page_not_found', 'quest_not_found', 'appearance_not_found', 'review_run_not_found', 'attachment_not_found'}
+        conflict = {'dependency_exists', 'dependency_cycle', 'quest_would_be_orphaned', 'home_page_required', 'prerequisites_unsatisfied', 'stale_revision', 'review_in_progress'}
         if exc.code == 'internal_error':
             return error('internal_error', 'Internal server error.', 500, requestId=str(uuid4()))
         status = 404 if exc.code in not_found else 409 if exc.code in conflict else 503 if exc.code == 'database_busy' else 422
@@ -94,6 +104,8 @@ def create_app(session_factory: Callable[[], Session], allowed_hosts: tuple[str,
 
     from .routes import router
     app.include_router(router, prefix='/api/v1')
+    from .reviews import router as reviews_router
+    app.include_router(reviews_router, prefix='/api/v1')
     schema = cast(dict[str, object], json.loads(files('miquest.api').joinpath('openapi.json').read_text(encoding='utf-8')))
     app.openapi = lambda: schema
     return app
