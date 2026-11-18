@@ -1,10 +1,22 @@
+# Progress
+
+## Current status — 2026-11-18
+
+- The approved frontend, backend, verification pipeline, English and Polish interface, and single-container deployment are implemented. Verification pipeline [PR #12](https://github.com/EPSILON0-dev/MiQuest/pull/12) and review retry/settings [PR #13](https://github.com/EPSILON0-dev/MiQuest/pull/13) are merged.
+- Docker Compose startup, persistence, and backup/restore passed the checks below. Backend, frontend, and integration CI passed for PR #13; the user accepts passing CI as evidence for automated tests. Final acceptance remains open. Tailscale access and live OpenRouter verification have not been tested; the user deferred the live provider check.
+- Earlier entries are historical snapshots: references to pending approval, open PRs, and deferred deployment describe their status at the time, not the current state.
+
+## Docker Compose validation — 2026-11-18
+
+- Built and started the current branch with Docker Compose in an isolated project. The container became healthy, served the frontend and readiness endpoint on loopback, and ran as UID 10001. A project created through the API survived a Compose restart.
+- Stopped the container, copied its data using the documented backup command, and restored it into a fresh Compose volume with ownership preserved. The restored application returned the project through the API. Both disposable containers and volumes were removed.
+- The frontend build retained its existing bundle-size advisory. Tailscale access and a live OpenRouter review were not tested.
+
 ## Single-container deployment — 2026-11-17
 
 Added frontend and backend Dockerfiles and a one-service Compose configuration. The backend image builds static frontend assets and runs nginx and the API as UID 10001, migrates the persistent data volume at startup, and publishes nginx on loopback. The README documents private access and backups.
 
 Validation: Docker image build passed, including the frontend production build (existing bundle-size advisory). The first container failed because nginx temp paths were not writable; configured all nginx temp paths under /tmp and rebuilt. The replacement ran as UID 10001, reached healthy status, served the frontend and readiness endpoint, accepted a same-origin API write, and retained the project across restart. The test container was removed. Docker Compose and desktop/narrow screenshots were not tested; the Compose plugin is not installed.
-
-# Progress
 
 ## Backend CI contract fix — 2026-11-18
 
@@ -69,7 +81,7 @@ Validation: Docker image build passed, including the frontend production build (
 - Validation: backend pytest 51 passed (outside sandbox because the HTTP portal hangs inside it); backend Ruff and strict Pyright passed. Frontend build, lint, and 26 unit tests passed. Playwright passed 22 Chromium tests, plus a separately run navigation Save/failure/retry test; local server binding required running outside the sandbox. Desktop and narrow draft screenshots were captured and inspected. Vite retains its existing chunk-size advisory.
 - The initial full browser run identified three tests with obsolete autosave expectations; those were updated for explicit Save and passed in the final suite. A focused review found and fixed dependency ordering, stale membership merging, identifier remapping, remote quest status, and the history/override race.
 
-## Current state — 2026-11-14, integration
+## Integration milestone — 2026-11-14 (historical)
 
 ## Frontend internationalization — 2026-11-14
 
@@ -130,7 +142,7 @@ Run from `frontend/` on the current redesign:
 
 The earlier dependency audit reported seven moderate findings in the development-only TypeScript ESLint/minimatch chain. No dependencies changed during the redesign and no forced downgrade was applied.
 
-## Publication / next step
+## Publication / next step at the time (historical)
 
 - Redesign commit `9533b5d` was included in PR #1, merged on 2026-11-13. Both GitHub Actions runs passed, including clean install, lint, build, unit/browser tests, and screenshot upload: https://github.com/EPSILON0-dev/MiQuest/actions/runs/43440368682 and https://github.com/EPSILON0-dev/MiQuest/actions/runs/43440354993.
 - User reviews the live prototype/screenshots and explicitly approves the UI or requests further iteration.
