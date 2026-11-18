@@ -85,6 +85,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 ### Main layout
 
 - **Left sidebar:** collapsible projects/progressions revealing their pages/trees. Settings at the bottom; no account controls.
+- **Settings:** Language and OpenRouter verification settings are available outside Edit mode. Project and tree management remains in Edit-mode workspace settings. The reviewer model catalog is searchable by name and ID.
 - **Top bar:** compact 44px toolbar with current progression/tree and a global Edit mode switch (initially off). Creation and Auto layout controls appear only in Edit mode. Fit view sits at the lower-left of the canvas.
 - **Main canvas:** active tree occupies most of the viewport; understated background; directional dependency edges; smooth pan/zoom; selected node emphasized.
 - **Pinned quests:** manually ordered quest-title shortcuts in a collapsible top-right panel, initially closed, with a pin icon and count. Pins are progression-wide, including quests on other pages; clicking opens the quest on its home tree. Normal mode supports pin/unpin, drag reordering, and keyboard reordering; pins add no separate task-management behavior.
@@ -171,6 +172,7 @@ Implement core business logic in Python services, with REST as the API adapter.
 ### Verification rules
 
 - A user-triggered OpenRouter review evaluates the quest, acceptance criteria, prerequisites, current evidence, and immediately preceding result. External agents can also submit verdicts through REST.
+- Failed, inconclusive, interrupted, or errored reviews can be retried without reopening. A verified or overridden quest must be manually reopened before requesting another OpenRouter review.
 - Tests replace OpenRouter with a mock and never make live provider calls. In the running application, submitted quest context and evidence are sent to OpenRouter and the selected provider.
 - A `pass` requires nonempty evidence and reasoning, and all prerequisites satisfied. A `fail` or `inconclusive` records its reasoning without marking completion.
 - The application does not claim to independently validate the LLM's judgment. Record provenance and show it in the UI.

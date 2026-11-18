@@ -274,6 +274,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
   const [draggedPin, setDraggedPin] = useState<string | null>(null);
   const [draft, setDraft] = useState<Quest | null>(null);
   const [management, setManagement] = useState(false);
+  const [appSettings, setAppSettings] = useState(false);
   const [managementExpanded, setManagementExpanded] = useState<string[]>([]);
   const [importing, setImporting] = useState(false);
   const [drawer, setDrawer] = useState(false);
@@ -1359,17 +1360,17 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               </div>
             ))}
           </nav>
-          <label className="locale-picker">
-            {t.language}
-            <select
-              aria-label={t.language}
-              value={getLocale()}
-              onChange={(event) => setLocale(event.target.value as Locale)}
-            >
-              <option value="en">English</option>
-              <option value="pl">Polski</option>
-            </select>
-          </label>
+          <button
+            className="settings-button app-settings-button"
+            onClick={() =>
+              guard(() => {
+                markReturnFocus();
+                setAppSettings(true);
+              })
+            }
+          >
+            <Settings size={17} /> {t.appSettings}
+          </button>
           {editMode && (
             <button
               className="settings-button"
@@ -1927,7 +1928,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     key={selected.id}
                     questId={selected.id}
                     disabled={dirty}
-                    staleCompletion={selected.completionState === "none"}
+                    completed={selected.completionState !== "none"}
                     onActiveChange={setReviewActive}
                     onComplete={refreshAfterReview}
                   />
@@ -2138,6 +2139,22 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             />
           </Modal>
         )}
+        {appSettings && (
+          <Modal title={t.appSettings} onClose={() => setAppSettings(false)}>
+            <label className="field">
+              {t.language}
+              <select
+                aria-label={t.language}
+                value={getLocale()}
+                onChange={(event) => setLocale(event.target.value as Locale)}
+              >
+                <option value="en">English</option>
+                <option value="pl">Polski</option>
+              </select>
+            </label>
+            <VerificationSettings />
+          </Modal>
+        )}
         {editMode && management && (
           <Modal
             title={t.workspaceSettings}
@@ -2147,7 +2164,6 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             }}
           >
             <p className="muted">{t.settingsIntro}</p>
-            <VerificationSettings />
             <section className="journal-section">
               <h2>{t.progressions}</h2>
               {model.projects.map((p) => (

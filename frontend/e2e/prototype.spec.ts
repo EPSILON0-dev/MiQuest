@@ -60,7 +60,9 @@ test("switches the interface to Polish and restores the choice", async ({
   page,
 }) => {
   await page.goto("/");
+  await page.getByRole("button", { name: "Settings", exact: true }).click();
   await page.getByLabel("Language").selectOption("pl");
+  await page.getByRole("button", { name: "Zamknij" }).click();
 
   await expect(page.getByRole("switch", { name: "Tryb edycji" })).toBeVisible();
   await expect(
@@ -68,6 +70,7 @@ test("switches the interface to Polish and restores the choice", async ({
   ).toBeVisible();
   await expect(page.locator("html")).toHaveAttribute("lang", "pl");
   await page.reload();
+  await page.getByRole("button", { name: "Ustawienia", exact: true }).click();
   await expect(page.getByLabel("Język")).toHaveValue("pl");
 });
 

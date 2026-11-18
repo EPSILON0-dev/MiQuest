@@ -40,6 +40,8 @@ def require_unlocked(db: Session, quest_id: str) -> None:
 def start_run(db: Session, quest_id: str, message: str, model: str, effort: str, attachments: Sequence[EvidenceFile] = (), *, context_length: int = 131072) -> ReviewRun:
     q = s.get(db, Quest, quest_id, 'quest_not_found')
     require_unlocked(db, q.id)
+    if q.completion_state != 'none':
+        s.fail('invalid_input')
     if (not message.strip() and not attachments) or len(message) > 100000 or not model:
         s.fail('invalid_input')
     previous = db.scalar(select(ReviewRun).where(ReviewRun.quest_id == q.id).order_by(ReviewRun.created_at.desc(), ReviewRun.id.desc()).limit(1))
