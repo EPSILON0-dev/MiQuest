@@ -62,7 +62,7 @@
 
 MiQuest is intended for one owner on a private tailnet.
 
-- **v1:** No built-in user accounts. Bind the app to loopback on the host and publish browser access through **Tailscale Serve**, restricted by tailnet access controls. The application must not be directly internet-facing.
+- **v1:** No built-in user accounts. Bind the app to all host interfaces. Network access controls are the deployment owner’s responsibility.
 - Browser access is controlled at the network/reverse-proxy boundary. Document that this is *network-level access control*, not app-level identity or per-user authorization.
 - No arbitrary shell command execution, user-supplied file execution, or fetching arbitrary URLs from evidence references in v1.
 - Container runs as non-root; mount only the database/data directory as writable; no privileged container or Docker socket access.

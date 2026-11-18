@@ -10,7 +10,7 @@ backend/.venv/bin/python -m miquest.runtime migrate --database ./data/miquest.sq
 backend/.venv/bin/python -m miquest.runtime serve --database ./data/miquest.sqlite3
 ```
 
-Migration explicitly creates the database and its parent directory. Serving requires an existing, up-to-date database and defaults to `127.0.0.1:8000`. Use `--allowed-host` for each permitted host when accessing via a trusted reverse proxy. Forwarded protocol headers are trusted only from loopback; the reverse proxy must set them itself. Keep the published port private; these checks are not authentication. The frontend still uses fixture state.
+Migration explicitly creates the database and its parent directory. Serving requires an existing, up-to-date database and listens on `0.0.0.0:8000` by default and accepts all hostnames. Forwarded protocol headers are trusted only from loopback; the reverse proxy must set them itself. Restrict network access as needed; the application has no authentication. The frontend still uses fixture state.
 
 Run the backend tests and type checker with:
 

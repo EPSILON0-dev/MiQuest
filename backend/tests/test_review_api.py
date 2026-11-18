@@ -12,7 +12,7 @@ from miquest.openrouter import complete as real_completion_adapter
 
 
 def test_review_model_catalog_and_upload_limit(tmp_path: Path) -> None:
-    app = create_app(Session, allowed_hosts=('testserver',), settings_path=tmp_path / 'settings.json')
+    app = create_app(Session, settings_path=tmp_path / 'settings.json')
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
@@ -47,7 +47,7 @@ def test_review_api_submission_and_lock(tmp_path: Path, monkeypatch: object) -> 
         original(factory, run_id, key)  # type: ignore[arg-type]
     assert isinstance(monkeypatch, MonkeyPatch)
     monkeypatch.setattr(review_runs, 'execute_run', blocked_worker)
-    app = create_app(factory, allowed_hosts=('testserver',), settings_path=tmp_path / 'settings.json')
+    app = create_app(factory, settings_path=tmp_path / 'settings.json')
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
@@ -137,7 +137,7 @@ def test_review_serialization_failure_rolls_back_run(tmp_path: Path, monkeypatch
         page = services.create_page(db, project.id, 'Page')
         quest, _ = services.create_quest(db, project.id, 'Quest', page.id, 0, 0)
         quest_id = quest.id
-    app = create_app(factory, allowed_hosts=('testserver',), settings_path=tmp_path / 'settings.json')
+    app = create_app(factory, settings_path=tmp_path / 'settings.json')
 
     def broken_serialize(_db: Session, _run: ReviewRun) -> dict[str, object]:
         raise RuntimeError('serialization failed')
@@ -162,7 +162,7 @@ def test_file_limit_is_enforced_while_streaming(tmp_path: Path) -> None:
 
     from miquest.evidence import MAX_FILE_BYTES
 
-    app = create_app(Session, allowed_hosts=('testserver',), settings_path=tmp_path / 'settings.json')
+    app = create_app(Session, settings_path=tmp_path / 'settings.json')
     consumed_tail = False
 
     async def body() -> AsyncGenerator[bytes]:
@@ -268,7 +268,7 @@ def test_real_adapter_end_to_end_with_fake_http_transport(tmp_path: Path, monkey
     assert isinstance(monkeypatch, MonkeyPatch)
     monkeypatch.setattr(openrouter, 'complete', real_completion_adapter)
     monkeypatch.setattr(openrouter, 'urlopen', fake_http)
-    app = create_app(factory, allowed_hosts=('testserver',), settings_path=tmp_path / 'settings.json')
+    app = create_app(factory, settings_path=tmp_path / 'settings.json')
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
             await client.put('/api/v1/verification-settings', json={'key': 'test-only-key', 'model': 'mock/reviewer', 'effort': 'none'})
@@ -311,7 +311,7 @@ def test_message_only_submission(tmp_path: Path, monkeypatch: MonkeyPatch) -> No
         return {'choices': [{'finish_reason': 'stop', 'message': {'content':
             '{"verdict":"inconclusive","reasoning":"More evidence is needed.","unmetCriteria":[]}'}}]}
     monkeypatch.setattr(openrouter, 'complete', mock_complete)
-    app = create_app(factory, allowed_hosts=('testserver',), settings_path=tmp_path / 'settings.json')
+    app = create_app(factory, settings_path=tmp_path / 'settings.json')
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
             await client.put('/api/v1/verification-settings', json={'key': 'test-key', 'model': 'mock/reviewer', 'effort': 'none'})

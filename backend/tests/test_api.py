@@ -20,7 +20,7 @@ def test_api_contract(tmp_path: Path) -> None:
     with engine.connect() as connection:
         config.attributes['connection'] = connection
         command.upgrade(config, 'head')
-    app = create_app(make_session_factory(engine), allowed_hosts=('testserver',))
+    app = create_app(make_session_factory(engine))
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
@@ -60,13 +60,14 @@ def test_api_contract(tmp_path: Path) -> None:
             response = await client.post(f'/api/v1/projects/{project}/quests', content='{"title":"Q","pageId":"p","x":NaN,"y":0,"expectedRevision":2}', headers={'content-type': 'application/json'})
             assert response.status_code == 422
             assert (await client.post('/api/v1/projects', json={'name': 'X'}, headers={'origin': 'https://evil.example'})).status_code == 403
-            assert (await client.get('/healthz', headers={'host': 'evil.example'})).status_code == 400
+            assert (await client.get('/healthz', headers={'host': 'remote.example:8080'})).status_code == 200
+            assert (await client.post('/api/v1/projects', json={'name': 'Remote'}, headers={'host': 'remote.example:8080', 'origin': 'http://remote.example:8080'})).status_code == 201
     asyncio.run(run())
 
 
 def test_unmigrated_database_is_not_ready(tmp_path: Path) -> None:
     engine = create_engine_for_path(tmp_path / 'empty.sqlite')
-    app = create_app(make_session_factory(engine), allowed_hosts=('testserver',))
+    app = create_app(make_session_factory(engine))
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
@@ -77,7 +78,7 @@ def test_unmigrated_database_is_not_ready(tmp_path: Path) -> None:
 
 
 def test_openapi_declares_path_parameters_and_delete_bodies() -> None:
-    app = create_app(Session, allowed_hosts=('testserver',))
+    app = create_app(Session)
     spec = app.openapi()
     canonical = json.loads((Path(__file__).resolve().parents[2] / 'docs/backend/openapi.json').read_text())
     assert spec == canonical
@@ -87,7 +88,7 @@ def test_openapi_declares_path_parameters_and_delete_bodies() -> None:
 
 
 def test_review_contract_describes_response_and_provider_failure() -> None:
-    spec = create_app(Session, allowed_hosts=('testserver',)).openapi()
+    spec = create_app(Session).openapi()
     schemas = spec['components']['schemas']
     run = schemas['ReviewRun']
     assert set(run['required']) == {
@@ -107,7 +108,7 @@ def test_all_rest_operations(tmp_path: Path) -> None:
     with engine.connect() as connection:
         config.attributes['connection'] = connection
         command.upgrade(config, 'head')
-    app = create_app(make_session_factory(engine), allowed_hosts=('testserver',))
+    app = create_app(make_session_factory(engine))
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
@@ -163,7 +164,7 @@ def test_domain_error_statuses(monkeypatch: MonkeyPatch, tmp_path: Path) -> None
     from miquest import services
     from miquest.errors import DomainError
     engine = create_engine_for_path(tmp_path / 'errors.sqlite')
-    app = create_app(make_session_factory(engine), allowed_hosts=('testserver',))
+    app = create_app(make_session_factory(engine))
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
             for code, expected in [('project_not_found', 404), ('dependency_cycle', 409), ('invalid_icon', 422), ('database_busy', 503), ('internal_error', 500)]:
@@ -197,7 +198,7 @@ def test_mutation_response_revision_and_data_share_snapshot(tmp_path: Path, monk
             original(other, project_id, expected_revision=1, name='Concurrent')
         return result
     monkeypatch.setattr(services, 'update_project', update_then_concurrent)
-    app = create_app(factory, allowed_hosts=('testserver',))
+    app = create_app(factory)
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
             response = await client.patch(f'/api/v1/projects/{project_id}', json={'expectedRevision': 0, 'name': 'First'})
@@ -226,7 +227,7 @@ def test_successful_mutation_survives_concurrent_deletion(tmp_path: Path, monkey
             services.delete_project(other, project_id, confirm_delete=True, expected_revision=1)
         return result
     monkeypatch.setattr(services, 'update_project', update_then_delete)
-    app = create_app(factory, allowed_hosts=('testserver',))
+    app = create_app(factory)
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
             response = await client.patch(f'/api/v1/projects/{project_id}', json={'expectedRevision': 0, 'name': 'First'})
@@ -243,7 +244,7 @@ def test_agent_verification_endpoint(tmp_path: Path) -> None:
     with engine.connect() as connection:
         config.attributes['connection'] = connection
         command.upgrade(config, 'head')
-    app = create_app(make_session_factory(engine), allowed_hosts=('testserver',))
+    app = create_app(make_session_factory(engine))
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
             p = (await client.post('/api/v1/projects', json={'name': 'P'})).json()['data']['id']
@@ -287,7 +288,7 @@ def test_commit_failure_never_returns_snapshot(tmp_path: Path) -> None:
     class FailingSession(Session):
         def commit(self) -> None:
             raise RuntimeError('commit failed')
-    app = create_app(sessionmaker(bind=engine, class_=FailingSession, expire_on_commit=False), allowed_hosts=('testserver',))
+    app = create_app(sessionmaker(bind=engine, class_=FailingSession, expire_on_commit=False))
     async def run() -> None:
         transport = httpx.ASGITransport(app=app, raise_app_exceptions=False)
         async with httpx.AsyncClient(transport=transport, base_url='http://testserver') as client:
@@ -306,7 +307,7 @@ def test_tree_draft_is_atomic_and_rejects_cross_project_changes(tmp_path: Path) 
     with engine.connect() as connection:
         config.attributes['connection'] = connection
         command.upgrade(config, 'head')
-    app = create_app(make_session_factory(engine), allowed_hosts=('testserver',))
+    app = create_app(make_session_factory(engine))
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
@@ -353,7 +354,7 @@ def test_tree_draft_is_atomic_and_rejects_cross_project_changes(tmp_path: Path) 
 
 def test_verification_settings_api(tmp_path: Path) -> None:
     path = tmp_path / 'verification-settings.json'
-    app = create_app(Session, allowed_hosts=('testserver',), settings_path=path)
+    app = create_app(Session, settings_path=path)
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:

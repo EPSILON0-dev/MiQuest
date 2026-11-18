@@ -27,7 +27,7 @@ def migrate_database(path: Path) -> None:
     engine.dispose()
 
 
-def build_app(path: Path, allowed_hosts: tuple[str, ...] = ('localhost', '127.0.0.1', 'testserver')) -> FastAPI:
+def build_app(path: Path) -> FastAPI:
     path = Path(path)
     if not path.is_file():
         raise FileNotFoundError('Database does not exist; initialize it explicitly before serving.')
@@ -37,7 +37,7 @@ def build_app(path: Path, allowed_hosts: tuple[str, ...] = ('localhost', '127.0.
         if not check_schema(session):
             engine.dispose()
             raise RuntimeError('Database schema is incompatible; run migrations before serving.')
-    app = create_app(session_factory, allowed_hosts=allowed_hosts, settings_path=path.parent / 'verification-settings.json')
+    app = create_app(session_factory, settings_path=path.parent / 'verification-settings.json')
 
     @asynccontextmanager
     async def lifespan(_app: FastAPI) -> AsyncGenerator[None]:
@@ -79,9 +79,7 @@ def main() -> None:
     parser = argparse.ArgumentParser(description='Run the MiQuest backend')
     parser.add_argument('action', choices=['migrate', 'prefill', 'serve'])
     parser.add_argument('--database', type=Path, default=Path('./data/miquest.sqlite3'))
-    parser.add_argument('--host', default='127.0.0.1')
     parser.add_argument('--port', type=int, default=8000)
-    parser.add_argument('--allowed-host', action='append', dest='allowed_hosts')
     args = parser.parse_args()
     if args.action == 'migrate':
         migrate_database(args.database)
@@ -90,7 +88,7 @@ def main() -> None:
         prefill_database(args.database)
     else:
         import uvicorn
-        uvicorn.run(build_app(args.database, tuple(args.allowed_hosts or ('localhost', '127.0.0.1'))), host=args.host, port=args.port, proxy_headers=True, forwarded_allow_ips='127.0.0.1,::1')
+        uvicorn.run(build_app(args.database), host='0.0.0.0', port=args.port, proxy_headers=True, forwarded_allow_ips='127.0.0.1,::1')
 
 
 if __name__ == '__main__':

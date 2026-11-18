@@ -22,7 +22,7 @@ def test_import_preview_and_atomic_creation(tmp_path: Path, monkeypatch: MonkeyP
     with engine.connect() as connection:
         config.attributes['connection'] = connection
         command.upgrade(config, 'head')
-    app = create_app(make_session_factory(engine), allowed_hosts=('testserver',))
+    app = create_app(make_session_factory(engine))
     document = {
         'version': 1,
         'project': {'name': 'Project'},
