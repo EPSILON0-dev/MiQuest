@@ -1,10 +1,12 @@
 # MiQuest v1 roadmap
 
-[DESIGN.md](DESIGN.md) defines the product scope. The user approved the UI prototype and frontend integration. [PROGRESS.md](PROGRESS.md) records actual validation and open PRs.
+[DESIGN.md](DESIGN.md) defines the product scope. The user approved the UI prototype and frontend integration. [PROGRESS.md](PROGRESS.md) records validation and milestone history.
 
 ## Verification pipeline
 - [x] Add durable user-triggered verification, evidence storage, settings, progress, and history with the safeguards specified in the verification handoff.
-- [x] Validate with a mocked OpenRouter provider; do not make real OpenRouter calls.
+- [x] Validate with a mocked OpenRouter provider; automated tests do not make real OpenRouter calls.
+- [x] Perform a separate live OpenRouter smoke test for passing and failing text reviews using a low-cost model.
+- [x] Test an image upload through the review API and a live low-cost model.
 
 ## Foundation
 - [x] Initialize Git and consolidate design.
@@ -29,12 +31,14 @@
 - [x] Add validated JSON project import and a project-generation skill.
 
 ## Delivery
-- [ ] Non-root container, persistent SQLite, backup procedure, and private Tailscale Serve instructions. Backend liveness/readiness endpoints are implemented.
-- [ ] Run clean-checkout build, tests, lint and final acceptance checks; document remaining limits.
+- [x] Add a non-root container, persistent SQLite, backup procedure, private access guidance, and liveness/readiness endpoints. Compose startup, persistence, and backup/restore have been tested.
+- [ ] Complete final acceptance checks and document remaining limits. The user accepts passing CI as evidence for the automated tests.
 
-## Planned next tasks, in order
-1. [x] Add a simple root-level command runner to start frontend and backend in development mode.
-2. [ ] Add frontend internationalization with English and Polish.
-3. [ ] Add frontend and backend Dockerfiles and a Compose configuration.
-4. [ ] Document development and container startup, usage, and backup/restore.
-5. [ ] Revisit the in-app chatbox design; its design and scope are deferred.
+## Additional completed work
+- [x] Add a root-level development command runner.
+- [x] Add English and Polish frontend translations.
+- [x] Add frontend and backend Dockerfiles and a Compose configuration.
+- [x] Document development and container startup, usage, and backup/restore.
+
+## Deferred
+- Embedded chat and its design are outside v1 scope.
