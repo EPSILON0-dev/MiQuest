@@ -4,7 +4,8 @@
 
 ## Verification pipeline
 - [x] Add durable user-triggered verification, evidence storage, settings, progress, and history with the safeguards specified in the verification handoff.
-- [x] Validate with a mocked OpenRouter provider; do not make real OpenRouter calls.
+- [x] Validate with a mocked OpenRouter provider; automated tests do not make real OpenRouter calls.
+- [x] Perform a separate live OpenRouter smoke test for passing and failing text reviews using a low-cost model.
 
 ## Foundation
 - [x] Initialize Git and consolidate design.
@@ -39,5 +40,4 @@
 - [x] Document development and container startup, usage, and backup/restore.
 
 ## Deferred
-- Live OpenRouter verification has not been tested; the user will revisit it later.
 - Embedded chat and its design are outside v1 scope.
