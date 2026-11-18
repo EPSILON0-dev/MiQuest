@@ -175,3 +175,9 @@ Limits: fixture edits reset after reload; only view context persists. Chromium d
 - Validation: 47 backend tests passed on Python 3.12.13 and 3.14.10; Ruff and the strict Pyright pre-commit hook passed. Tests cover REST operations, agent verification, migration rollback, shared membership, cycle races, revision conflicts and response snapshots. A built wheel initialized a database and loaded the API contract; a live loopback server returned `200 {"status":"ok"}` from `/readyz`. HTTP tests required running outside this sandbox because its thread portal hangs.
 - The first domain tests were written before implementation, but their initial run could not reach their intended assertions because dependencies were unavailable. Later fixes used observed red-to-green tests; the initial domain work therefore does not fully meet the requested TDD evidence.
 - Type checking covers all backend Python modules and tests in strict Pyright mode. Dynamic REST operation dispatch and JSON decoding require explicit casts; individual dispatched signatures are verified by integration tests rather than by the type checker.
+
+
+### 2026-11-18: Accept connections on all interfaces
+
+- Backend binds to `0.0.0.0`, accepts arbitrary hostnames, and no longer exposes bind or host-allowlist flags. Compose publishes port 8080 on all interfaces. Same-origin mutation and request validation remain in place.
+- Validation: backend regression reproduced the previous 400; all 102 backend tests passed; Compose configuration validated; a live server listened on `0.0.0.0` and returned 200 for a remote Host header. Screenshots were not applicable to this backend/deployment change.

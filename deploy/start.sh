@@ -2,11 +2,7 @@
 set -euo pipefail
 
 python -m miquest.runtime migrate --database /data/miquest.sqlite3
-args=(--allowed-host localhost --allowed-host 127.0.0.1)
-if [[ -n "${MIQUEST_ALLOWED_HOST:-}" ]]; then
-    args+=(--allowed-host "$MIQUEST_ALLOWED_HOST")
-fi
-python -m miquest.runtime serve --database /data/miquest.sqlite3 "${args[@]}" &
+python -m miquest.runtime serve --database /data/miquest.sqlite3 &
 backend=$!
 nginx -g 'daemon off;' &
 proxy=$!

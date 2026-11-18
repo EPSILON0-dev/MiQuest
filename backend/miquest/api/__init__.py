@@ -24,23 +24,14 @@ def error(code: str, message: str, status: int, details: dict[str, object] | Non
     return JSONResponse(payload, status_code=status, headers={'Retry-After': '1'} if code == 'database_busy' else None)
 
 
-def create_app(session_factory: Callable[[], Session], allowed_hosts: tuple[str, ...] = ('localhost', '127.0.0.1'), settings_path: Path = Path('./data/verification-settings.json')) -> FastAPI:
+def create_app(session_factory: Callable[[], Session], settings_path: Path = Path('./data/verification-settings.json')) -> FastAPI:
     app = FastAPI()
     app.state.session_factory = session_factory
     app.state.settings_path = settings_path
-    allowed = set(allowed_hosts)
 
     @app.middleware('http')
     async def boundary(request: Request, call_next: Callable[[Request], Awaitable[Response]]) -> Response:
         host = request.headers.get('host', '')
-        try:
-            authority = urlsplit(f'//{host}')
-            hostname = authority.hostname if not authority.username and not authority.password and not authority.path else None
-            _port = authority.port
-        except ValueError:
-            hostname = None
-        if hostname not in allowed:
-            return error('invalid_input', 'Invalid host.', 400)
         if request.method in {'POST', 'PUT', 'PATCH', 'DELETE'}:
             origin = request.headers.get('origin')
             if origin:

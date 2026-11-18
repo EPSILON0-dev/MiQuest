@@ -28,7 +28,7 @@ docker compose up --build -d
 
 Open [http://127.0.0.1:8080](http://127.0.0.1:8080). The database is migrated automatically, and a named volume stores your data.
 
-MiQuest has no built-in authentication. Keep it on loopback and use a private network such as Tailscale Serve for remote access; do not expose it directly to the internet. See the [deployment guide](docs/deployment.md) for private access and backup instructions.
+MiQuest has no built-in authentication. It listens on all interfaces, so restrict access with your firewall or private network. See the [deployment guide](docs/deployment.md) for private access and backup instructions.
 
 ## Development
 
