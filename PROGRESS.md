@@ -3,13 +3,14 @@
 ## Current status — 2026-11-18
 
 - The approved frontend, backend, verification pipeline, English and Polish interface, and single-container deployment are implemented. Verification pipeline [PR #12](https://github.com/EPSILON0-dev/MiQuest/pull/12) and review retry/settings [PR #13](https://github.com/EPSILON0-dev/MiQuest/pull/13) are merged.
-- Docker Compose startup, persistence, and backup/restore passed the checks below. Backend, frontend, and integration CI passed for PR #13; the user accepts passing CI as evidence for automated tests. Live OpenRouter text reviews passed the checks below. Final acceptance remains open; Tailscale access has not been tested.
+- Docker Compose startup, persistence, and backup/restore passed the checks below. The user confirms Tailscale access works on their server. Backend, frontend, and integration CI passed for PR #13; the user accepts passing CI as evidence for automated tests. Live OpenRouter text and image reviews passed the checks below. Final acceptance remains open.
 - Earlier entries are historical snapshots: references to pending approval, open PRs, and deferred deployment describe their status at the time, not the current state.
 
 ## Live OpenRouter verification — 2026-11-18
 
 - Ran two synthetic text-only reviews through the real MiQuest review pipeline and OpenRouter using `z-ai/glm-5.3-flash`, each in an isolated migrated database. The passing review created a verification record and marked its quest verified; the failing review created a record and left its quest incomplete. Neither touched existing project data.
-- Both requests completed using provider InferenceNet. OpenRouter reported costs of $0.000063446 and $0.000083102. Image attachments, the browser workflow, and other models were not tested live.
+- Both requests completed using provider InferenceNet. OpenRouter reported costs of $0.000063446 and $0.000083102.
+- Submitted a synthetic PNG through the multipart review API in an isolated database. The model identified its red circle and blue square, returned a passing verdict, and the retained image downloaded as a valid JPEG. Provider Wafer reported a cost of $0.000020422. The browser submission workflow and other models were not tested live.
 
 ## Docker Compose validation — 2026-11-18
 
