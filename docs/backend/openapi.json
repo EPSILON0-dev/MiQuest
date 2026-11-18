@@ -2767,6 +2767,7 @@
           "Verification"
         ],
         "summary": "Start review",
+        "description": "Completed quests must be reopened before another review can be requested. Failed or inconclusive reviews may be retried without reopening.",
         "operationId": "startReviewRun",
         "parameters": [
           {

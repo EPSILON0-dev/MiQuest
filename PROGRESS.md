@@ -6,6 +6,11 @@ Validation: Docker image build passed, including the frontend production build (
 
 # Progress
 
+## Backend CI contract fix — 2026-11-18
+
+- Synchronized the documented OpenAPI contract with the packaged review-retry description. Backend CI had failed the existing contract-equality test.
+- Validation: backend pytest passed (102 tests), Ruff passed, and strict Pyright reported no errors. No UI behavior changed.
+
 ## Review retry and settings — 2026-11-17
 
 - Kept unsuccessful review attempts immediately retryable in the open quest dialog; verified and overridden quests must be reopened before another OpenRouter review. The backend enforces this while retaining review and verification history.
