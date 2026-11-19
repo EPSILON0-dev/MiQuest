@@ -3045,6 +3045,15 @@
             "type": "string",
             "format": "date-time",
             "description": "Server-generated UTC RFC 3339 with microseconds and Z."
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "branching",
+              "radial",
+              "spiral"
+            ],
+            "default": "branching"
           }
         },
         "required": [
@@ -3052,7 +3061,8 @@
           "projectId",
           "name",
           "createdAt",
-          "updatedAt"
+          "updatedAt",
+          "layout"
         ],
         "additionalProperties": false
       },
@@ -3812,6 +3822,15 @@
             "maxLength": 200,
             "pattern": "\\S",
             "description": "Trim before validation."
+          },
+          "layout": {
+            "type": "string",
+            "enum": [
+              "branching",
+              "radial",
+              "spiral"
+            ],
+            "default": "branching"
           }
         },
         "required": [
@@ -4399,6 +4418,7 @@
           "operation": {
             "type": "string",
             "enum": [
+              "update_page",
               "create_quest",
               "update_quest",
               "delete_quest",
@@ -4513,6 +4533,23 @@
             },
             "title": "Quests",
             "type": "array"
+          },
+          "layout": {
+            "default": "branching",
+            "enum": [
+              "branching",
+              "radial",
+              "spiral"
+            ],
+            "title": "Layout",
+            "type": "string"
+          },
+          "positions": {
+            "items": {
+              "$ref": "#/components/schemas/ImportFileImportPosition"
+            },
+            "title": "Positions",
+            "type": "array"
           }
         },
         "required": [
@@ -4563,6 +4600,26 @@
               "box",
               "check-circle",
               "compass",
+              "emoji:⚙️",
+              "emoji:✅",
+              "emoji:⭐",
+              "emoji:🌍",
+              "emoji:🌱",
+              "emoji:🎨",
+              "emoji:🎯",
+              "emoji:🏆",
+              "emoji:🏠",
+              "emoji:💎",
+              "emoji:💡",
+              "emoji:📌",
+              "emoji:📚",
+              "emoji:🔥",
+              "emoji:🗺️",
+              "emoji:😀",
+              "emoji:🚀",
+              "emoji:🛠️",
+              "emoji:🧪",
+              "emoji:🧭",
               "flag",
               "globe",
               "home",
@@ -4599,12 +4656,17 @@
         "additionalProperties": false,
         "properties": {
           "version": {
-            "const": 1,
+            "const": 2,
             "title": "Version",
             "type": "integer"
           },
           "project": {
             "$ref": "#/components/schemas/ImportFileCreateProject"
+          },
+          "bypassAutoLayout": {
+            "default": false,
+            "title": "Bypassautolayout",
+            "type": "boolean"
           },
           "pages": {
             "items": {
@@ -4842,6 +4904,36 @@
           "attachments"
         ],
         "additionalProperties": false
+      },
+      "ImportFileImportPosition": {
+        "additionalProperties": false,
+        "properties": {
+          "quest": {
+            "maxLength": 200,
+            "minLength": 1,
+            "title": "Quest",
+            "type": "string"
+          },
+          "x": {
+            "maximum": 1000000,
+            "minimum": -1000000,
+            "title": "X",
+            "type": "number"
+          },
+          "y": {
+            "maximum": 1000000,
+            "minimum": -1000000,
+            "title": "Y",
+            "type": "number"
+          }
+        },
+        "required": [
+          "quest",
+          "x",
+          "y"
+        ],
+        "title": "ImportPosition",
+        "type": "object"
       }
     },
     "responses": {

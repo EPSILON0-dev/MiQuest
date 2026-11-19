@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "project": {"name": "Operating system", "description": "Build an operating system from cooperating subsystems."},
+  "pages": [
+    {"key": "overview", "name": "Overview", "layout": "radial", "quests": ["drivers", "memory", "filesystem", "network", "system"]},
+    {"key": "drivers", "name": "Drivers", "layout": "branching", "quests": ["discovery", "storage", "drivers"]},
+    {"key": "memory", "name": "Memory", "layout": "branching", "quests": ["allocator", "memory"]},
+    {"key": "filesystem", "name": "Filesystem", "layout": "branching", "quests": ["storage", "filesystem"]},
+    {"key": "network", "name": "Networking", "layout": "branching", "quests": ["network"]}
+  ],
+  "quests": [
+    {"key": "discovery", "title": "Device discovery", "homePage": "drivers", "iconName": "emoji:🧭", "description": "Identify available hardware devices.", "acceptanceCriteria": "- Inventory — Enumerate supported devices."},
+    {"key": "storage", "title": "Storage interface", "homePage": "drivers", "iconName": "emoji:💎", "description": "Provide block storage access to filesystems.", "acceptanceCriteria": "- Blocks — Read and write blocks through a documented interface."},
+    {"key": "drivers", "title": "Driver subsystem", "homePage": "drivers", "iconName": "emoji:⚙️", "milestone": true, "description": "Provide the initial hardware support.", "acceptanceCriteria": "- Devices — Discovery and storage interfaces work together."},
+    {"key": "allocator", "title": "Page allocator", "homePage": "memory", "iconName": "emoji:🧪", "description": "Allocate and release physical memory pages.", "acceptanceCriteria": "- Allocation — Allocate and reclaim pages without overlap."},
+    {"key": "memory", "title": "Memory subsystem", "homePage": "memory", "iconName": "emoji:💡", "milestone": true, "description": "Provide the initial memory management facilities.", "acceptanceCriteria": "- Memory — The page allocator is available to the kernel."},
+    {"key": "filesystem", "title": "Filesystem subsystem", "homePage": "filesystem", "iconName": "emoji:📚", "milestone": true, "description": "Provide basic filesystem access over storage.", "acceptanceCriteria": "- Files — Create and read files using the storage interface."},
+    {"key": "network", "title": "Network subsystem", "homePage": "network", "iconName": "emoji:🌍", "milestone": true, "description": "Provide basic network communication.", "acceptanceCriteria": "- Packets — Send and receive a packet through a supported interface."},
+    {"key": "system", "title": "System integration", "homePage": "overview", "iconName": "emoji:🚀", "milestone": true, "description": "Integrate the core operating system subsystems.", "acceptanceCriteria": "- Integration — Boot and exercise the four subsystem interfaces."}
+  ],
+  "dependencies": [
+    {"quest": "storage", "dependsOn": "discovery"},
+    {"quest": "drivers", "dependsOn": "storage"},
+    {"quest": "memory", "dependsOn": "allocator"},
+    {"quest": "filesystem", "dependsOn": "storage"},
+    {"quest": "system", "dependsOn": "drivers"}, {"quest": "system", "dependsOn": "memory"},
+    {"quest": "system", "dependsOn": "filesystem"}, {"quest": "system", "dependsOn": "network"}
+  ]
+}

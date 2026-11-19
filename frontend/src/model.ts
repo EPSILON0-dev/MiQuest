@@ -1,7 +1,8 @@
 export type QuestState = "not_started" | "in_progress" | "blocked";
 export type CompletionState = "none" | "verified" | "overridden";
 export type Project = { id: string; name: string; description: string };
-export type Page = { id: string; projectId: string; name: string };
+export type LayoutShape = "branching" | "radial" | "spiral";
+export type Page = { id: string; projectId: string; name: string; layout?: LayoutShape };
 export type Quest = {
   id: string;
   projectId: string;

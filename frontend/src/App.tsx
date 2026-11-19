@@ -27,7 +27,7 @@ import {
   type ReactFlowInstance,
   type Viewport,
 } from "@xyflow/react";
-import dagre from "@dagrejs/dagre";
+import { layoutQuests, type Layout } from "./layout";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -869,39 +869,17 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     setError("");
   }
   function autoLayout() {
-    const graph = new dagre.graphlib.Graph()
-      .setGraph({ rankdir: "LR", nodesep: 35, ranksep: 55 })
-      .setDefaultEdgeLabel(() => ({}));
-    pageQuests.forEach((q) => {
-      const size = q.milestone ? 72 : 52;
-      graph.setNode(q.id, { width: size, height: size });
-    });
-    model.dependencies
-      .filter(
-        (d) =>
-          pageQuests.some((q) => q.id === d.questId) &&
-          pageQuests.some((q) => q.id === d.dependsOnQuestId),
-      )
-      .forEach((d) => graph.setEdge(d.dependsOnQuestId, d.questId));
-    dagre.layout(graph);
+    const positions = layoutQuests(
+      pageQuests,
+      model.dependencies,
+      page?.layout ?? "branching",
+    );
     setModel({
       ...model,
-      appearances: model.appearances.map((a) =>
-        a.pageId === pageId
-          ? {
-              ...a,
-              x:
-                graph.node(a.questId).x -
-                (model.quests.find((q) => q.id === a.questId)?.milestone
-                  ? 36
-                  : 26),
-              y:
-                graph.node(a.questId).y -
-                (model.quests.find((q) => q.id === a.questId)?.milestone
-                  ? 36
-                  : 26),
-            }
-          : a,
+      appearances: model.appearances.map((appearance) =>
+        appearance.pageId === pageId && positions[appearance.questId]
+          ? { ...appearance, ...positions[appearance.questId] }
+          : appearance,
       ),
     });
     window.setTimeout(
@@ -1453,6 +1431,26 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               )}
               {editMode && (
                 <>
+                  <select
+                    className="layout-select"
+                    aria-label={t.layoutLabel}
+                    value={page?.layout ?? "branching"}
+                    disabled={!page || !loadedPages.has(pageId)}
+                    onChange={(event) =>
+                      setModel({
+                        ...model,
+                        pages: model.pages.map((item) =>
+                          item.id === pageId
+                            ? { ...item, layout: event.target.value as Layout }
+                            : item,
+                        ),
+                      })
+                    }
+                  >
+                    <option value="branching">{t.branching}</option>
+                    <option value="radial">{t.radial}</option>
+                    <option value="spiral">{t.spiral}</option>
+                  </select>
                   <button
                     className="button button-quiet layout-action"
                     onClick={autoLayout}

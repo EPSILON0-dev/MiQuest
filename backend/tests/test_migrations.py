@@ -201,3 +201,19 @@ def test_schema_check_uses_current_migration_heads(tmp_path: Path, monkeypatch: 
         sql(connection, "UPDATE alembic_version SET version_num='future_revision'")
     with make_session_factory(engine)() as session:
         assert check_schema(session)
+
+
+@pytest.mark.parametrize('revision', ['0001_initial', '0002_review_runs'])
+def test_upgrade_previous_revision_preserves_data(tmp_path: Path, revision: str) -> None:
+    engine = create_engine_for_path(tmp_path / 'old.sqlite')
+    config = Config()
+    config.set_main_option('script_location', 'miquest:migrations')
+    with engine.connect() as connection:
+        config.attributes['connection'] = connection
+        command.upgrade(config, revision)
+        with connection.begin():
+            seed(connection)
+        command.upgrade(config, 'head')
+        assert sql(connection, 'SELECT count(*) FROM quests').scalar_one() == 2
+        assert sql(connection, "SELECT layout FROM pages WHERE id='p1page'").scalar_one() == 'branching'
+        assert sql(connection, 'PRAGMA foreign_key_check').all() == []

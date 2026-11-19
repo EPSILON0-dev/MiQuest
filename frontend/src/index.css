@@ -427,7 +427,8 @@ p {
   border-radius: 50%;
   box-shadow: 0 2px 5px #0003;
 }
-.quest-node > svg {
+.quest-node > svg,
+.quest-node > .quest-emoji {
   position: relative;
   z-index: 1;
 }
@@ -1210,6 +1211,10 @@ p {
   }
   .top-actions {
     gap: 2px;
+    flex-wrap: wrap;
+  }
+  .layout-select {
+    min-width: 105px;
   }
   .layout-action {
     padding: 5px;

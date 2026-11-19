@@ -8,10 +8,10 @@ test("previews and imports a JSON file", async ({ page }, testInfo) => {
   await file.setInputFiles({ name: "invalid.json", mimeType: "application/json", buffer: Buffer.from("{}") });
   await expect(page.getByRole("alert")).toContainText("Could not validate");
   await file.setInputFiles({ name: "project.json", mimeType: "application/json", buffer: Buffer.from(JSON.stringify({
-    version: 1,
+    version: 2,
     project: { name: "Imported project" },
-    pages: [{ key: "main", name: "Imported tree", quests: ["first"] }],
-    quests: [{ key: "first", title: "First quest", homePage: "main" }],
+    pages: [{ key: "main", name: "Imported tree", quests: ["first"], layout: "branching" }],
+    quests: [{ key: "first", title: "First quest", homePage: "main", iconName: "emoji:🚀" }],
   })) });
   await expect(page.getByText("1 quests, 0 dependencies")).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("desktop.png") });
@@ -21,4 +21,10 @@ test("previews and imports a JSON file", async ({ page }, testInfo) => {
   await page.getByRole("button", { name: "Create project" }).click();
   await page.getByRole("button", { name: "Open navigation" }).click();
   await expect(page.getByRole("button", { name: "Imported project" })).toBeVisible();
+  await page.getByRole("button", { name: "Imported tree" }).click();
+  await expect(page.getByText("🚀")).toBeVisible();
+  await expect(page.locator(".quest-node .quest-emoji")).toHaveCSS("z-index", "1");
+  await page.screenshot({ path: testInfo.outputPath("narrow-emoji.png") });
+  await page.setViewportSize({ width: 1440, height: 900 });
+  await page.screenshot({ path: testInfo.outputPath("desktop-emoji.png") });
 });

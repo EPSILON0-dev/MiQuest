@@ -6,14 +6,22 @@ from pydantic import Field, model_validator
 from sqlalchemy.orm import Session
 
 from . import schemas, services
-from .icons import ICON_NAMES
+from .icons import EMOJI_NAMES, ICON_NAMES
 from .models import Dependency, Page, Pin, Project, Quest, QuestAppearance
+
+
+class ImportPosition(schemas.Input):
+    quest: schemas.Name
+    x: schemas.Coordinate
+    y: schemas.Coordinate
 
 
 class ImportPage(schemas.Input):
     key: schemas.Name
     name: schemas.Name
     quests: list[schemas.Name]
+    layout: schemas.Layout = 'branching'
+    positions: list[ImportPosition] = Field(default_factory=list[ImportPosition])
 
 
 class ImportQuest(schemas.Input):
@@ -22,7 +30,7 @@ class ImportQuest(schemas.Input):
     home_page: schemas.Name
     description: schemas.Text = ''
     acceptance_criteria: schemas.Text = ''
-    icon_name: str = Field(default='compass', json_schema_extra=cast(dict[str, Any], {'enum': sorted(ICON_NAMES)}))
+    icon_name: str = Field(default='compass', json_schema_extra=cast(dict[str, Any], {'enum': sorted(ICON_NAMES | EMOJI_NAMES)}))
     milestone: bool = False
 
 
@@ -32,8 +40,9 @@ class ImportDependency(schemas.Input):
 
 
 class ImportDocument(schemas.Input):
-    version: Literal[1]
+    version: Literal[2]
     project: schemas.CreateProject
+    bypass_auto_layout: bool = False
     pages: list[ImportPage] = Field(min_length=1)
     quests: list[ImportQuest]
     dependencies: list[ImportDependency] = Field(default_factory=list[ImportDependency])
@@ -48,10 +57,15 @@ class ImportDocument(schemas.Input):
         for page in self.pages:
             if len(set(page.quests)) != len(page.quests) or any(key not in quests for key in page.quests):
                 raise ValueError(f'Page {page.key} has duplicate or unknown quests')
+            positioned = [position.quest for position in page.positions]
+            if len(set(positioned)) != len(positioned) or any(key not in page.quests for key in positioned):
+                raise ValueError(f'Page {page.key} has duplicate or unknown positions')
+            if self.bypass_auto_layout and set(positioned) != set(page.quests):
+                raise ValueError(f'Page {page.key} needs a position for every quest')
         for quest in self.quests:
             if quest.home_page not in pages or quest.key not in pages[quest.home_page].quests:
                 raise ValueError(f'Quest {quest.key} must appear on its home page')
-            if quest.icon_name not in ICON_NAMES:
+            if quest.icon_name not in ICON_NAMES | EMOJI_NAMES:
                 raise ValueError(f'Quest {quest.key} has an unknown icon')
         edges: set[tuple[str, str]] = set()
         incoming: dict[str, set[str]] = {key: set() for key in quests}
@@ -74,6 +88,8 @@ class ImportDocument(schemas.Input):
 
 @services.mutation
 def import_project(db: Session, document: ImportDocument) -> Project:
+    if any({position.quest for position in page.positions} != set(page.quests) for page in document.pages):
+        services.fail('invalid_input', message='Every quest needs a position on every page')
     create_project = cast(Callable[..., Project], unwrap(services.create_project))
     create_page = cast(Callable[..., Page], unwrap(services.create_page))
     create_quest = cast(Callable[..., tuple[Quest, QuestAppearance]], unwrap(services.create_quest))
@@ -84,7 +100,7 @@ def import_project(db: Session, document: ImportDocument) -> Project:
     db.flush()
     pages: dict[str, Page] = {}
     for page in document.pages:
-        pages[page.key] = create_page(db, project.id, page.name)
+        pages[page.key] = create_page(db, project.id, page.name, layout=page.layout)
     db.flush()
     quests: dict[str, Quest] = {}
     for quest in document.quests:
@@ -93,21 +109,9 @@ def import_project(db: Session, document: ImportDocument) -> Project:
             icon_name=quest.icon_name, milestone=quest.milestone)
         quests[quest.key] = q
     db.flush()
-    levels: dict[str, int] = {}
-    pending = {quest.key for quest in document.quests}
-    prerequisites = {key: {edge.depends_on for edge in document.dependencies if edge.quest == key} for key in pending}
-    while pending:
-        ready = sorted(key for key in pending if prerequisites[key] <= levels.keys())
-        for key in ready:
-            levels[key] = max((levels[prerequisite] + 1 for prerequisite in prerequisites[key]), default=0)
-        pending.difference_update(ready)
     for page in document.pages:
-        rows: dict[int, int] = {}
-        for key in page.quests:
-            level = levels[key]
-            row = rows.get(level, 0)
-            rows[level] = row + 1
-            add_quest_to_page(db, pages[page.key].id, quests[key].id, level * 160, row * 140)
+        for position in page.positions:
+            add_quest_to_page(db, pages[page.key].id, quests[position.quest].id, position.x, position.y)
     db.flush()
     for edge in document.dependencies:
         add_dependency(db, quests[edge.quest].id, quests[edge.depends_on].id)

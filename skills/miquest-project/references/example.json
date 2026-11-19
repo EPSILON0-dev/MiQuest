@@ -1,12 +1,16 @@
 {
-  "version": 1,
-  "project": {"name": "Launch a website", "description": "Plan and publish a small website."},
-  "pages": [{"key": "main", "name": "Main", "quests": ["plan", "build", "launch"]}],
+  "version": 2,
+  "project": {"name": "UI form", "description": "Build a form from reusable components."},
+  "pages": [{"key": "main", "name": "Components", "layout": "branching", "quests": ["base", "button", "textbox", "label", "form"]}],
   "quests": [
-    {"key": "plan", "title": "Plan the site", "homePage": "main", "acceptanceCriteria": "The audience and purpose are clear."},
-    {"key": "build", "title": "Build the site", "homePage": "main", "acceptanceCriteria": "The site works on desktop and narrow screens."},
-    {"key": "launch", "title": "Launch", "homePage": "main", "milestone": true}
+    {"key": "base", "title": "Component foundation", "homePage": "main", "iconName": "emoji:🛠️", "description": "Establish shared component conventions.", "acceptanceCriteria": "- Conventions — Document shared styling and component interfaces."},
+    {"key": "button", "title": "Button", "homePage": "main", "iconName": "emoji:🎯", "description": "Create a reusable form button.", "acceptanceCriteria": "- Interaction — Support keyboard and pointer activation."},
+    {"key": "textbox", "title": "Text input", "homePage": "main", "iconName": "emoji:💡", "description": "Create a reusable text input.", "acceptanceCriteria": "- Input — Accept and expose text changes."},
+    {"key": "label", "title": "Label", "homePage": "main", "iconName": "emoji:📌", "description": "Create a label for form controls.", "acceptanceCriteria": "- Association — Link labels to their controls."},
+    {"key": "form", "title": "Form integration", "homePage": "main", "iconName": "emoji:✅", "milestone": true, "description": "Combine the components into an accessible form.", "acceptanceCriteria": "- Integration — The form uses all three components and supports keyboard submission."}
   ],
-  "dependencies": [{"quest": "build", "dependsOn": "plan"}, {"quest": "launch", "dependsOn": "build"}],
-  "pins": ["launch"]
+  "dependencies": [
+    {"quest": "button", "dependsOn": "base"}, {"quest": "textbox", "dependsOn": "base"}, {"quest": "label", "dependsOn": "base"},
+    {"quest": "form", "dependsOn": "button"}, {"quest": "form", "dependsOn": "textbox"}, {"quest": "form", "dependsOn": "label"}
+  ]
 }

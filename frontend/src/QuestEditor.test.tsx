@@ -8,6 +8,7 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import QuestEditor from "./QuestEditor";
+import { QuestIcon } from "./icons";
 import { createFixture, type Model, type Quest } from "./model";
 
 afterEach(cleanup);
@@ -27,6 +28,33 @@ const save = () =>
   fireEvent.click(screen.getByRole("button", { name: "Save quest" }));
 
 describe("QuestEditor", () => {
+  it("selects and saves a multi-code-point emoji icon", () => {
+    const model = createFixture();
+    const onSave = setup(model.quests[0], model);
+    fireEvent.change(screen.getByLabelText("Icon"), {
+      target: { value: "emoji:🛠️" },
+    });
+    expect(
+      screen.getByText("🛠️", { selector: "span" }).getAttribute("aria-hidden"),
+    ).toBe("true");
+    save();
+    expect(onSave.mock.calls[0][0].quests[0].icon).toBe("emoji:🛠️");
+  });
+
+  it("renders known emoji decoratively and falls back for unknown icon names", () => {
+    const { container, rerender } = render(
+      <QuestIcon name="emoji:🚀" size={25} />,
+    );
+    expect(container.textContent).toBe("🚀");
+    expect(container.firstElementChild?.getAttribute("aria-hidden")).toBe(
+      "true",
+    );
+    rerender(<QuestIcon name="unknown" />);
+    expect(container.querySelector("svg.lucide-compass")).not.toBeNull();
+    rerender(<QuestIcon name="emoji:<script>" />);
+    expect(container.querySelector("svg.lucide-compass")).not.toBeNull();
+  });
+
   it("creates a quest with its initial tree and edited fields", () => {
     const model = createFixture();
     const onSave = setup({ ...model.quests[0], id: "new", title: "" }, model);

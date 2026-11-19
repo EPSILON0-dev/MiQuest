@@ -178,8 +178,8 @@ register('/quests/{questId}/reopen', 'POST', 'reopen_quest', schemas.ReopenReque
 
 @router.get('/icons')
 def icons() -> dict[str, object]:
-    from miquest.icons import ICON_NAMES
-    return {'data': {'defaultIcon': 'compass', 'names': sorted(ICON_NAMES)}}
+    from miquest.icons import EMOJI_NAMES, ICON_NAMES
+    return {'data': {'defaultIcon': 'compass', 'names': sorted(ICON_NAMES | EMOJI_NAMES)}}
 
 
 class VerificationSettings(schemas.Input):

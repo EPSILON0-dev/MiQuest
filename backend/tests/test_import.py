@@ -24,9 +24,9 @@ def test_import_preview_and_atomic_creation(tmp_path: Path, monkeypatch: MonkeyP
         command.upgrade(config, 'head')
     app = create_app(make_session_factory(engine))
     document = {
-        'version': 1,
+        'version': 2,
         'project': {'name': 'Project'},
-        'pages': [{'key': 'main', 'name': 'Main', 'quests': ['one', 'two']}],
+        'pages': [{'key': 'main', 'name': 'Main', 'quests': ['one', 'two'], 'positions': [{'quest': 'one', 'x': 0, 'y': 0}, {'quest': 'two', 'x': 160, 'y': 0}]}],
         'quests': [
             {'key': 'one', 'title': 'One', 'homePage': 'main'},
             {'key': 'two', 'title': 'Two', 'homePage': 'main'},
@@ -68,6 +68,38 @@ def test_import_preview_and_atomic_creation(tmp_path: Path, monkeypatch: MonkeyP
 
 def test_skill_schema_and_example_match_importer() -> None:
     references = Path(__file__).resolve().parents[2] / 'skills/miquest-project/references'
-    schema = json.loads((references / 'project-v1.schema.json').read_text())
+    schema = json.loads((references / 'project-v2.schema.json').read_text())
     assert schema == ImportDocument.model_json_schema(by_alias=True)
     ImportDocument.model_validate_json((references / 'example.json').read_text())
+    ImportDocument.model_validate_json((references / 'os-example.json').read_text())
+
+
+def test_v2_positions_and_emoji_are_validated_and_persisted(tmp_path: Path) -> None:
+    engine = create_engine_for_path(tmp_path / 'v2.sqlite')
+    config = Config(str(Path(__file__).resolve().parents[1] / 'alembic.ini'))
+    with engine.connect() as connection:
+        config.attributes['connection'] = connection
+        command.upgrade(config, 'head')
+    app = create_app(make_session_factory(engine))
+    document = {'version': 2, 'project': {'name': 'Project'}, 'pages': [
+        {'key': 'main', 'name': 'Main', 'quests': ['one'], 'layout': 'spiral'}],
+        'quests': [{'key': 'one', 'title': 'One', 'homePage': 'main', 'iconName': 'emoji:🚀'}]}
+
+    async def run() -> None:
+        async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
+            assert (await client.post('/api/v1/imports/preview', json=document)).status_code == 200
+            assert (await client.post('/api/v1/imports', json=document)).status_code == 422
+            assert (await client.post('/api/v1/imports/preview', json={**document, 'bypassAutoLayout': True})).status_code == 422
+            page = {'key': 'main', 'name': 'Main', 'quests': ['one'], 'layout': 'spiral',
+                    'positions': [{'quest': 'one', 'x': 42, 'y': -7}]}
+            ready = {**document, 'pages': [page], 'bypassAutoLayout': True}
+            result = await client.post('/api/v1/imports', json=ready)
+            assert result.status_code == 201, result.text
+            graph = (await client.get(f"/api/v1/projects/{result.json()['data']['id']}/graph")).json()['data']
+            assert graph['pages'][0]['layout'] == 'spiral'
+            assert graph['quests'][0]['icon'] == 'emoji:🚀'
+            assert (graph['appearances'][0]['x'], graph['appearances'][0]['y']) == (42, -7)
+            bad = {**ready, 'pages': [{**page, 'positions': [{'quest': 'missing', 'x': 0, 'y': 0}]}]}
+            assert (await client.post('/api/v1/imports/preview', json=bad)).status_code == 422
+            assert (await client.post('/api/v1/imports/preview', json={**document, 'version': 1})).status_code == 422
+    asyncio.run(run())

@@ -30,7 +30,7 @@
 - Quest details modal showing description, prerequisites, next quests, acceptance criteria, verification history, and evidence.
 - Manual and REST editing of projects, pages, quests, dependencies, icons, positions, home trees, and pins.
 - SQLite persistence and database migrations.
-- Import a new project from a validated JSON file, with a summary before confirmation and an automatically drafted layout.
+- Import a new project from a validated version 2 JSON file, with a summary before confirmation and frontend-generated page layouts or explicitly supplied positions.
 - Verification states and immutable verification records.
 - Manual completion override with a typed reason and visual distinction from agent-verified completion.
 - Containerized self-hosted deployment with persistent data, health check, and documented backup procedure.
@@ -39,8 +39,8 @@
 ### Explicitly excluded from v1
 
 - Accounts, teams, roles, notifications, calendar, time tracking, gamification points, GitHub integration, automatic repository scanning, embedded AI chat, model hosting, autonomous background verification, OR dependencies, cross-project edges, and mobile-native apps.
-- Elaborate workflow engines, microservices, task queues, complex authorization frameworks, specialized automatic winding/radial layout algorithms, pixel styling, and automatic next-task ranking.
-- Quest evidence can include supported text and static images; quest icons and artwork cannot be uploaded. Use one bundled icon library.
+- Elaborate workflow engines, microservices, task queues, complex authorization frameworks, pixel styling, and automatic next-task ranking.
+- Quest evidence can include supported text and static images; quest icons and artwork cannot be uploaded. Use bundled icons and the supported emoji catalog.
 - Embedded agent chat and harness integration are deferred beyond v1.
 
 ## 3. Stack
@@ -78,9 +78,9 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 
 - Use shadcn/ui controls and centralized semantic CSS custom properties in the root stylesheet as the theme switchboard for colors, borders, radii, and shared visual settings.
 - Use a provisional charcoal/neutral palette through centralized semantic CSS variables. Do not add pixel styling.
-- Use one bundled icon library, with stable icon names for agents, a default icon, and a searchable manual picker. Icons cannot be uploaded.
+- Use a bundled icon library and supported emoji, with stable names for agents, a default icon, and a searchable manual picker. Icons cannot be uploaded.
 - Quest nodes are dense and icon-only: 52px circles for ordinary quests, 72px diamonds only for explicit `quest.milestone` quests. Never add permanent node labels.
-- Linear quest chains can wind manually; radial arrangements may place a central milestone with prerequisite goals outward. Provide a basic automatic layout for editing only; specialized automatic composition is not required.
+- Provide branching, radial and spiral automatic layouts per page. Layout changes are explicit and preserve manual positions until applied.
 
 ### Main layout
 

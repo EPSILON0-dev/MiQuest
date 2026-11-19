@@ -2,6 +2,7 @@ import { useState } from "react";
 import Modal from "./Modal";
 import { createImport, previewImport, type ImportPreview } from "./api";
 import { useI18n } from "./i18n";
+import { prepareImport } from "./prepareImport";
 
 export default function ImportProject({ onClose }: { onClose: () => void }) {
   const t = useI18n();
@@ -21,7 +22,7 @@ export default function ImportProject({ onClose }: { onClose: () => void }) {
           const value: unknown = JSON.parse(await file.text());
           if (!value || typeof value !== "object" || Array.isArray(value)) throw new Error();
           const result = await previewImport(value);
-          setDocument(value); setPreview(result);
+          setDocument(prepareImport(value)); setPreview(result);
         } catch (reason) { setError(reason instanceof Error && reason.message ? `${t.importInvalid} ${reason.message}` : t.importInvalid); }
         finally { setBusy(false); }
       }} />

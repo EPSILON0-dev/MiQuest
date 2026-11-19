@@ -41,3 +41,26 @@ export const icons: Record<string, LucideIcon> = {
 };
 
 export const iconNames = Object.keys(icons);
+
+export const emojiIcons = [
+  "😀",
+  "🎯",
+  "🚀",
+  "⭐",
+  "🔥",
+  "💡",
+  "📚",
+  "🛠️",
+  "✅",
+  "🌱",
+  "🧭",
+  "🏆",
+  "💎",
+  "🎨",
+  "🧪",
+  "🌍",
+  "⚙️",
+  "🗺️",
+  "🏠",
+  "📌",
+].map((emoji) => `emoji:${emoji}`);

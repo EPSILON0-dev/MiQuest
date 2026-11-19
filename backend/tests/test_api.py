@@ -153,7 +153,8 @@ def test_all_rest_operations(tmp_path: Path) -> None:
             assert len(await call('GET', f'/projects/{project}/pins')) == 1
             await write('PUT', f'/projects/{project}/pin-order', questIds=[quest1])
             assert (await write('DELETE', f'/projects/{project}/pins/{quest1}'))['questId'] == quest1
-            assert 'compass' in (await call('GET', '/icons'))['names']
+            names = (await call('GET', '/icons'))['names']
+            assert 'compass' in names and 'emoji:🛠️' in names
             assert (await write('DELETE', f'/quests/{quest1}', confirmDelete=True))['deletedId'] == quest1
             assert (await write('DELETE', f'/pages/{page1}', confirmDelete=True, questActions=[]))['deletedId'] == page1
             assert (await write('DELETE', f'/projects/{project}', confirmDelete=True))['deletedId'] == project
@@ -346,6 +347,13 @@ def test_tree_draft_is_atomic_and_rejects_cross_project_changes(tmp_path: Path) 
             invalid = await client.post(path, json={'expectedRevision': 5, 'operations': [bad_edit, {'operation': 'delete_quest', 'arguments': {'questId': new_id}}]})
             assert invalid.status_code == 422
             assert (await client.get(f'/api/v1/quests/{quest}')).json()['data']['quest']['title'] == 'Changed'
+            page_edit = {'operation': 'update_page', 'arguments': {'pageId': page, 'name': 'Renamed', 'layout': 'radial'}}
+            rolled_back = await client.post(path, json={'expectedRevision': 5, 'operations': [page_edit, closes_cycle]})
+            assert rolled_back.status_code == 409
+            assert (await client.get(f'/api/v1/pages/{page}/graph')).json()['data']['page']['layout'] == 'branching'
+            saved_page = await client.post(path, json={'expectedRevision': 5, 'operations': [page_edit]})
+            assert saved_page.status_code == 200
+            assert (await client.get(f'/api/v1/pages/{page}/graph')).json()['data']['page']['layout'] == 'radial'
             stale = await client.post(path, json={'expectedRevision': 2, 'operations': [edit]})
             assert stale.status_code == 409
             assert stale.json()['error']['code'] == 'stale_revision'
