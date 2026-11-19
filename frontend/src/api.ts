@@ -28,6 +28,10 @@ export async function createImport(document: object): Promise<void> {
   await request("/imports", "POST", document);
 }
 
+export async function loadProjectGraph(projectId: string): Promise<Omit<Model, "projects" | "verifications"> & { project: Project }> {
+  return (await request<Omit<Model, "projects" | "verifications"> & { project: Project }>(`/projects/${encodeURIComponent(projectId)}/graph`)).data;
+}
+
 export class ApiError extends Error {
   code: string;
   status: number;

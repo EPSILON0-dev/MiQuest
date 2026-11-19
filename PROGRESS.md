@@ -1,5 +1,10 @@
 # Progress
 
+## Project export — 2026-11-19
+
+- Added a Workspace download control for each project with a tree. It exports the complete project as importable version 2 JSON, including shared quests, cross-tree dependencies, ordered pins and saved positions; Workspace and the README explain that progress, verification history and evidence are excluded.
+- Validation: frontend unit suite (50 tests), production build, and lint passed (existing hook dependency warning). Browser tests downloaded and reimported a multi-tree project with shared quests and checked coordinates, then verified export error handling. Desktop and narrow Workspace screenshots were inspected. No backend behavior changed.
+
 ## Orphan quest guidance — 2026-11-19
 
 - Updated the project-generation skill to review isolated quests and page views, prefer real dependencies or integration outcomes, and explain genuinely independent quests.

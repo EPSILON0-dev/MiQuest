@@ -31,6 +31,7 @@
 - Manual and REST editing of projects, pages, quests, dependencies, icons, positions, home trees, and pins.
 - SQLite persistence and database migrations.
 - Import a new project from a validated version 2 JSON file, with a summary before confirmation and frontend-generated page layouts or explicitly supplied positions.
+- Export a project's trees, quests, dependencies, pins and positions as an importable version 2 JSON file, with the exclusion of progress and verification history made clear.
 - Verification states and immutable verification records.
 - Manual completion override with a typed reason and visual distinction from agent-verified completion.
 - Containerized self-hosted deployment with persistent data, health check, and documented backup procedure.

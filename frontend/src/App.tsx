@@ -5,6 +5,7 @@ import {
   loadPageGraph,
   loadPageMemberships,
   loadProjectQuests,
+  loadProjectGraph,
   loadVerificationHistory,
   persistModel,
   saveTreeDraft,
@@ -28,6 +29,7 @@ import {
   type Viewport,
 } from "@xyflow/react";
 import { layoutQuests, type Layout } from "./layout";
+import { exportProject } from "./exportProject";
 import {
   ArrowUpRight,
   ArrowRight,
@@ -36,6 +38,7 @@ import {
   GitBranch,
   FolderKanban,
   FileUp,
+  Download,
   Layers,
   LayoutGrid,
   Menu,
@@ -2148,6 +2151,7 @@ function Workspace({ initial }: { initial: LoadedModel }) {
             }}
           >
             <p className="muted">{t.settingsIntro}</p>
+            <p className="muted">{t.exportNote}</p>
             <section className="journal-section">
               <h2>{t.progressions}</h2>
               {model.projects.map((p) => (
@@ -2170,6 +2174,29 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         <ChevronRight size={14} />
                       )}
                       <Layers size={17} /> <strong>{p.name}</strong>
+                    </button>
+                    <button
+                      className="icon-button"
+                      aria-label={t.exportProject(p.name)}
+                      title={t.exportProject(p.name)}
+                      disabled={!model.pages.some((tree) => tree.projectId === p.id)}
+                      onClick={async () => {
+                        setError("");
+                        try {
+                          const graph = await loadProjectGraph(p.id);
+                          const file = new Blob([JSON.stringify(exportProject(graph), null, 2)], { type: "application/json" });
+                          const url = URL.createObjectURL(file);
+                          const link = document.createElement("a");
+                          link.href = url;
+                          link.download = `${p.name.replace(/[\\/:*?"<>|\p{Cc}]/gu, "_")}.json`;
+                          link.click();
+                          window.setTimeout(() => URL.revokeObjectURL(url), 0);
+                        } catch {
+                          setError(t.exportFailed);
+                        }
+                      }}
+                    >
+                      <Download size={14} />
                     </button>
                     <button
                       className="icon-button"
