@@ -32,12 +32,14 @@ export type Appearance = {
 export type Dependency = { questId: string; dependsOnQuestId: string };
 export type Verification = {
   id: string;
+  sequence?: number;
   questId: string;
   verdict: "pass" | "fail" | "inconclusive" | "override" | "reopen";
   evidence: string;
   reasoning: string;
   actor: "agent" | "human";
   createdAt: string;
+  snapshot?: Record<string, unknown>;
 };
 export type Pin = { projectId: string; questId: string };
 export type Model = {

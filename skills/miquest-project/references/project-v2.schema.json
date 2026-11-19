@@ -168,6 +168,33 @@
           "default": false,
           "title": "Milestone",
           "type": "boolean"
+        },
+        "workState": {
+          "default": "not_started",
+          "enum": [
+            "not_started",
+            "in_progress",
+            "blocked"
+          ],
+          "title": "Workstate",
+          "type": "string"
+        },
+        "completionState": {
+          "default": "none",
+          "enum": [
+            "none",
+            "verified",
+            "overridden"
+          ],
+          "title": "Completionstate",
+          "type": "string"
+        },
+        "verifications": {
+          "items": {
+            "$ref": "#/$defs/ImportVerification"
+          },
+          "title": "Verifications",
+          "type": "array"
         }
       },
       "required": [
@@ -177,6 +204,108 @@
       ],
       "title": "ImportQuest",
       "type": "object"
+    },
+    "ImportVerification": {
+      "additionalProperties": false,
+      "properties": {
+        "key": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Key",
+          "type": "string"
+        },
+        "sequence": {
+          "minimum": 1,
+          "title": "Sequence",
+          "type": "integer"
+        },
+        "verdict": {
+          "enum": [
+            "pass",
+            "fail",
+            "inconclusive",
+            "override",
+            "reopen"
+          ],
+          "title": "Verdict",
+          "type": "string"
+        },
+        "actor": {
+          "enum": [
+            "agent",
+            "human"
+          ],
+          "title": "Actor",
+          "type": "string"
+        },
+        "evidence": {
+          "default": "",
+          "maxLength": 100000,
+          "title": "Evidence",
+          "type": "string"
+        },
+        "reasoning": {
+          "maxLength": 20000,
+          "minLength": 1,
+          "title": "Reasoning",
+          "type": "string"
+        },
+        "createdAt": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Createdat",
+          "type": "string"
+        },
+        "snapshot": {
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          },
+          "title": "Snapshot",
+          "type": "object"
+        }
+      },
+      "required": [
+        "key",
+        "sequence",
+        "verdict",
+        "actor",
+        "reasoning",
+        "createdAt",
+        "snapshot"
+      ],
+      "title": "ImportVerification",
+      "type": "object"
+    },
+    "JSONValue": {
+      "anyOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "integer"
+        },
+        {
+          "type": "number"
+        },
+        {
+          "type": "string"
+        },
+        {
+          "items": {
+            "$ref": "#/$defs/JSONValue"
+          },
+          "type": "array"
+        },
+        {
+          "additionalProperties": {
+            "$ref": "#/$defs/JSONValue"
+          },
+          "type": "object"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   },
   "additionalProperties": false,

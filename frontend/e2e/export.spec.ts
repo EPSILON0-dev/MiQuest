@@ -5,7 +5,7 @@ test("exports and reimports the complete project graph", async ({ page, request 
   await page.goto("/");
   await page.getByRole("switch", { name: "Edit mode" }).click();
   await page.getByRole("button", { name: "Workspace", exact: true }).click();
-  await expect(page.getByText(/not progress or verification history/)).toBeVisible();
+  await expect(page.getByText(/text evidence.*attachment files are omitted/)).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("desktop.png") });
   await page.setViewportSize({ width: 390, height: 844 });
   await page.screenshot({ path: testInfo.outputPath("narrow.png") });
@@ -27,7 +27,16 @@ test("exports and reimports the complete project graph", async ({ page, request 
   expect(graph.quests).toHaveLength(document.quests.length);
   expect(graph.dependencies).toHaveLength(document.dependencies.length);
   expect(graph.appearances).toHaveLength(document.pages.reduce((sum: number, tree: { positions: unknown[] }) => sum + tree.positions.length, 0));
-  expect(graph.quests.every((quest: { completionState: string }) => quest.completionState === "none")).toBe(true);
+  for (const quest of document.quests) {
+    const importedQuest = graph.quests.find((item: { title: string }) => item.title === quest.title);
+    expect(importedQuest.workState).toBe(quest.workState);
+    expect(importedQuest.completionState).toBe(quest.completionState);
+    const history = await request.get(`/api/v1/quests/${importedQuest.id}/verifications`);
+    const records = (await history.json()).data.items;
+    expect(records.map((item: { evidence: string; verdict: string; reasoning: string }) => ({ evidence: item.evidence, verdict: item.verdict, reasoning: item.reasoning }))).toEqual(
+      quest.verifications.map((item: { evidence: string; verdict: string; reasoning: string }) => ({ evidence: item.evidence, verdict: item.verdict, reasoning: item.reasoning })),
+    );
+  }
   const importedQuests = new Map<string, string>(graph.quests.map((quest: { id: string; title: string }) => [quest.title, quest.id]));
   const importedPages = new Map<string, string>(graph.pages.map((tree: { id: string; name: string }) => [tree.name, tree.id]));
   for (const tree of document.pages) {

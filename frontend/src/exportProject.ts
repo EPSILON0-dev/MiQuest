@@ -1,6 +1,8 @@
 import type { loadProjectGraph } from "./api";
 
-export function exportProject(graph: Awaited<ReturnType<typeof loadProjectGraph>>) {
+import type { Verification } from "./model";
+
+export function exportProject(graph: Omit<Awaited<ReturnType<typeof loadProjectGraph>>, "revision">, verifications: Verification[]) {
   return {
     version: 2,
     project: { name: graph.project.name, description: graph.project.description },
@@ -23,6 +25,18 @@ export function exportProject(graph: Awaited<ReturnType<typeof loadProjectGraph>
       acceptanceCriteria: quest.acceptanceCriteria,
       iconName: quest.icon,
       milestone: quest.milestone,
+      workState: quest.workState,
+      completionState: quest.completionState,
+      verifications: verifications.filter((item) => item.questId === quest.id).map((item, index) => ({
+        key: item.id,
+        sequence: item.sequence ?? index + 1,
+        verdict: item.verdict,
+        actor: item.actor,
+        evidence: item.evidence,
+        reasoning: item.reasoning,
+        createdAt: item.createdAt,
+        snapshot: item.snapshot ?? {},
+      })),
     })),
     dependencies: graph.dependencies.map((edge) => ({ quest: edge.questId, dependsOn: edge.dependsOnQuestId })),
     pins: graph.pins.map((pin) => pin.questId),

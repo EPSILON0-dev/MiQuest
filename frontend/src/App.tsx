@@ -6,6 +6,7 @@ import {
   loadPageMemberships,
   loadProjectQuests,
   loadProjectGraph,
+  loadProjectVerifications,
   loadVerificationHistory,
   persistModel,
   saveTreeDraft,
@@ -2184,7 +2185,8 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                         setError("");
                         try {
                           const graph = await loadProjectGraph(p.id);
-                          const file = new Blob([JSON.stringify(exportProject(graph), null, 2)], { type: "application/json" });
+                          const verifications = await loadProjectVerifications(graph.quests, graph.revision);
+                          const file = new Blob([JSON.stringify(exportProject(graph, verifications), null, 2)], { type: "application/json" });
                           const url = URL.createObjectURL(file);
                           const link = document.createElement("a");
                           link.href = url;

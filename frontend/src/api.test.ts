@@ -4,6 +4,7 @@ import {
   loadModel,
   loadPageGraph,
   loadPageMemberships,
+  loadProjectVerifications,
   loadVerificationHistory,
   persistModel,
   saveTreeDraft,
@@ -111,6 +112,11 @@ describe("API adapter", () => {
     await expect(loadVerificationHistory("q")).rejects.toMatchObject({
       code: "stale_revision",
     });
+  });
+
+  it("rejects project exports when history is from a newer graph revision", async () => {
+    vi.stubGlobal("fetch", vi.fn().mockResolvedValue(reply({ items: [], nextAfterSequence: null }, 4)));
+    await expect(loadProjectVerifications([{ id: "q" } as Model["quests"][number]], 3)).rejects.toMatchObject({ code: "stale_revision" });
   });
 
   it("submits tree changes in one atomic request with the original revision", async () => {
