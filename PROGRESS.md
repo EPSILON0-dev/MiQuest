@@ -3,8 +3,8 @@
 ## Expressive quest generation — 2026-11-19
 
 - Added version 2 project imports with frontend-generated branching, radial and spiral positions and a bypass for explicitly positioned pages. Added per-page layout preferences and edit-mode layout controls, plus a shared emoji catalog and revised generation guidance with branching and multi-page examples. Version 1 import files are intentionally no longer accepted; existing named icons and saved projects remain supported.
-- Existing migration revisions remain in the upgrade chain so databases at either deployed revision can upgrade safely; migration consolidation remains unresolved. No existing project data was reset.
-- Validation: 106 backend tests passed, including upgrades from both earlier revisions; backend Ruff and strict Pyright passed. Frontend build, lint (existing hook warning), 48 unit tests, and all 45 browser tests passed. Desktop and narrow import/layout screenshots were inspected; a narrow selector clipping issue and an emoji stacking issue were corrected. The browser environment has no emoji font, so visible emoji glyph rendering could not be confirmed there. The build retains its existing large-chunk advisory.
+- Consolidated server migrations into one baseline. Databases at the former 0001 or 0002 revisions upgrade transactionally; databases already at 0003 remain current. Historical revisions are no longer downgrade targets. Tests cover fresh databases, all three previous stamps, failed-upgrade rollback and unknown revisions; no existing project data was reset.
+- Validation: after consolidation, 109 backend tests passed; backend Ruff and strict Pyright passed. Frontend build, lint (existing hook warning), 48 unit tests, and all 45 browser tests passed. Desktop and narrow import/layout screenshots were inspected; a narrow selector clipping issue and an emoji stacking issue were corrected. The browser environment has no emoji font, so visible emoji glyph rendering could not be confirmed there. The build retains its existing large-chunk advisory.
 
 ## Current status — 2026-11-18
 
