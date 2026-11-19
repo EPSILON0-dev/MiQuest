@@ -278,8 +278,8 @@ def validate_quest_fields(fields: dict[str, object]) -> None:
     if 'work_state' in fields and fields['work_state'] not in ('not_started', 'in_progress', 'blocked'): fail('invalid_input')
     if 'milestone' in fields and not isinstance(fields['milestone'], bool): fail('invalid_input')
     if 'icon_name' in fields:
-        from .icons import EMOJI_NAMES, ICON_NAMES
-        if fields['icon_name'] not in ICON_NAMES | EMOJI_NAMES: fail('invalid_icon')
+        from .icons import valid_icon
+        if not valid_icon(fields['icon_name']): fail('invalid_icon')
 
 
 @mutation

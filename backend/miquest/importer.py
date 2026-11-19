@@ -1,12 +1,12 @@
 from collections.abc import Callable
 from inspect import unwrap
-from typing import Any, Literal, cast
+from typing import Literal, cast
 
 from pydantic import Field, model_validator
 from sqlalchemy.orm import Session
 
 from . import schemas, services
-from .icons import EMOJI_NAMES, ICON_NAMES
+from .icons import valid_icon
 from .models import Dependency, Page, Pin, Project, Quest, QuestAppearance
 
 
@@ -30,7 +30,7 @@ class ImportQuest(schemas.Input):
     home_page: schemas.Name
     description: schemas.Text = ''
     acceptance_criteria: schemas.Text = ''
-    icon_name: str = Field(default='compass', json_schema_extra=cast(dict[str, Any], {'enum': sorted(ICON_NAMES | EMOJI_NAMES)}))
+    icon_name: str = Field(default='compass', description='A bundled icon name or emoji: followed by one Unicode emoji.')
     milestone: bool = False
 
 
@@ -65,7 +65,7 @@ class ImportDocument(schemas.Input):
         for quest in self.quests:
             if quest.home_page not in pages or quest.key not in pages[quest.home_page].quests:
                 raise ValueError(f'Quest {quest.key} must appear on its home page')
-            if quest.icon_name not in ICON_NAMES | EMOJI_NAMES:
+            if not valid_icon(quest.icon_name):
                 raise ValueError(f'Quest {quest.key} has an unknown icon')
         edges: set[tuple[str, str]] = set()
         incoming: dict[str, set[str]] = {key: set() for key in quests}

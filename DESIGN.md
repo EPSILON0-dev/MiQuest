@@ -40,7 +40,7 @@
 
 - Accounts, teams, roles, notifications, calendar, time tracking, gamification points, GitHub integration, automatic repository scanning, embedded AI chat, model hosting, autonomous background verification, OR dependencies, cross-project edges, and mobile-native apps.
 - Elaborate workflow engines, microservices, task queues, complex authorization frameworks, pixel styling, and automatic next-task ranking.
-- Quest evidence can include supported text and static images; quest icons and artwork cannot be uploaded. Use bundled icons and the supported emoji catalog.
+- Quest evidence can include supported text and static images; quest icons and artwork cannot be uploaded. Use bundled icons and emoji.
 - Embedded agent chat and harness integration are deferred beyond v1.
 
 ## 3. Stack
@@ -78,7 +78,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 
 - Use shadcn/ui controls and centralized semantic CSS custom properties in the root stylesheet as the theme switchboard for colors, borders, radii, and shared visual settings.
 - Use a provisional charcoal/neutral palette through centralized semantic CSS variables. Do not add pixel styling.
-- Use a bundled icon library and supported emoji, with stable names for agents, a default icon, and a searchable manual picker. Icons cannot be uploaded.
+- Use a bundled icon library and emoji, with stable names for agents, a default icon, and a searchable manual picker. Icons cannot be uploaded.
 - Quest nodes are dense and icon-only: 52px circles for ordinary quests, 72px diamonds only for explicit `quest.milestone` quests. Never add permanent node labels.
 - Provide branching, radial and spiral automatic layouts per page. Layout changes are explicit and preserve manual positions until applied.
 

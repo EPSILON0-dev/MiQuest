@@ -1,4 +1,4 @@
-import { emojiIcons, icons } from "./iconNames";
+import { icons } from "./iconNames";
 export function QuestIcon({
   name,
   size = 20,
@@ -6,7 +6,7 @@ export function QuestIcon({
   name: string;
   size?: number;
 }) {
-  if (emojiIcons.includes(name)) {
+  if (name.startsWith("emoji:") && name.length > 6) {
     return (
       <span className="quest-emoji" aria-hidden="true" style={{ fontSize: size, lineHeight: 1 }}>
         {name.slice(6)}

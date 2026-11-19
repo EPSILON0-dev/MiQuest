@@ -179,6 +179,13 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
             ))}
         </select>
       </label>
+      <label className="field">
+        {t.customEmoji}
+        <input
+          value={draft.icon.startsWith("emoji:") ? draft.icon.slice(6) : ""}
+          onChange={(event) => setDraft({ ...draft, icon: event.target.value ? `emoji:${event.target.value}` : "compass" })}
+        />
+      </label>
       <span aria-hidden="true">
         <QuestIcon name={draft.icon} size={20} />
       </span>

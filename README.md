@@ -16,7 +16,7 @@ Turn on **Edit mode** to create and arrange quests, connect dependencies, and ma
 
 You can also use the [MiQuest project skill](skills/miquest-project/SKILL.md) with a coding agent to turn a project idea into an importable version 2 JSON graph. In Edit mode, select **Import project**, choose the generated file, and review the summary before confirming. The frontend lays out each page in its chosen shape unless `bypassAutoLayout` is true, in which case every quest appearance requires an explicit position. Version 1 import files are no longer supported. Direct API imports must supply positions for every appearance.
 
-In Edit mode, choose branching, radial or spiral for a page and use **Auto layout** to apply it. Save the draft to persist the choice and positions. Spiral falls back to branching when the page is not a single chain; radial uses a deterministic outcome when there are several. Icons include a supported emoji catalog, whose appearance depends on the device's fonts.
+In Edit mode, choose branching, radial or spiral for a page and use **Auto layout** to apply it. Save the draft to persist the choice and positions. Spiral falls back to branching when the page is not a single chain; radial uses a deterministic outcome when there are several. You can enter any emoji as a quest icon; its appearance depends on the device's fonts.
 
 To complete a quest, submit a message or evidence for an OpenRouter review after configuring a key and model in Settings. You can also complete it with a reasoned manual override in Edit mode. Reviews and overrides are recorded in the quest's history; reopening a quest preserves that history. MiQuest stores projects and verification records locally in SQLite, with evidence stored alongside the database.
 

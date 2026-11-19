@@ -427,6 +427,9 @@ p {
   border-radius: 50%;
   box-shadow: 0 2px 5px #0003;
 }
+.quest-emoji {
+  filter: grayscale(1);
+}
 .quest-node > svg,
 .quest-node > .quest-emoji {
   position: relative;

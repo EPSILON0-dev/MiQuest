@@ -347,6 +347,10 @@ def test_tree_draft_is_atomic_and_rejects_cross_project_changes(tmp_path: Path) 
             invalid = await client.post(path, json={'expectedRevision': 5, 'operations': [bad_edit, {'operation': 'delete_quest', 'arguments': {'questId': new_id}}]})
             assert invalid.status_code == 422
             assert (await client.get(f'/api/v1/quests/{quest}')).json()['data']['quest']['title'] == 'Changed'
+            emoji_edit = {'operation': 'update_quest', 'arguments': {'questId': quest, 'icon': 'emoji:🇵🇱'}}
+            invalid_emoji = {'operation': 'update_quest', 'arguments': {'questId': quest, 'icon': 'emoji:😀😀'}}
+            assert (await client.post(path, json={'expectedRevision': 5, 'operations': [emoji_edit, invalid_emoji]})).status_code == 422
+            assert (await client.get(f'/api/v1/quests/{quest}')).json()['data']['quest']['icon'] == 'compass'
             page_edit = {'operation': 'update_page', 'arguments': {'pageId': page, 'name': 'Renamed', 'layout': 'radial'}}
             rolled_back = await client.post(path, json={'expectedRevision': 5, 'operations': [page_edit, closes_cycle]})
             assert rolled_back.status_code == 409

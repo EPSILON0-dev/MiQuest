@@ -41,7 +41,7 @@ describe("QuestEditor", () => {
     expect(onSave.mock.calls[0][0].quests[0].icon).toBe("emoji:🛠️");
   });
 
-  it("renders known emoji decoratively and falls back for unknown icon names", () => {
+  it("renders emoji decoratively and falls back for unknown icon names", () => {
     const { container, rerender } = render(
       <QuestIcon name="emoji:🚀" size={25} />,
     );
@@ -51,8 +51,16 @@ describe("QuestEditor", () => {
     );
     rerender(<QuestIcon name="unknown" />);
     expect(container.querySelector("svg.lucide-compass")).not.toBeNull();
-    rerender(<QuestIcon name="emoji:<script>" />);
-    expect(container.querySelector("svg.lucide-compass")).not.toBeNull();
+    rerender(<QuestIcon name="emoji:🦕" />);
+    expect(container.textContent).toBe("🦕");
+  });
+
+  it("saves a custom emoji outside the suggestions", () => {
+    const model = createFixture();
+    const onSave = setup(model.quests[0], model);
+    fireEvent.change(screen.getByLabelText("Custom emoji"), { target: { value: "👩🏽‍🚀" } });
+    save();
+    expect(onSave.mock.calls[0][0].quests[0].icon).toBe("emoji:👩🏽‍🚀");
   });
 
   it("creates a quest with its initial tree and edited fields", () => {

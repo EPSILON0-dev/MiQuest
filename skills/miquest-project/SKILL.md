@@ -19,6 +19,6 @@ Use short, generally named titles and descriptions that explain the specific sco
 
 ## Validate and deliver
 
-Use unique page and quest keys. Each dependency's `quest` depends on `dependsOn`; reject self-dependencies and cycles. Use supported icon names or `emoji:` followed by a supported emoji. Normally omit positions and leave `bypassAutoLayout` false so the frontend lays out each page. If `bypassAutoLayout` is true, supply finite positions for every appearance on every page. Do not include database IDs, completion states, or verification history. Pins are optional quest keys in display order.
+Use unique page and quest keys. Each dependency's `quest` depends on `dependsOn`; reject self-dependencies and cycles. Use supported icon names or `emoji:` followed by any emoji. Normally omit positions and leave `bypassAutoLayout` false so the frontend lays out each page. If `bypassAutoLayout` is true, supply finite positions for every appearance on every page. Do not include database IDs, completion states, or verification history. Pins are optional quest keys in display order.
 
 Check the decomposition, granularity, true blockers, parallelism, integration, milestone criteria, icon variety, observable requirements, references and graph validity. Validate the JSON against the schema. Present a compact text outline of pages, shapes, major branches, counts and material assumptions alongside the file. Tell the user to select it in MiQuest's import dialog and review the summary before confirming.

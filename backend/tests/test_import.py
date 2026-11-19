@@ -83,7 +83,7 @@ def test_v2_positions_and_emoji_are_validated_and_persisted(tmp_path: Path) -> N
     app = create_app(make_session_factory(engine))
     document = {'version': 2, 'project': {'name': 'Project'}, 'pages': [
         {'key': 'main', 'name': 'Main', 'quests': ['one'], 'layout': 'spiral'}],
-        'quests': [{'key': 'one', 'title': 'One', 'homePage': 'main', 'iconName': 'emoji:🚀'}]}
+        'quests': [{'key': 'one', 'title': 'One', 'homePage': 'main', 'iconName': 'emoji:👍🏽'}]}
 
     async def run() -> None:
         async with httpx.AsyncClient(transport=httpx.ASGITransport(app=app), base_url='http://testserver') as client:
@@ -97,9 +97,11 @@ def test_v2_positions_and_emoji_are_validated_and_persisted(tmp_path: Path) -> N
             assert result.status_code == 201, result.text
             graph = (await client.get(f"/api/v1/projects/{result.json()['data']['id']}/graph")).json()['data']
             assert graph['pages'][0]['layout'] == 'spiral'
-            assert graph['quests'][0]['icon'] == 'emoji:🚀'
+            assert graph['quests'][0]['icon'] == 'emoji:👍🏽'
             assert (graph['appearances'][0]['x'], graph['appearances'][0]['y']) == (42, -7)
             bad = {**ready, 'pages': [{**page, 'positions': [{'quest': 'missing', 'x': 0, 'y': 0}]}]}
             assert (await client.post('/api/v1/imports/preview', json=bad)).status_code == 422
             assert (await client.post('/api/v1/imports/preview', json={**document, 'version': 1})).status_code == 422
+            bad_icon = {**document, 'quests': [{'key': 'one', 'title': 'One', 'homePage': 'main', 'iconName': 'emoji:😀😀'}]}
+            assert (await client.post('/api/v1/imports/preview', json=bad_icon)).status_code == 422
     asyncio.run(run())

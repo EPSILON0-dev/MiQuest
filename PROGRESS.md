@@ -1,5 +1,10 @@
 # Progress
 
+## Custom grayscale emoji — 2026-11-19
+
+- Quest imports and editing accept Unicode emoji outside the suggested set, including flags, skin tones and joined sequences. A custom emoji field is available in the editor, and emoji icons render in grayscale. The `emoji` package supplies validation data; newly introduced or nonstandard sequences may require an update.
+- Validation: 110 backend tests passed, with Ruff and strict Pyright; 49 frontend unit tests, lint (existing hook warning), build, and the import/edit/reload browser flow passed. Desktop and narrow editor screenshots were inspected. The test environment has no emoji font, so glyph appearance and grayscale were checked through CSS rather than visually. The build retains its existing chunk-size advisory.
+
 ## Expressive quest generation — 2026-11-19
 
 - Added version 2 project imports with frontend-generated branching, radial and spiral positions and a bypass for explicitly positioned pages. Added per-page layout preferences and edit-mode layout controls, plus a shared emoji catalog and revised generation guidance with branching and multi-page examples. Version 1 import files are intentionally no longer accepted; existing named icons and saved projects remain supported.
