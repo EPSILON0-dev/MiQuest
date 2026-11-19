@@ -97,7 +97,7 @@ test("create, validate dependency, protect last appearance, and delete quest", a
   page.once("dialog", (dialog) => dialog.accept());
   await page.getByRole("button", { name: "Delete quest everywhere" }).click();
   await expect(page.locator(".quest-node")).toHaveCount(8);
-  await page.getByRole("button", { name: "Tree actions" }).click();
+  await page.getByRole("button", { name: "Workspace", exact: true }).click();
   await page
     .getByLabel("Prerequisite quest", { exact: true })
     .selectOption(ids.research);
@@ -275,7 +275,7 @@ test("tree deletion moves orphaned quests to the chosen tree even with duplicate
   await page.goto("/");
   await page.getByRole("switch", { name: "Edit mode" }).click();
   await page
-    .getByRole("button", { name: "Workspace settings", exact: true })
+    .getByRole("button", { name: "Workspace", exact: true })
     .click();
   const name = page.getByRole("textbox", { name: "New tree name" });
   await name.fill("Launch path");
@@ -315,7 +315,7 @@ test("narrow navigation and journal keep keyboard focus inside", async ({
   await expect(page.locator(".sidebar .brand")).toBeFocused();
   await page.keyboard.press("Shift+Tab");
   await expect(
-    page.getByRole("button", { name: "Workspace settings", exact: true }),
+    page.getByRole("button", { name: "Settings", exact: true }),
   ).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(page.locator(".sidebar .brand")).toBeFocused();

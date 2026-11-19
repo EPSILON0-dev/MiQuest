@@ -68,6 +68,23 @@
           },
           "title": "Quests",
           "type": "array"
+        },
+        "layout": {
+          "default": "branching",
+          "enum": [
+            "branching",
+            "radial",
+            "spiral"
+          ],
+          "title": "Layout",
+          "type": "string"
+        },
+        "positions": {
+          "items": {
+            "$ref": "#/$defs/ImportPosition"
+          },
+          "title": "Positions",
+          "type": "array"
         }
       },
       "required": [
@@ -76,6 +93,36 @@
         "quests"
       ],
       "title": "ImportPage",
+      "type": "object"
+    },
+    "ImportPosition": {
+      "additionalProperties": false,
+      "properties": {
+        "quest": {
+          "maxLength": 200,
+          "minLength": 1,
+          "title": "Quest",
+          "type": "string"
+        },
+        "x": {
+          "maximum": 1000000,
+          "minimum": -1000000,
+          "title": "X",
+          "type": "number"
+        },
+        "y": {
+          "maximum": 1000000,
+          "minimum": -1000000,
+          "title": "Y",
+          "type": "number"
+        }
+      },
+      "required": [
+        "quest",
+        "x",
+        "y"
+      ],
+      "title": "ImportPosition",
       "type": "object"
     },
     "ImportQuest": {
@@ -113,26 +160,7 @@
         },
         "iconName": {
           "default": "compass",
-          "enum": [
-            "book-open",
-            "box",
-            "check-circle",
-            "compass",
-            "flag",
-            "globe",
-            "home",
-            "layers",
-            "lightbulb",
-            "message-circle",
-            "palette",
-            "pen-tool",
-            "rocket",
-            "search",
-            "send",
-            "sparkles",
-            "sun",
-            "users"
-          ],
+          "description": "A bundled icon name or emoji: followed by one Unicode emoji.",
           "title": "Iconname",
           "type": "string"
         },
@@ -154,12 +182,17 @@
   "additionalProperties": false,
   "properties": {
     "version": {
-      "const": 1,
+      "const": 2,
       "title": "Version",
       "type": "integer"
     },
     "project": {
       "$ref": "#/$defs/CreateProject"
+    },
+    "bypassAutoLayout": {
+      "default": false,
+      "title": "Bypassautolayout",
+      "type": "boolean"
     },
     "pages": {
       "items": {

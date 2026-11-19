@@ -267,15 +267,9 @@ p {
   color: var(--muted);
   font-size: 11px;
 }
-.settings-button > svg:last-child {
-  margin-left: auto;
-}
-.app-settings-button {
+.sidebar-footer {
   margin-top: auto;
   border-top: 1px solid var(--border-subtle);
-}
-.app-settings-button > svg:last-child {
-  margin-left: 0;
 }
 .main {
   flex: 1;
@@ -316,6 +310,20 @@ p {
   display: flex;
   align-items: center;
   gap: 6px;
+}
+.layout-select {
+  width: auto;
+  padding: 6px 8px;
+  border-color: var(--border-subtle);
+  border-radius: var(--radius);
+  background-color: transparent;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+.layout-select:hover {
+  color: var(--text);
+  background-color: var(--surface-hover);
 }
 .button {
   display: inline-flex;
@@ -427,7 +435,11 @@ p {
   border-radius: 50%;
   box-shadow: 0 2px 5px #0003;
 }
-.quest-node > svg {
+.quest-emoji {
+  filter: grayscale(1);
+}
+.quest-node > svg,
+.quest-node > .quest-emoji {
   position: relative;
   z-index: 1;
 }
@@ -1210,6 +1222,10 @@ p {
   }
   .top-actions {
     gap: 2px;
+    flex-wrap: wrap;
+  }
+  .layout-select {
+    min-width: 105px;
   }
   .layout-action {
     padding: 5px;

@@ -1,5 +1,5 @@
 from alembic import context
-from sqlalchemy import engine_from_config, pool
+from sqlalchemy import engine_from_config, inspect, pool
 from sqlalchemy.engine import Connection
 
 from miquest.models import Base
@@ -10,9 +10,17 @@ config = context.config
 def run_migrations(connection: Connection) -> None:
     with connection.begin():
         connection.exec_driver_sql("BEGIN")
+        config.attributes.pop('legacy_revision', None)
+        if inspect(connection).has_table('alembic_version'):
+            versions = connection.exec_driver_sql('SELECT version_num FROM alembic_version').scalars().all()
+            if len(versions) == 1 and versions[0] in ('0001_initial', '0002_review_runs'):
+                config.attributes['legacy_revision'] = versions[0]
+                connection.exec_driver_sql('DELETE FROM alembic_version')
         context.configure(connection=connection, target_metadata=Base.metadata, transactional_ddl=True)
         with context.begin_transaction():
             context.run_migrations()
+        if 'legacy_revision' in config.attributes:
+            raise RuntimeError('Legacy databases must be upgraded to head first')
 
 
 if context.is_offline_mode():

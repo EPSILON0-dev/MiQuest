@@ -274,12 +274,13 @@ export async function persistModel(
         page.projectId,
         `/projects/${id(page.projectId)}/pages`,
         "POST",
-        { name: page.name },
+        { name: page.name, layout: page.layout ?? "branching" },
       );
       ids[page.id] = created.id;
-    } else if (before.name !== page.name)
+    } else if (before.name !== page.name || before.layout !== page.layout)
       await mutate(page.projectId, `/pages/${id(page.id)}`, "PATCH", {
         name: page.name,
+        layout: page.layout ?? "branching",
       });
   }
   for (const quest of next.quests) {
@@ -519,6 +520,11 @@ export async function saveTreeDraft(
     milestone: quest.milestone,
     homePageId: quest.homePageId,
   });
+  for (const page of next.pages.filter((p) => p.projectId === projectId)) {
+    const previous = old.pages.find((p) => p.id === page.id);
+    if (previous && (previous.layout ?? "branching") !== (page.layout ?? "branching"))
+      add("update_page", { pageId: page.id, name: page.name, layout: page.layout ?? "branching" });
+  }
   for (const quest of next.quests.filter(
     (q) => q.projectId === projectId && !questExists(old, q.id),
   )) {

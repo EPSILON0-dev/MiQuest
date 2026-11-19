@@ -245,18 +245,22 @@ def list_pages(db: Session, project_id: str) -> list[Page]:
 
 
 @mutation
-def create_page(db: Session, project_id: str, name: str, expected_revision: int | None=None) -> Page:
+def create_page(db: Session, project_id: str, name: str, expected_revision: int | None=None, layout: str='branching') -> Page:
     p = project(db, project_id, expected_revision)
-    page = Page(id=str(uuid4()), project_id=p.id, name=text(name, 200, True), created_at=now(), updated_at=now())
+    if layout not in ('branching', 'radial', 'spiral'): fail('invalid_input')
+    page = Page(layout=layout, id=str(uuid4()), project_id=p.id, name=text(name, 200, True), created_at=now(), updated_at=now())
     db.add(page); changed(p)
     return page
 
 
 @mutation
-def update_page(db: Session, page_id: str, name: str, expected_revision: int | None=None) -> Page:
+def update_page(db: Session, page_id: str, name: str, expected_revision: int | None=None, layout: str | None=None) -> Page:
     page = get(db, Page, page_id, 'page_not_found'); p = project(db, page.project_id, expected_revision)
     name = text(name, 200, True)
-    if page.name != name: page.name = name; page.updated_at = now(); changed(p)
+    if layout is None: layout = page.layout
+    if layout not in ('branching', 'radial', 'spiral'): fail('invalid_input')
+    if page.name != name or page.layout != layout:
+        page.name = name; page.layout = layout; page.updated_at = now(); changed(p)
     return page
 
 
@@ -274,8 +278,8 @@ def validate_quest_fields(fields: dict[str, object]) -> None:
     if 'work_state' in fields and fields['work_state'] not in ('not_started', 'in_progress', 'blocked'): fail('invalid_input')
     if 'milestone' in fields and not isinstance(fields['milestone'], bool): fail('invalid_input')
     if 'icon_name' in fields:
-        from .icons import ICON_NAMES
-        if fields['icon_name'] not in ICON_NAMES: fail('invalid_icon')
+        from .icons import valid_icon
+        if not valid_icon(fields['icon_name']): fail('invalid_icon')
 
 
 @mutation
@@ -637,6 +641,7 @@ def save_tree_draft(db: Session, project_id: str, expected_revision: int, operat
     project(db, project_id, expected_revision)
     ids: dict[str, str] = {}
     definitions: dict[str, tuple[type[schemas.Input], tuple[str, ...]]] = {
+        'update_page': (schemas.PageRequest, ('pageId',)),
         'create_quest': (schemas.CreateQuest, ()),
         'update_quest': (schemas.UpdateQuest, ('questId',)),
         'delete_quest': (schemas.DeleteRequest, ('questId',)),

@@ -1,5 +1,31 @@
 # Progress
 
+## Orphan quest guidance — 2026-11-19
+
+- Updated the project-generation skill to review isolated quests and page views, prefer real dependencies or integration outcomes, and explain genuinely independent quests.
+- Validation: the skill validator and `git diff --check` passed. No application or visual changes.
+
+## Workspace and toolbar polish — 2026-11-19
+
+- Renamed Workspace settings to Workspace in English and Polish, gave Workspace and Import distinct icons, moved Settings below Workspace, removed both redundant ellipsis controls, and matched the layout selector to the toolbar with Auto layout to its left.
+- Validation: frontend build, 49 unit tests, and lint passed (existing hook dependency warning). Browser checks passed for editing, layout, sidebar and prototype flows; the narrow keyboard-focus test was updated for Settings' new position and passed on rerun. Desktop and narrow screenshots were inspected. The build retains its existing chunk-size advisory.
+
+## Emoji catalog removal — 2026-11-19
+
+- Removed the hard-coded emoji suggestion lists from the editor and icon API. Custom emoji remain supported. Replaced unrelated example icons with symbols for their actual work, and clarified the generation guidance.
+- Validation: 109 backend tests, Ruff, 49 frontend unit tests, the production build, lint (existing hook warning), and the import/edit/reload browser test passed. Desktop and narrow editor screenshots were inspected; emoji glyphs cannot be visually checked in this environment because it has no emoji font. The build retains its existing chunk-size advisory.
+
+## Custom grayscale emoji — 2026-11-19
+
+- Quest imports and editing accept Unicode emoji outside the suggested set, including flags, skin tones and joined sequences. A custom emoji field is available in the editor, and emoji icons render in grayscale. The `emoji` package supplies validation data; newly introduced or nonstandard sequences may require an update.
+- Validation: 110 backend tests passed, with Ruff and strict Pyright; 49 frontend unit tests, lint (existing hook warning), build, and the import/edit/reload browser flow passed. Desktop and narrow editor screenshots were inspected. The test environment has no emoji font, so glyph appearance and grayscale were checked through CSS rather than visually. The build retains its existing chunk-size advisory.
+
+## Expressive quest generation — 2026-11-19
+
+- Added version 2 project imports with frontend-generated branching, radial and spiral positions and a bypass for explicitly positioned pages. Added per-page layout preferences and edit-mode layout controls, plus a shared emoji catalog and revised generation guidance with branching and multi-page examples. Version 1 import files are intentionally no longer accepted; existing named icons and saved projects remain supported.
+- Consolidated server migrations into one baseline. Databases at the former 0001 or 0002 revisions upgrade transactionally; databases already at 0003 remain current. Historical revisions are no longer downgrade targets. Tests cover fresh databases, all three previous stamps, failed-upgrade rollback and unknown revisions; no existing project data was reset.
+- Validation: after consolidation, 109 backend tests passed; backend Ruff and strict Pyright passed. Frontend build, lint (existing hook warning), 48 unit tests, and all 45 browser tests passed. Desktop and narrow import/layout screenshots were inspected; a narrow selector clipping issue and an emoji stacking issue were corrected. The browser environment has no emoji font, so visible emoji glyph rendering could not be confirmed there. The build retains its existing large-chunk advisory.
+
 ## Current status — 2026-11-18
 
 - The approved frontend, backend, verification pipeline, English and Polish interface, and single-container deployment are implemented. Verification pipeline [PR #12](https://github.com/EPSILON0-dev/MiQuest/pull/12) and review retry/settings [PR #13](https://github.com/EPSILON0-dev/MiQuest/pull/13) are merged.

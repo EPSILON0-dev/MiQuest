@@ -201,3 +201,62 @@ def test_schema_check_uses_current_migration_heads(tmp_path: Path, monkeypatch: 
         sql(connection, "UPDATE alembic_version SET version_num='future_revision'")
     with make_session_factory(engine)() as session:
         assert check_schema(session)
+
+
+@pytest.mark.parametrize('revision', ['0001_initial', '0002_review_runs', '0003_page_layout'])
+def test_upgrade_previous_revision_preserves_data(tmp_path: Path, revision: str) -> None:
+    engine = create_engine_for_path(tmp_path / 'old.sqlite')
+    config = Config()
+    config.set_main_option('script_location', 'miquest:migrations')
+    legacy_config = Config()
+    legacy_config.set_main_option('script_location', str(Path(__file__).parent / 'fixtures/legacy_migrations'))
+    with engine.connect() as connection:
+        legacy_config.attributes['connection'] = connection
+        command.upgrade(legacy_config, revision)
+        with connection.begin():
+            seed(connection)
+        config.attributes['connection'] = connection
+        command.upgrade(config, 'head')
+        assert sql(connection, 'SELECT count(*) FROM quests').scalar_one() == 2
+        assert sql(connection, "SELECT layout FROM pages WHERE id='p1page'").scalar_one() == 'branching'
+        assert sql(connection, 'PRAGMA foreign_key_check').all() == []
+
+
+def test_legacy_upgrade_failure_preserves_revision_and_data(tmp_path: Path) -> None:
+    engine = create_engine_for_path(tmp_path / 'old_failure.sqlite')
+    legacy_config = Config()
+    legacy_config.set_main_option('script_location', str(Path(__file__).parent / 'fixtures/legacy_migrations'))
+    config = Config()
+    config.set_main_option('script_location', 'miquest:migrations')
+    with engine.connect() as connection:
+        legacy_config.attributes['connection'] = connection
+        command.upgrade(legacy_config, '0002_review_runs')
+        with connection.begin():
+            seed(connection)
+            connection.exec_driver_sql('ALTER TABLE pages ADD COLUMN layout TEXT')
+        config.attributes['connection'] = connection
+        with pytest.raises(Exception, match='duplicate column name'):
+            command.upgrade(config, 'head')
+        assert sql(connection, 'SELECT version_num FROM alembic_version').scalar_one() == '0002_review_runs'
+        assert sql(connection, 'SELECT count(*) FROM quests').scalar_one() == 2
+
+
+def test_legacy_downgrade_and_unknown_revision_are_rejected(tmp_path: Path) -> None:
+    engine = create_engine_for_path(tmp_path / 'unknown.sqlite')
+    legacy_config = Config()
+    legacy_config.set_main_option('script_location', str(Path(__file__).parent / 'fixtures/legacy_migrations'))
+    config = Config()
+    config.set_main_option('script_location', 'miquest:migrations')
+    with engine.connect() as connection:
+        legacy_config.attributes['connection'] = connection
+        command.upgrade(legacy_config, '0001_initial')
+        config.attributes['connection'] = connection
+        with pytest.raises(RuntimeError, match='must be upgraded'):
+            command.downgrade(config, 'base')
+        assert sql(connection, 'SELECT version_num FROM alembic_version').scalar_one() == '0001_initial'
+        connection.commit()
+        with connection.begin():
+            connection.exec_driver_sql("UPDATE alembic_version SET version_num='future_revision'")
+        with pytest.raises(Exception, match='future_revision'):
+            command.upgrade(config, 'head')
+        assert sql(connection, 'SELECT version_num FROM alembic_version').scalar_one() == 'future_revision'

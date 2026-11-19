@@ -13,6 +13,7 @@ dependencies = [
   "alembic>=1.14,<2",
   "pillow>=11,<14",
   "python-multipart>=0.0.20,<1",
+  "emoji>=2.15,<3",
 ]
 
 [project.optional-dependencies]

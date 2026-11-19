@@ -29,10 +29,11 @@ class Project(Base):
 
 class Page(Base):
     __tablename__ = "pages"
-    __table_args__ = (UniqueConstraint("id", "project_id"), CheckConstraint("length(trim(name)) BETWEEN 1 AND 200"), Index("ix_pages_project", "project_id"))
+    __table_args__ = (UniqueConstraint("id", "project_id"), CheckConstraint("length(trim(name)) BETWEEN 1 AND 200"), CheckConstraint("layout IN ('branching', 'radial', 'spiral')"), Index("ix_pages_project", "project_id"))
     id: Mapped[str] = mapped_column(Text, primary_key=True)
     project_id: Mapped[str] = mapped_column(Text, ForeignKey("projects.id", ondelete="CASCADE"))
     name: Mapped[str] = mapped_column(Text)
+    layout: Mapped[str] = mapped_column(Text, server_default="branching")
     created_at: Mapped[str] = mapped_column(Text)
     updated_at: Mapped[str] = mapped_column(Text)
 

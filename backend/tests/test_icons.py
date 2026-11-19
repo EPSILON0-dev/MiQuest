@@ -10,3 +10,12 @@ def test_backend_icon_names_match_frontend_registry() -> None:
     frontend_names = set(re.findall(r'^\s*["\']?([\w-]+)["\']?:', registry, re.MULTILINE))
     assert set(ICON_NAMES) == frontend_names
     assert 'compass' in ICON_NAMES
+
+
+def test_validate_single_emoji_grapheme() -> None:
+    from miquest.icons import valid_icon
+
+    for value in ('emoji:🦊', 'emoji:👍🏽', 'emoji:🇵🇱', 'emoji:👨‍👩‍👧‍👦', 'emoji:1️⃣', 'emoji:🏳️‍🌈'):
+        assert valid_icon(value), value
+    for value in ('emoji:', 'emoji:hello', 'emoji:😀😀', 'emoji:1', 'emoji:🏽', 'emoji:🇵', 'emoji:😀x'):
+        assert not valid_icon(value), value

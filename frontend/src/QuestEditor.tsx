@@ -162,6 +162,9 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
           value={draft.icon}
           onChange={(event) => setDraft({ ...draft, icon: event.target.value })}
         >
+          {!iconNames.includes(draft.icon) && (
+            <option value={draft.icon}>{draft.icon.startsWith("emoji:") ? draft.icon.slice(6) : draft.icon}</option>
+          )}
           {iconNames
             .filter(
               (name) =>
@@ -174,6 +177,13 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
               </option>
             ))}
         </select>
+      </label>
+      <label className="field">
+        {t.customEmoji}
+        <input
+          value={draft.icon.startsWith("emoji:") ? draft.icon.slice(6) : ""}
+          onChange={(event) => setDraft({ ...draft, icon: event.target.value ? `emoji:${event.target.value}` : "compass" })}
+        />
       </label>
       <span aria-hidden="true">
         <QuestIcon name={draft.icon} size={20} />

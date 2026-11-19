@@ -13,6 +13,10 @@
 - [x] Add repository instructions, roadmap, README, and progress log.
 - [x] Commit documentation and publish a private GitHub repository.
 
+## Expressive quest generation
+- [x] Support emoji and per-page branching, radial and spiral layouts in version 2 imports and the editor.
+- [x] Improve the project-generation skill with decomposition, parallelism, examples and a quality checklist.
+
 ## Phase A — interactive UI prototype
 - [x] Build the fixture-based React graph UI, navigation, quest modal, and editing interactions.
 - [x] Implement the dense icon-only redesign, responsive views, pins, shared quests, and viewport restoration.

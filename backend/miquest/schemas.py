@@ -8,6 +8,7 @@ Text = Annotated[str, StringConstraints(max_length=100000)]
 Reason = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=20000)]
 Coordinate = Annotated[float, Field(ge=-1000000, le=1000000, allow_inf_nan=False, strict=True)]
 Revision = Annotated[int, Field(ge=0, strict=True)]
+Layout = Literal['branching', 'radial', 'spiral']
 WorkState = Literal['not_started', 'in_progress', 'blocked']
 
 
@@ -41,6 +42,7 @@ class UpdateProject(RevisionRequest):
 
 class PageRequest(RevisionRequest):
     name: Name
+    layout: Layout | None = None
 
 
 class PositionRequest(RevisionRequest):
@@ -136,7 +138,7 @@ class AgentVerification(RevisionRequest):
 
 
 class DraftOperation(Input):
-    operation: Literal['create_quest', 'update_quest', 'delete_quest', 'add_quest_to_page',
+    operation: Literal['update_page', 'create_quest', 'update_quest', 'delete_quest', 'add_quest_to_page',
                        'update_quest_appearance', 'remove_quest_from_page', 'update_page_positions',
                        'add_dependency', 'remove_dependency']
     arguments: dict[str, object]

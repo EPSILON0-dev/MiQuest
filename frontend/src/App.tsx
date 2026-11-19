@@ -27,17 +27,18 @@ import {
   type ReactFlowInstance,
   type Viewport,
 } from "@xyflow/react";
-import dagre from "@dagrejs/dagre";
+import { layoutQuests, type Layout } from "./layout";
 import {
   ArrowUpRight,
   ArrowRight,
   ChevronDown,
   ChevronRight,
   GitBranch,
+  FolderKanban,
+  FileUp,
   Layers,
   LayoutGrid,
   Menu,
-  MoreHorizontal,
   Pin,
   Plus,
   Settings,
@@ -869,39 +870,17 @@ function Workspace({ initial }: { initial: LoadedModel }) {
     setError("");
   }
   function autoLayout() {
-    const graph = new dagre.graphlib.Graph()
-      .setGraph({ rankdir: "LR", nodesep: 35, ranksep: 55 })
-      .setDefaultEdgeLabel(() => ({}));
-    pageQuests.forEach((q) => {
-      const size = q.milestone ? 72 : 52;
-      graph.setNode(q.id, { width: size, height: size });
-    });
-    model.dependencies
-      .filter(
-        (d) =>
-          pageQuests.some((q) => q.id === d.questId) &&
-          pageQuests.some((q) => q.id === d.dependsOnQuestId),
-      )
-      .forEach((d) => graph.setEdge(d.dependsOnQuestId, d.questId));
-    dagre.layout(graph);
+    const positions = layoutQuests(
+      pageQuests,
+      model.dependencies,
+      page?.layout ?? "branching",
+    );
     setModel({
       ...model,
-      appearances: model.appearances.map((a) =>
-        a.pageId === pageId
-          ? {
-              ...a,
-              x:
-                graph.node(a.questId).x -
-                (model.quests.find((q) => q.id === a.questId)?.milestone
-                  ? 36
-                  : 26),
-              y:
-                graph.node(a.questId).y -
-                (model.quests.find((q) => q.id === a.questId)?.milestone
-                  ? 36
-                  : 26),
-            }
-          : a,
+      appearances: model.appearances.map((appearance) =>
+        appearance.pageId === pageId && positions[appearance.questId]
+          ? { ...appearance, ...positions[appearance.questId] }
+          : appearance,
       ),
     });
     window.setTimeout(
@@ -1360,46 +1339,47 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               </div>
             ))}
           </nav>
-          <button
-            className="settings-button app-settings-button"
-            onClick={() =>
-              guard(() => {
-                markReturnFocus();
-                setAppSettings(true);
-              })
-            }
-          >
-            <Settings size={17} /> {t.appSettings}
-          </button>
-          {editMode && (
+          <div className="sidebar-footer">
+            {editMode && (
+              <button
+                className="settings-button"
+                onClick={() =>
+                  guard(() => {
+                    markReturnFocus();
+                    setImporting(true);
+                  })
+                }
+              >
+                <FileUp size={17} /> {t.importProject}
+              </button>
+            )}
+            {editMode && (
+              <button
+                className="settings-button"
+                onClick={() => {
+                  guard(() => {
+                    markReturnFocus();
+                    if (project)
+                      void prepareQuestList(project.id).catch(handleLookupError);
+                    openManagement();
+                  });
+                }}
+              >
+                <FolderKanban size={17} /> {t.settings}
+              </button>
+            )}
             <button
               className="settings-button"
               onClick={() =>
                 guard(() => {
                   markReturnFocus();
-                  setImporting(true);
+                  setAppSettings(true);
                 })
               }
             >
-              {t.importProject}
+              <Settings size={17} /> {t.appSettings}
             </button>
-          )}
-          {editMode && (
-            <button
-              className="settings-button"
-              onClick={() => {
-                guard(() => {
-                  markReturnFocus();
-                  if (project)
-                    void prepareQuestList(project.id).catch(handleLookupError);
-                  openManagement();
-                });
-              }}
-            >
-              <Settings size={17} /> {t.settings}
-              <MoreHorizontal size={17} />
-            </button>
-          )}
+          </div>
         </aside>
         <main className="main" inert={drawer || undefined}>
           <header className={`topbar ${dirty ? "has-draft" : ""}`}>
@@ -1461,6 +1441,26 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     <LayoutGrid size={15} />
                     <span>{t.autoLayout}</span>
                   </button>
+                  <select
+                    className="layout-select"
+                    aria-label={t.layoutLabel}
+                    value={page?.layout ?? "branching"}
+                    disabled={!page || !loadedPages.has(pageId)}
+                    onChange={(event) =>
+                      setModel({
+                        ...model,
+                        pages: model.pages.map((item) =>
+                          item.id === pageId
+                            ? { ...item, layout: event.target.value as Layout }
+                            : item,
+                        ),
+                      })
+                    }
+                  >
+                    <option value="branching">{t.branching}</option>
+                    <option value="radial">{t.radial}</option>
+                    <option value="spiral">{t.spiral}</option>
+                  </select>
                   <button
                     className="button button-secondary"
                     onClick={newQuest}
@@ -1468,22 +1468,6 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                   >
                     <Plus size={15} />
                     <span>{t.addQuest}</span>
-                  </button>
-                  <button
-                    className="icon-button"
-                    aria-label={t.treeActions}
-                    onClick={() => {
-                      guard(() => {
-                        markReturnFocus();
-                        if (project)
-                          void prepareQuestList(project.id).catch(
-                            handleLookupError,
-                          );
-                        openManagement();
-                      });
-                    }}
-                  >
-                    <MoreHorizontal size={18} />
                   </button>
                 </>
               )}
