@@ -85,7 +85,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 ### Main layout
 
 - **Left sidebar:** collapsible projects/progressions revealing their pages/trees. Settings at the bottom; no account controls.
-- **Settings:** Language and OpenRouter verification settings are available outside Edit mode. Project and tree management remains in Edit-mode workspace settings. The reviewer model catalog is searchable by name and ID.
+- **Settings:** Language and OpenRouter verification settings are available outside Edit mode. Project and tree management remains in the Edit-mode Workspace. The reviewer model catalog is searchable by name and ID.
 - **Top bar:** compact 44px toolbar with current progression/tree and a global Edit mode switch (initially off). Creation and Auto layout controls appear only in Edit mode. Fit view sits at the lower-left of the canvas.
 - **Main canvas:** active tree occupies most of the viewport; understated background; directional dependency edges; smooth pan/zoom; selected node emphasized.
 - **Pinned quests:** manually ordered quest-title shortcuts in a collapsible top-right panel, initially closed, with a pin icon and count. Pins are progression-wide, including quests on other pages; clicking opens the quest on its home tree. Normal mode supports pin/unpin, drag reordering, and keyboard reordering; pins add no separate task-management behavior.
@@ -119,7 +119,7 @@ A polished, dark, graph-centric interface inspired by FTB Minecraft mod quest tr
 - Create/remove dependency via visible controls or connect handles.
 - Drag nodes to position manually; auto-layout button can reorganize on demand.
 - Confirm destructive deletion; display errors for cycle/invalid-edge attempts.
-- In workspace settings, list trees under collapsible projects, with the current project expanded initially and tree creation inside each project.
+- In Workspace, list trees under collapsible projects, with the current project expanded initially and tree creation inside each project.
 - Undo/redo is optional for v1, not a blocker.
 - Keep editor forms simple and keyboard accessible.
 

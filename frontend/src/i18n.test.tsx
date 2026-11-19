@@ -19,7 +19,7 @@ describe("i18n", () => {
 
     act(() => setLocale("pl"));
 
-    expect(screen.getByText("Ustawienia przestrzeni")).toBeTruthy();
+    expect(screen.getByText("Przestrzeń robocza")).toBeTruthy();
     expect(getLocale()).toBe("pl");
     expect(localStorage.getItem("miquest-locale")).toBe("pl");
     expect(document.documentElement.lang).toBe("pl");

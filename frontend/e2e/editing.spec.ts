@@ -3,8 +3,8 @@ import { test, expect } from "./fixtures";
 test("manages trees inside expandable projects", async ({ page }, testInfo) => {
   await page.goto("/");
   await page.getByRole("switch", { name: "Edit mode" }).click();
-  await page.getByRole("button", { name: "Workspace settings" }).click();
-  const dialog = page.getByRole("dialog", { name: "Workspace settings" });
+  await page.getByRole("button", { name: "Workspace" }).click();
+  const dialog = page.getByRole("dialog", { name: "Workspace" });
   const atlas = dialog
     .locator(".manage-project")
     .filter({
@@ -203,7 +203,7 @@ test("creates a first progression and tree in an empty database", async ({
   await page.goto("/");
   await expect(page.getByText("Your next chapter starts here")).toBeVisible();
   await page.getByRole("button", { name: "Enter edit mode" }).click();
-  await page.getByRole("button", { name: "Open workspace settings" }).click();
+  await page.getByRole("button", { name: "Open workspace" }).click();
   const progression = page
     .locator("form")
     .filter({ has: page.getByLabel("New progression name") });

@@ -1,5 +1,10 @@
 # Progress
 
+## Workspace and toolbar polish — 2026-11-19
+
+- Renamed Workspace settings to Workspace in English and Polish, gave Workspace and Import distinct icons, moved Settings below Workspace, removed both redundant ellipsis controls, and matched the layout selector to the toolbar with Auto layout to its left.
+- Validation: frontend build, 49 unit tests, and lint passed (existing hook dependency warning). Browser checks passed for editing, layout, sidebar and prototype flows; the narrow keyboard-focus test was updated for Settings' new position and passed on rerun. Desktop and narrow screenshots were inspected. The build retains its existing chunk-size advisory.
+
 ## Emoji catalog removal — 2026-11-19
 
 - Removed the hard-coded emoji suggestion lists from the editor and icon API. Custom emoji remain supported. Replaced unrelated example icons with symbols for their actual work, and clarified the generation guidance.

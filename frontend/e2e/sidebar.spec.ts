@@ -15,16 +15,16 @@ test("keeps settings and workspace controls together at the bottom", async ({
       .getByRole("button", { name: "Import project" })
       .boundingBox();
     const settings = await sidebar
-      .getByRole("button", { name: "Workspace settings" })
+      .getByRole("button", { name: "Workspace" })
       .boundingBox();
     const bounds = await sidebar.boundingBox();
     expect(appSettings && importer && settings && bounds).toBeTruthy();
-    expect(importer!.y - (appSettings!.y + appSettings!.height)).toBeLessThan(
-      20,
-    );
+    expect(importer!.y).toBeLessThan(settings!.y);
     expect(settings!.y - (importer!.y + importer!.height)).toBeLessThan(20);
+    expect(appSettings!.y - (settings!.y + settings!.height)).toBeLessThan(20);
+    expect(settings!.y).toBeLessThan(appSettings!.y);
     expect(
-      bounds!.y + bounds!.height - (settings!.y + settings!.height),
+      bounds!.y + bounds!.height - (appSettings!.y + appSettings!.height),
     ).toBeLessThan(20);
   }
 

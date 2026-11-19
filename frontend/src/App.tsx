@@ -34,10 +34,11 @@ import {
   ChevronDown,
   ChevronRight,
   GitBranch,
+  FolderKanban,
+  FileUp,
   Layers,
   LayoutGrid,
   Menu,
-  MoreHorizontal,
   Pin,
   Plus,
   Settings,
@@ -1338,46 +1339,47 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               </div>
             ))}
           </nav>
-          <button
-            className="settings-button app-settings-button"
-            onClick={() =>
-              guard(() => {
-                markReturnFocus();
-                setAppSettings(true);
-              })
-            }
-          >
-            <Settings size={17} /> {t.appSettings}
-          </button>
-          {editMode && (
+          <div className="sidebar-footer">
+            {editMode && (
+              <button
+                className="settings-button"
+                onClick={() =>
+                  guard(() => {
+                    markReturnFocus();
+                    setImporting(true);
+                  })
+                }
+              >
+                <FileUp size={17} /> {t.importProject}
+              </button>
+            )}
+            {editMode && (
+              <button
+                className="settings-button"
+                onClick={() => {
+                  guard(() => {
+                    markReturnFocus();
+                    if (project)
+                      void prepareQuestList(project.id).catch(handleLookupError);
+                    openManagement();
+                  });
+                }}
+              >
+                <FolderKanban size={17} /> {t.settings}
+              </button>
+            )}
             <button
               className="settings-button"
               onClick={() =>
                 guard(() => {
                   markReturnFocus();
-                  setImporting(true);
+                  setAppSettings(true);
                 })
               }
             >
-              {t.importProject}
+              <Settings size={17} /> {t.appSettings}
             </button>
-          )}
-          {editMode && (
-            <button
-              className="settings-button"
-              onClick={() => {
-                guard(() => {
-                  markReturnFocus();
-                  if (project)
-                    void prepareQuestList(project.id).catch(handleLookupError);
-                  openManagement();
-                });
-              }}
-            >
-              <Settings size={17} /> {t.settings}
-              <MoreHorizontal size={17} />
-            </button>
-          )}
+          </div>
         </aside>
         <main className="main" inert={drawer || undefined}>
           <header className={`topbar ${dirty ? "has-draft" : ""}`}>
@@ -1431,6 +1433,14 @@ function Workspace({ initial }: { initial: LoadedModel }) {
               )}
               {editMode && (
                 <>
+                  <button
+                    className="button button-quiet layout-action"
+                    onClick={autoLayout}
+                    disabled={!nodes.length}
+                  >
+                    <LayoutGrid size={15} />
+                    <span>{t.autoLayout}</span>
+                  </button>
                   <select
                     className="layout-select"
                     aria-label={t.layoutLabel}
@@ -1452,36 +1462,12 @@ function Workspace({ initial }: { initial: LoadedModel }) {
                     <option value="spiral">{t.spiral}</option>
                   </select>
                   <button
-                    className="button button-quiet layout-action"
-                    onClick={autoLayout}
-                    disabled={!nodes.length}
-                  >
-                    <LayoutGrid size={15} />
-                    <span>{t.autoLayout}</span>
-                  </button>
-                  <button
                     className="button button-secondary"
                     onClick={newQuest}
                     disabled={!page || !loadedPages.has(pageId)}
                   >
                     <Plus size={15} />
                     <span>{t.addQuest}</span>
-                  </button>
-                  <button
-                    className="icon-button"
-                    aria-label={t.treeActions}
-                    onClick={() => {
-                      guard(() => {
-                        markReturnFocus();
-                        if (project)
-                          void prepareQuestList(project.id).catch(
-                            handleLookupError,
-                          );
-                        openManagement();
-                      });
-                    }}
-                  >
-                    <MoreHorizontal size={18} />
                   </button>
                 </>
               )}
