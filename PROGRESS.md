@@ -1,5 +1,10 @@
 # Progress
 
+## Project export — 2026-11-19
+
+- Added a Workspace download control for each project with a tree. It exports the complete project as importable version 2 JSON, including shared quests, cross-tree dependencies, ordered pins and saved positions; Workspace and the README explain that progress, verification history and evidence are excluded.
+- Validation: frontend unit suite (50 tests), production build, and lint passed (existing hook dependency warning). Browser tests downloaded and reimported a multi-tree project with shared quests and checked coordinates, then verified export error handling. Desktop and narrow Workspace screenshots were inspected. No backend behavior changed.
+
 ## Orphan quest guidance — 2026-11-19
 
 - Updated the project-generation skill to review isolated quests and page views, prefer real dependencies or integration outcomes, and explain genuinely independent quests.
@@ -207,3 +212,7 @@ Limits: fixture edits reset after reload; only view context persists. Chromium d
 
 - Backend binds to `0.0.0.0`, accepts arbitrary hostnames, and no longer exposes bind or host-allowlist flags. Compose publishes port 8080 on all interfaces. Same-origin mutation and request validation remain in place.
 - Validation: backend regression reproduced the previous 400; all 102 backend tests passed; Compose configuration validated; a live server listened on `0.0.0.0` and returned 200 for a remote Host header. Screenshots were not applicable to this backend/deployment change.
+## Export progress and text evidence — 2026-11-19
+
+- Version 2 exports now include each quest's work/completion states and full verification records, including text evidence and snapshots. Import restores those states and records, creates fresh verification IDs, and remaps quest/event references in historical snapshots. Attachment files remain excluded and are called out in the UI and README.
+- Validation: frontend unit suite passed (51 tests), production build passed (with the existing large-chunk advisory), and focused Playwright export/import plus failure handling passed (2). Backend import tests passed (4), Ruff and strict Pyright passed. Desktop and narrow Workspace screenshots were inspected. Frontend lint has one existing hook dependency warning in `App.tsx`.

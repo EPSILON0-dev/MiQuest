@@ -28,6 +28,19 @@ export async function createImport(document: object): Promise<void> {
   await request("/imports", "POST", document);
 }
 
+export async function loadProjectGraph(projectId: string): Promise<Omit<Model, "projects" | "verifications"> & { project: Project; revision: number }> {
+  const response = await request<Omit<Model, "projects" | "verifications"> & { project: Project }>(`/projects/${encodeURIComponent(projectId)}/graph`);
+  if (response.projectRevision === undefined) throw new Error("Missing project revision");
+  return { ...response.data, revision: response.projectRevision };
+}
+
+export async function loadProjectVerifications(quests: Quest[], revision: number): Promise<Verification[]> {
+  const histories = await Promise.all(quests.map((quest) => loadVerificationHistory(quest.id)));
+  if (histories.some((history) => history.revision !== revision))
+    throw new ApiError("stale_revision", "Project changed while exporting", 409);
+  return histories.flatMap((history) => history.items);
+}
+
 export class ApiError extends Error {
   code: string;
   status: number;
