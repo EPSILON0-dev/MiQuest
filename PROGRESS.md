@@ -1,5 +1,10 @@
 # Progress
 
+## Orphan quest guidance — 2026-11-19
+
+- Updated the project-generation skill to review isolated quests and page views, prefer real dependencies or integration outcomes, and explain genuinely independent quests.
+- Validation: the skill validator and `git diff --check` passed. No application or visual changes.
+
 ## Workspace and toolbar polish — 2026-11-19
 
 - Renamed Workspace settings to Workspace in English and Polish, gave Workspace and Import distinct icons, moved Settings below Workspace, removed both redundant ellipsis controls, and matched the layout selector to the toolbar with Auto layout to its left.

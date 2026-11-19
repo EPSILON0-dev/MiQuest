@@ -11,6 +11,8 @@ For substantial projects, first break the outcome into major components, then re
 
 Add an edge only when the dependent quest cannot reasonably be completed without its prerequisite. Seek useful parallel work, including independent branches that converge on an integration quest. Review component interfaces and add real cross-component dependencies and integration work. Never add dependencies just to make a shape or impose a generic plan-then-build sequence.
 
+Avoid orphan quests with no prerequisites or dependents in the project graph. For each orphan, look for a genuine dependency or a missing integration outcome; connect it only when that dependency is real. A starting quest with dependents is not an orphan, and a quest whose links are on another page is not disconnected. Also review quests that look isolated on a page and include relevant linked quests on that page when useful. If a quest is genuinely independent, retain it and explain why in the delivery summary rather than inventing an edge.
+
 Use meaningful milestones for completed outcomes and link their real prerequisites. Use pages for useful component or overview views, not arbitrary size limits. Shared quests are one identity on multiple pages; include each quest in its home page. Choose the layout that suits each page: branching for independent branches, radial for a central outcome surrounded by components, or spiral for genuinely sequential work.
 
 ## Write quests
@@ -21,4 +23,4 @@ Use short, generally named titles and descriptions that explain the specific sco
 
 Use unique page and quest keys. Each dependency's `quest` depends on `dependsOn`; reject self-dependencies and cycles. Use supported icon names or `emoji:` followed by any emoji. Normally omit positions and leave `bypassAutoLayout` false so the frontend lays out each page. If `bypassAutoLayout` is true, supply finite positions for every appearance on every page. Do not include database IDs, completion states, or verification history. Pins are optional quest keys in display order.
 
-Check the decomposition, granularity, true blockers, parallelism, integration, milestone criteria, icon variety, observable requirements, references and graph validity. Validate the JSON against the schema. Present a compact text outline of pages, shapes, major branches, counts and material assumptions alongside the file. Tell the user to select it in MiQuest's import dialog and review the summary before confirming.
+Check the decomposition, granularity, true blockers, parallelism, integration, orphan quests, milestone criteria, icon variety, observable requirements, references and graph validity. Validate the JSON against the schema. Present a compact text outline of pages, shapes, major branches, counts and material assumptions alongside the file. Tell the user to select it in MiQuest's import dialog and review the summary before confirming.
