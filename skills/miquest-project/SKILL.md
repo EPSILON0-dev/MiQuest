@@ -15,7 +15,7 @@ Use meaningful milestones for completed outcomes and link their real prerequisit
 
 ## Write quests
 
-Use short, generally named titles and descriptions that explain the specific scope. Write observable acceptance criteria as plain-text bullet points, each `Generic label — specific outcome`. Keep small details in the criteria when they do not need separate dependencies or verification. Choose an explicit, relevant supported icon or emoji for every quest; prefer different emoji on a page, but repeat them when appropriate. Shared quests keep the same icon everywhere.
+Use short, generally named titles and descriptions that explain the specific scope. Write observable acceptance criteria as plain-text bullet points, each `Generic label — specific outcome`. Keep small details in the criteria when they do not need separate dependencies or verification. Choose an explicit icon or emoji that depicts the quest's actual work or outcome: for example, a disk for storage or a globe for networking. Avoid decorative symbols chosen merely to look exciting. Prefer different emoji on a page, but repeat them when appropriate. Shared quests keep the same icon everywhere.
 
 ## Validate and deliver
 

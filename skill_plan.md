@@ -26,9 +26,9 @@ Replace the current linear example with a small UI foundation → independent bu
 
 ### 1. Emoji and icons
 
-- Keep existing icon names and saved quests working. Define one unambiguous representation for a supported emoji alongside named icons, with a bounded, documented validation rule or curated catalog shared by import and normal editing. Handle multi-code-point emoji deliberately; reject arbitrary text and unsafe markup. Avoid treating an unknown legacy icon name as emoji.
+- Keep existing icon names and saved quests working. Use the same Unicode emoji validation for imports and normal editing, without a hard-coded suggestion list. Handle multi-code-point emoji deliberately; reject arbitrary text and unsafe markup. Avoid treating an unknown legacy icon name as emoji.
 - Update backend validation for quest creation/editing and import, API contract and icon discovery as appropriate, and the generated import schema. Update the quest renderer and accessible editor picker/input so emoji display consistently in graph nodes, details and other icon locations. Preserve meaningful accessible labels; icons remain decorative where the quest title already labels the control.
-- Decide and document the supported emoji set and fallback for unsupported system glyphs. Test actual rendering at node size on desktop and narrow screens. Do not add uniqueness constraints: repeated emoji are valid user data.
+- Document that emoji support depends on Unicode data and system glyphs. Test actual rendering at node size on desktop and narrow screens. Do not add uniqueness constraints: repeated emoji are valid user data.
 
 ### 2. Page layout metadata and controls
 

@@ -154,7 +154,7 @@ def test_all_rest_operations(tmp_path: Path) -> None:
             await write('PUT', f'/projects/{project}/pin-order', questIds=[quest1])
             assert (await write('DELETE', f'/projects/{project}/pins/{quest1}'))['questId'] == quest1
             names = (await call('GET', '/icons'))['names']
-            assert 'compass' in names and 'emoji:🛠️' in names
+            assert 'compass' in names and all(not name.startswith('emoji:') for name in names)
             assert (await write('DELETE', f'/quests/{quest1}', confirmDelete=True))['deletedId'] == quest1
             assert (await write('DELETE', f'/pages/{page1}', confirmDelete=True, questActions=[]))['deletedId'] == page1
             assert (await write('DELETE', f'/projects/{project}', confirmDelete=True))['deletedId'] == project

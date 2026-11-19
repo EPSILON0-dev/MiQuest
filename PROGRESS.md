@@ -1,5 +1,10 @@
 # Progress
 
+## Emoji catalog removal — 2026-11-19
+
+- Removed the hard-coded emoji suggestion lists from the editor and icon API. Custom emoji remain supported. Replaced unrelated example icons with symbols for their actual work, and clarified the generation guidance.
+- Validation: 109 backend tests, Ruff, 49 frontend unit tests, the production build, lint (existing hook warning), and the import/edit/reload browser test passed. Desktop and narrow editor screenshots were inspected; emoji glyphs cannot be visually checked in this environment because it has no emoji font. The build retains its existing chunk-size advisory.
+
 ## Custom grayscale emoji — 2026-11-19
 
 - Quest imports and editing accept Unicode emoji outside the suggested set, including flags, skin tones and joined sequences. A custom emoji field is available in the editor, and emoji icons render in grayscale. The `emoji` package supplies validation data; newly introduced or nonstandard sequences may require an update.

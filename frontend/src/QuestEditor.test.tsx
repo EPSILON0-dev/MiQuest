@@ -31,8 +31,8 @@ describe("QuestEditor", () => {
   it("selects and saves a multi-code-point emoji icon", () => {
     const model = createFixture();
     const onSave = setup(model.quests[0], model);
-    fireEvent.change(screen.getByLabelText("Icon"), {
-      target: { value: "emoji:🛠️" },
+    fireEvent.change(screen.getByLabelText("Custom emoji"), {
+      target: { value: "🛠️" },
     });
     expect(
       screen.getByText("🛠️", { selector: "span" }).getAttribute("aria-hidden"),

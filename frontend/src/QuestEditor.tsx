@@ -6,7 +6,7 @@ import {
   type QuestState,
 } from "./model";
 import { QuestIcon } from "./icons";
-import { emojiIcons, iconNames } from "./iconNames";
+import { iconNames } from "./iconNames";
 import { useI18n } from "./i18n";
 
 type Props = {
@@ -162,11 +162,10 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
           value={draft.icon}
           onChange={(event) => setDraft({ ...draft, icon: event.target.value })}
         >
-          {!iconNames.includes(draft.icon) &&
-            !emojiIcons.includes(draft.icon) && (
-              <option value={draft.icon}>{draft.icon}</option>
-            )}
-          {[...iconNames, ...emojiIcons]
+          {!iconNames.includes(draft.icon) && (
+            <option value={draft.icon}>{draft.icon.startsWith("emoji:") ? draft.icon.slice(6) : draft.icon}</option>
+          )}
+          {iconNames
             .filter(
               (name) =>
                 name.toLowerCase().includes(iconSearch.toLowerCase()) ||
@@ -174,7 +173,7 @@ export default function QuestEditor({ model, quest, onSave, onCancel }: Props) {
             )
             .map((name) => (
               <option key={name} value={name}>
-                {name.startsWith("emoji:") ? name.slice(6) : name}
+                {name}
               </option>
             ))}
         </select>
